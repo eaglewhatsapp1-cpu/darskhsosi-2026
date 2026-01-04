@@ -14,7 +14,146 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          attachments: string[] | null
+          content: string
+          created_at: string
+          id: string
+          role: string
+          subject_id: string | null
+          user_id: string
+        }
+        Insert: {
+          attachments?: string[] | null
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          subject_id?: string | null
+          user_id: string
+        }
+        Update: {
+          attachments?: string[] | null
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          subject_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          birth_date: string | null
+          created_at: string
+          education_level: string | null
+          id: string
+          interests: string[] | null
+          learning_style: string | null
+          name: string
+          preferred_language: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
+          created_at?: string
+          education_level?: string | null
+          id?: string
+          interests?: string[] | null
+          learning_style?: string | null
+          name: string
+          preferred_language?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
+          created_at?: string
+          education_level?: string | null
+          id?: string
+          interests?: string[] | null
+          learning_style?: string | null
+          name?: string
+          preferred_language?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subjects: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          name_ar: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          name_ar?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          name_ar?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      uploaded_materials: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          storage_path: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          storage_path?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          storage_path?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

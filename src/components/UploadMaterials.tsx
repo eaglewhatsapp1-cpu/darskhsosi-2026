@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useLearner } from '@/contexts/LearnerContext';
+import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   Upload,
   FileText,
@@ -13,11 +13,40 @@ import {
   Loader2,
 } from 'lucide-react';
 
-const UploadMaterials: React.FC = () => {
-  const { t } = useLanguage();
-  const { uploadedMaterials, addUploadedMaterial } = useLearner();
+interface UploadMaterialsProps {
+  language: 'ar' | 'en';
+}
+
+const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
+  const { materials, loading, addMaterial, deleteMaterial } = useUploadedMaterials();
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const t = (key: string) => {
+    const translations: Record<string, Record<string, string>> = {
+      ar: {
+        'sidebar.upload': 'رفع المواد',
+        'upload.description': 'ارفع ملفاتك التعليمية للحصول على تجربة تعلم مخصصة',
+        'upload.dropHere': 'أفلت الملفات هنا',
+        'upload.dragDrop': 'اسحب الملفات وأفلتها هنا',
+        'upload.orClick': 'أو انقر لاختيار الملفات',
+        'upload.supported': 'الملفات المدعومة: TXT, PDF, Word, Markdown, CSV, الصور',
+        'upload.files': 'الملفات المرفوعة',
+        'action.upload': 'رفع',
+      },
+      en: {
+        'sidebar.upload': 'Upload Materials',
+        'upload.description': 'Upload your learning materials for a personalized learning experience',
+        'upload.dropHere': 'Drop files here',
+        'upload.dragDrop': 'Drag and drop files here',
+        'upload.orClick': 'or click to select files',
+        'upload.supported': 'Supported files: TXT, PDF, Word, Markdown, CSV, Images',
+        'upload.files': 'Uploaded Files',
+        'action.upload': 'Upload',
+      },
+    };
+    return translations[language][key] || key;
+  };
 
   const acceptedTypes = [
     '.txt', '.pdf', '.doc', '.docx', '.md', '.csv',
@@ -50,13 +79,29 @@ const UploadMaterials: React.FC = () => {
   const handleFiles = async (files: File[]) => {
     setUploading(true);
     
-    // Simulate upload delay
     for (const file of files) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      addUploadedMaterial(file.name);
+      const { error } = await addMaterial({
+        file_name: file.name,
+        file_type: file.type,
+        file_size: file.size,
+      });
+      
+      if (error) {
+        toast.error(language === 'ar' ? `فشل رفع ${file.name}` : `Failed to upload ${file.name}`);
+      }
     }
     
+    toast.success(language === 'ar' ? 'تم رفع الملفات بنجاح' : 'Files uploaded successfully');
     setUploading(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await deleteMaterial(id);
+    if (error) {
+      toast.error(language === 'ar' ? 'فشل حذف الملف' : 'Failed to delete file');
+    } else {
+      toast.success(language === 'ar' ? 'تم حذف الملف' : 'File deleted');
+    }
   };
 
   const getFileIcon = (filename: string) => {
@@ -70,6 +115,14 @@ const UploadMaterials: React.FC = () => {
     return File;
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full p-6">
       {/* Header */}
@@ -80,9 +133,7 @@ const UploadMaterials: React.FC = () => {
           </div>
           {t('sidebar.upload')}
         </h2>
-        <p className="text-muted-foreground mt-2">
-          {t('chat.uploadFirst')}
-        </p>
+        <p className="text-muted-foreground mt-2">{t('upload.description')}</p>
       </div>
 
       {/* Upload Zone */}
@@ -112,11 +163,9 @@ const UploadMaterials: React.FC = () => {
         </div>
 
         <h3 className="text-lg font-semibold text-foreground mb-2">
-          {isDragging ? 'أفلت الملفات هنا' : 'اسحب الملفات وأفلتها هنا'}
+          {isDragging ? t('upload.dropHere') : t('upload.dragDrop')}
         </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          أو انقر لاختيار الملفات
-        </p>
+        <p className="text-sm text-muted-foreground mb-4">{t('upload.orClick')}</p>
 
         <input
           type="file"
@@ -127,7 +176,7 @@ const UploadMaterials: React.FC = () => {
           className="hidden"
         />
         <label htmlFor="file-upload">
-          <Button variant="outline" className="cursor-pointer" asChild>
+          <Button variant="outline" className="cursor-pointer" asChild disabled={uploading}>
             <span>
               <Upload className="w-4 h-4 me-2" />
               {t('action.upload')}
@@ -135,33 +184,36 @@ const UploadMaterials: React.FC = () => {
           </Button>
         </label>
 
-        <p className="text-xs text-muted-foreground mt-4">
-          الملفات المدعومة: TXT, PDF, Word, Markdown, CSV, الصور
-        </p>
+        <p className="text-xs text-muted-foreground mt-4">{t('upload.supported')}</p>
       </div>
 
       {/* Uploaded Files List */}
-      {uploadedMaterials.length > 0 && (
+      {materials.length > 0 && (
         <div className="mt-6">
           <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-primary" />
-            الملفات المرفوعة ({uploadedMaterials.length})
+            {t('upload.files')} ({materials.length})
           </h3>
           <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
-            {uploadedMaterials.map((file, index) => {
-              const Icon = getFileIcon(file);
+            {materials.map((file) => {
+              const Icon = getFileIcon(file.file_name);
               return (
                 <div
-                  key={index}
+                  key={file.id}
                   className="flex items-center gap-3 p-3 bg-secondary/50 rounded-xl animate-slide-up"
                 >
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Icon className="w-5 h-5 text-primary" />
                   </div>
                   <span className="flex-1 text-sm font-medium text-foreground truncate">
-                    {file}
+                    {file.file_name}
                   </span>
-                  <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="shrink-0 h-8 w-8"
+                    onClick={() => handleDelete(file.id)}
+                  >
                     <X className="w-4 h-4" />
                   </Button>
                 </div>

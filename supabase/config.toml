@@ -1,0 +1,4 @@
+project_id = "pmyojekfbufmbfpjltjn"
+
+[functions.intelligent-teacher]
+verify_jwt = false

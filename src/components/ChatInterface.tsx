@@ -5,6 +5,8 @@ import { ChatMessage } from '@/types/learner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   Send,
   Paperclip,
@@ -15,10 +17,11 @@ import {
 } from 'lucide-react';
 
 const ChatInterface: React.FC = () => {
-  const { t, dir } = useLanguage();
-  const { profile, currentSubject, addMessage, uploadedMaterials } = useLearner();
+  const { t, dir, language } = useLanguage();
+  const { profile, currentSubject, addMessage, uploadedMaterials, setActiveFeature } = useLearner();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -30,7 +33,7 @@ const ChatInterface: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, streamingContent]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -46,25 +49,115 @@ const ChatInterface: React.FC = () => {
       addMessage(currentSubject.id, userMessage);
     }
 
+    const userInput = input.trim();
     setInput('');
     setIsLoading(true);
+    setStreamingContent('');
 
-    // Simulate AI response (will be replaced with actual AI integration)
-    setTimeout(() => {
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: uploadedMaterials.length === 0 
-          ? t('chat.uploadFirst')
-          : `${t('chat.welcome')} ${profile?.name}!`,
-        timestamp: new Date().toISOString(),
-      };
-      
-      if (currentSubject) {
-        addMessage(currentSubject.id, aiMessage);
+    try {
+      // Build message history for context
+      const messageHistory = [
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: userInput }
+      ];
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intelligent-teacher`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            messages: messageHistory,
+            learnerProfile: profile ? {
+              name: profile.name,
+              educationLevel: profile.educationLevel,
+              learningStyle: profile.learningStyle,
+              preferredLanguage: profile.preferredLanguage,
+            } : undefined,
+            uploadedMaterials,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 429) {
+          toast.error(language === 'ar' ? 'تم تجاوز الحد. حاول مرة أخرى لاحقاً.' : 'Rate limit exceeded. Please try again later.');
+        } else if (response.status === 402) {
+          toast.error(language === 'ar' ? 'انتهى الرصيد. يرجى التحقق من حسابك.' : 'Usage limit reached. Please check your account.');
+        } else {
+          toast.error(errorData.error || (language === 'ar' ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Please try again.'));
+        }
+        setIsLoading(false);
+        return;
       }
+
+      // Stream the response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+      let textBuffer = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          textBuffer += decoder.decode(value, { stream: true });
+
+          // Process line-by-line
+          let newlineIndex: number;
+          while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+            let line = textBuffer.slice(0, newlineIndex);
+            textBuffer = textBuffer.slice(newlineIndex + 1);
+
+            if (line.endsWith('\r')) line = line.slice(0, -1);
+            if (line.startsWith(':') || line.trim() === '') continue;
+            if (!line.startsWith('data: ')) continue;
+
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === '[DONE]') break;
+
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+              if (content) {
+                fullContent += content;
+                setStreamingContent(fullContent);
+              }
+            } catch {
+              // Incomplete JSON, put it back
+              textBuffer = line + '\n' + textBuffer;
+              break;
+            }
+          }
+        }
+      }
+
+      // Add the complete AI message
+      if (fullContent) {
+        const aiMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: fullContent,
+          timestamp: new Date().toISOString(),
+        };
+        
+        if (currentSubject) {
+          addMessage(currentSubject.id, aiMessage);
+        }
+      }
+
+      setStreamingContent('');
+    } catch (error) {
+      console.error('Chat error:', error);
+      toast.error(language === 'ar' ? 'حدث خطأ في الاتصال' : 'Connection error occurred');
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -72,6 +165,10 @@ const ChatInterface: React.FC = () => {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleUploadClick = () => {
+    setActiveFeature('upload');
   };
 
   return (
@@ -93,7 +190,7 @@ const ChatInterface: React.FC = () => {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-        {messages.length === 0 ? (
+        {messages.length === 0 && !streamingContent ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-6 animate-float">
               <Sparkles className="w-10 h-10 text-primary" />
@@ -101,62 +198,85 @@ const ChatInterface: React.FC = () => {
             <h3 className="text-xl font-semibold text-foreground mb-2">
               {t('app.welcome')}
             </h3>
-            <p className="text-muted-foreground max-w-md">
+            <p className="text-muted-foreground max-w-md mb-2">
+              {language === 'ar' 
+                ? `مرحباً ${profile?.name}! أنا معلمك الذكي. يمكنني مساعدتك في فهم أي موضوع.`
+                : `Hello ${profile?.name}! I'm your intelligent teacher. I can help you understand any topic.`}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-md">
               {uploadedMaterials.length === 0 
-                ? t('chat.uploadFirst')
-                : t('chat.welcome')}
+                ? (language === 'ar' 
+                    ? 'ارفع مواد تعليمية للحصول على تجربة تعلم مخصصة أكثر.' 
+                    : 'Upload learning materials for a more personalized learning experience.')
+                : (language === 'ar'
+                    ? `لديك ${uploadedMaterials.length} ملفات مرفوعة. اسألني عن أي شيء!`
+                    : `You have ${uploadedMaterials.length} files uploaded. Ask me anything!`)}
             </p>
             {uploadedMaterials.length === 0 && (
-              <Button className="mt-6 gradient-accent" size="lg">
+              <Button className="mt-6 gradient-accent" size="lg" onClick={handleUploadClick}>
                 <Upload className="w-5 h-5 me-2" />
                 {t('sidebar.upload')}
               </Button>
             )}
           </div>
         ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                'flex gap-3 animate-slide-up',
-                message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-              )}
-            >
+          <>
+            {messages.map((message) => (
               <div
+                key={message.id}
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
-                  message.role === 'user'
-                    ? 'gradient-accent'
-                    : 'gradient-primary'
+                  'flex gap-3 animate-slide-up',
+                  message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
                 )}
               >
-                {message.role === 'user' ? (
-                  <User className="w-4 h-4 text-accent-foreground" />
-                ) : (
-                  <Bot className="w-4 h-4 text-primary-foreground" />
-                )}
-              </div>
-              <div
-                className={cn(
-                  'max-w-[75%] px-4 py-3',
-                  message.role === 'user'
-                    ? 'chat-bubble-user'
-                    : 'chat-bubble-ai'
-                )}
-              >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                <span className="text-xs opacity-60 mt-1 block">
-                  {new Date(message.timestamp).toLocaleTimeString(
-                    dir === 'rtl' ? 'ar-SA' : 'en-US',
-                    { hour: '2-digit', minute: '2-digit' }
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                    message.role === 'user'
+                      ? 'gradient-accent'
+                      : 'gradient-primary'
                   )}
-                </span>
+                >
+                  {message.role === 'user' ? (
+                    <User className="w-4 h-4 text-accent-foreground" />
+                  ) : (
+                    <Bot className="w-4 h-4 text-primary-foreground" />
+                  )}
+                </div>
+                <div
+                  className={cn(
+                    'max-w-[75%] px-4 py-3',
+                    message.role === 'user'
+                      ? 'chat-bubble-user'
+                      : 'chat-bubble-ai'
+                  )}
+                >
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <span className="text-xs opacity-60 mt-1 block">
+                    {new Date(message.timestamp).toLocaleTimeString(
+                      dir === 'rtl' ? 'ar-SA' : 'en-US',
+                      { hour: '2-digit', minute: '2-digit' }
+                    )}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+            
+            {/* Streaming message */}
+            {streamingContent && (
+              <div className="flex gap-3 animate-slide-up">
+                <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
+                  <Bot className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <div className="chat-bubble-ai max-w-[75%] px-4 py-3">
+                  <p className="text-sm whitespace-pre-wrap">{streamingContent}</p>
+                </div>
+              </div>
+            )}
+          </>
         )}
         
-        {isLoading && (
+        {isLoading && !streamingContent && (
           <div className="flex gap-3 animate-slide-up">
             <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center">
               <Bot className="w-4 h-4 text-primary-foreground" />
@@ -184,6 +304,7 @@ const ChatInterface: React.FC = () => {
             variant="outline"
             size="icon"
             className="shrink-0 h-12 w-12 rounded-xl"
+            onClick={handleUploadClick}
           >
             <Paperclip className="w-5 h-5" />
           </Button>
@@ -196,6 +317,7 @@ const ChatInterface: React.FC = () => {
               placeholder={t('chat.placeholder')}
               className="min-h-[48px] max-h-[150px] resize-none pe-12 rounded-xl"
               rows={1}
+              disabled={isLoading}
             />
           </div>
           <Button

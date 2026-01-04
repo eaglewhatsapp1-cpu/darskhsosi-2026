@@ -1,7 +1,5 @@
 import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useLearner } from '@/contexts/LearnerContext';
-import { SidebarFeature } from '@/types/learner';
+import { Profile } from '@/hooks/useProfile';
 import { cn } from '@/lib/utils';
 import {
   GraduationCap,
@@ -16,14 +14,22 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
+type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress';
+
 interface AppSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  activeFeature: SidebarFeature;
+  setActiveFeature: (feature: SidebarFeature) => void;
+  profile: Profile;
+  language: 'ar' | 'en';
+  onSignOut: () => void;
 }
 
 const features: { id: SidebarFeature; icon: React.ElementType }[] = [
@@ -38,9 +44,48 @@ const features: { id: SidebarFeature; icon: React.ElementType }[] = [
   { id: 'progress', icon: TrendingUp },
 ];
 
-const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
-  const { t, dir } = useLanguage();
-  const { profile, activeFeature, setActiveFeature } = useLearner();
+const AppSidebar: React.FC<AppSidebarProps> = ({ 
+  collapsed, 
+  onToggle, 
+  activeFeature, 
+  setActiveFeature,
+  profile,
+  language,
+  onSignOut,
+}) => {
+  const dir = language === 'ar' ? 'rtl' : 'ltr';
+
+  const t = (key: string) => {
+    const translations: Record<string, Record<string, string>> = {
+      ar: {
+        'app.name': 'درس خصوصي',
+        'sidebar.teacher': 'المعلم الذكي',
+        'sidebar.upload': 'رفع المواد',
+        'sidebar.mindmap': 'الخريطة الذهنية',
+        'sidebar.simplify': 'تبسيط المفاهيم',
+        'sidebar.summary': 'الملخص',
+        'sidebar.scientist': 'حديث مع عالم',
+        'sidebar.video': 'التعلم بالفيديو',
+        'sidebar.test': 'اختبار الفهم',
+        'sidebar.progress': 'تقدم التعلم',
+        'action.signout': 'تسجيل الخروج',
+      },
+      en: {
+        'app.name': 'Dars Khusoosi',
+        'sidebar.teacher': 'Intelligent Teacher',
+        'sidebar.upload': 'Upload Materials',
+        'sidebar.mindmap': 'Mind Map',
+        'sidebar.simplify': 'Simplify Concept',
+        'sidebar.summary': 'Summary',
+        'sidebar.scientist': 'Talk to Scientist',
+        'sidebar.video': 'Learn with Video',
+        'sidebar.test': 'Understanding Test',
+        'sidebar.progress': 'Learning Progress',
+        'action.signout': 'Sign Out',
+      },
+    };
+    return translations[language][key] || key;
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -49,6 +94,23 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const educationLabels: Record<string, Record<string, string>> = {
+    ar: {
+      elementary: 'ابتدائي',
+      middle: 'متوسط',
+      high: 'ثانوي',
+      university: 'جامعي',
+      professional: 'مهني',
+    },
+    en: {
+      elementary: 'Elementary',
+      middle: 'Middle School',
+      high: 'High School',
+      university: 'University',
+      professional: 'Professional',
+    },
   };
 
   return (
@@ -135,29 +197,52 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ collapsed, onToggle }) => {
         <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
           <Avatar className="w-10 h-10 border-2 border-sidebar-primary">
             <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground font-semibold">
-              {profile ? getInitials(profile.name) : '?'}
+              {getInitials(profile.name)}
             </AvatarFallback>
           </Avatar>
-          {!collapsed && profile && (
+          {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">
                 {profile.name}
               </p>
               <p className="text-xs text-sidebar-foreground/60 truncate">
-                {t(`education.${profile.educationLevel}`)}
+                {profile.education_level && educationLabels[language][profile.education_level]}
               </p>
             </div>
           )}
           {!collapsed && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-sidebar-foreground hover:bg-sidebar-accent shrink-0"
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-sidebar-foreground hover:bg-sidebar-accent shrink-0"
+                  onClick={onSignOut}
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('action.signout')}</TooltipContent>
+            </Tooltip>
           )}
         </div>
+        {collapsed && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-full mt-2 text-sidebar-foreground hover:bg-sidebar-accent"
+                onClick={onSignOut}
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side={dir === 'rtl' ? 'left' : 'right'}>
+              {t('action.signout')}
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </aside>
   );

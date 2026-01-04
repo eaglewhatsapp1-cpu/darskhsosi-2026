@@ -1,6 +1,4 @@
 import React from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { SidebarFeature } from '@/types/learner';
 import { Button } from '@/components/ui/button';
 import {
   Network,
@@ -13,6 +11,8 @@ import {
   Construction,
 } from 'lucide-react';
 
+type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress';
+
 const featureIcons: Record<string, React.ElementType> = {
   mindmap: Network,
   simplify: Lightbulb,
@@ -22,41 +22,51 @@ const featureIcons: Record<string, React.ElementType> = {
   test: ClipboardCheck,
 };
 
-const featureDescriptions: Record<string, { ar: string; en: string }> = {
-  mindmap: {
-    ar: 'إنشاء خرائط ذهنية تفاعلية من المواد التعليمية المرفوعة',
-    en: 'Create interactive mind maps from uploaded learning materials',
-  },
-  simplify: {
-    ar: 'تبسيط المفاهيم المعقدة بطريقة سهلة الفهم',
-    en: 'Simplify complex concepts in an easy-to-understand way',
-  },
-  summary: {
-    ar: 'الحصول على ملخصات شاملة للمواد التعليمية',
-    en: 'Get comprehensive summaries of learning materials',
-  },
-  scientist: {
-    ar: 'محادثة تفاعلية مع شخصيات علمية تاريخية',
-    en: 'Interactive conversation with historical scientific figures',
-  },
-  video: {
-    ar: 'التعلم من خلال مقاطع فيديو يوتيوب مع محادثة متزامنة',
-    en: 'Learn through YouTube videos with synchronized chat',
-  },
-  test: {
-    ar: 'اختبارات تفاعلية لقياس مستوى الفهم والتقدم',
-    en: 'Interactive tests to measure understanding and progress',
-  },
-};
-
 interface FeaturePlaceholderProps {
   feature: SidebarFeature;
+  language: 'ar' | 'en';
 }
 
-const FeaturePlaceholder: React.FC<FeaturePlaceholderProps> = ({ feature }) => {
-  const { t, language } = useLanguage();
+const FeaturePlaceholder: React.FC<FeaturePlaceholderProps> = ({ feature, language }) => {
   const Icon = featureIcons[feature] || Sparkles;
-  const description = featureDescriptions[feature];
+
+  const featureLabels: Record<string, Record<string, string>> = {
+    ar: {
+      mindmap: 'الخريطة الذهنية',
+      simplify: 'تبسيط المفاهيم',
+      summary: 'الملخص',
+      scientist: 'حديث مع عالم',
+      video: 'التعلم بالفيديو',
+      test: 'اختبار الفهم',
+    },
+    en: {
+      mindmap: 'Mind Map',
+      simplify: 'Simplify Concept',
+      summary: 'Summary',
+      scientist: 'Talk to Scientist',
+      video: 'Learn with Video',
+      test: 'Understanding Test',
+    },
+  };
+
+  const featureDescriptions: Record<string, Record<string, string>> = {
+    ar: {
+      mindmap: 'إنشاء خرائط ذهنية تفاعلية من المواد التعليمية المرفوعة',
+      simplify: 'تبسيط المفاهيم المعقدة بطريقة سهلة الفهم',
+      summary: 'الحصول على ملخصات شاملة للمواد التعليمية',
+      scientist: 'محادثة تفاعلية مع شخصيات علمية تاريخية',
+      video: 'التعلم من خلال مقاطع فيديو يوتيوب مع محادثة متزامنة',
+      test: 'اختبارات تفاعلية لقياس مستوى الفهم والتقدم',
+    },
+    en: {
+      mindmap: 'Create interactive mind maps from uploaded learning materials',
+      simplify: 'Simplify complex concepts in an easy-to-understand way',
+      summary: 'Get comprehensive summaries of learning materials',
+      scientist: 'Interactive conversation with historical scientific figures',
+      video: 'Learn through YouTube videos with synchronized chat',
+      test: 'Interactive tests to measure understanding and progress',
+    },
+  };
 
   return (
     <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -65,11 +75,11 @@ const FeaturePlaceholder: React.FC<FeaturePlaceholderProps> = ({ feature }) => {
       </div>
       
       <h2 className="text-2xl font-bold text-foreground mb-3">
-        {t(`sidebar.${feature}`)}
+        {featureLabels[language][feature]}
       </h2>
       
       <p className="text-muted-foreground max-w-md mb-6">
-        {description ? description[language] : ''}
+        {featureDescriptions[language][feature]}
       </p>
 
       <div className="flex items-center gap-2 px-4 py-2 bg-accent/10 rounded-full text-accent">
@@ -87,7 +97,7 @@ const FeaturePlaceholder: React.FC<FeaturePlaceholderProps> = ({ feature }) => {
 
       <Button className="mt-6 gradient-primary" size="lg">
         <Sparkles className="w-5 h-5 me-2" />
-        {t('sidebar.teacher')}
+        {language === 'ar' ? 'المعلم الذكي' : 'Intelligent Teacher'}
       </Button>
     </div>
   );

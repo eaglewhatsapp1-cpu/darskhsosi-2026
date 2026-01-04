@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useLearner } from '@/contexts/LearnerContext';
-import { ChatMessage } from '@/types/learner';
+import { Profile } from '@/hooks/useProfile';
+import { useChatMessages, ChatMessage } from '@/hooks/useChatMessages';
+import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   Send,
@@ -14,18 +13,46 @@ import {
   User,
   Sparkles,
   Upload,
+  Loader2,
 } from 'lucide-react';
 
-const ChatInterface: React.FC = () => {
-  const { t, dir, language } = useLanguage();
-  const { profile, currentSubject, addMessage, uploadedMaterials, setActiveFeature } = useLearner();
+interface ChatInterfaceProps {
+  profile: Profile;
+  language: 'ar' | 'en';
+  onNavigateToUpload: () => void;
+}
+
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavigateToUpload }) => {
+  const { messages, loading: messagesLoading, addMessage } = useChatMessages(null);
+  const { materials } = useUploadedMaterials();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const messages = currentSubject?.messages || [];
+  const dir = language === 'ar' ? 'rtl' : 'ltr';
+
+  const t = (key: string) => {
+    const translations: Record<string, Record<string, string>> = {
+      ar: {
+        'sidebar.teacher': 'المعلم الذكي',
+        'app.tagline': 'منصة التعلم المفتوح بالذكاء الاصطناعي',
+        'app.welcome': 'مرحباً بك في رحلة التعلم',
+        'chat.placeholder': 'اكتب سؤالك هنا...',
+        'chat.thinking': 'يفكر...',
+        'sidebar.upload': 'رفع المواد',
+      },
+      en: {
+        'sidebar.teacher': 'Intelligent Teacher',
+        'app.tagline': 'AI-Powered Open Learning Platform',
+        'app.welcome': 'Welcome to Your Learning Journey',
+        'chat.placeholder': 'Type your question here...',
+        'chat.thinking': 'Thinking...',
+        'sidebar.upload': 'Upload Materials',
+      },
+    };
+    return translations[language][key] || key;
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,21 +65,16 @@ const ChatInterface: React.FC = () => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date().toISOString(),
-    };
-
-    if (currentSubject) {
-      addMessage(currentSubject.id, userMessage);
-    }
-
     const userInput = input.trim();
     setInput('');
     setIsLoading(true);
     setStreamingContent('');
+
+    // Save user message to database
+    await addMessage({
+      role: 'user',
+      content: userInput,
+    });
 
     try {
       // Build message history for context
@@ -71,13 +93,13 @@ const ChatInterface: React.FC = () => {
           },
           body: JSON.stringify({
             messages: messageHistory,
-            learnerProfile: profile ? {
+            learnerProfile: {
               name: profile.name,
-              educationLevel: profile.educationLevel,
-              learningStyle: profile.learningStyle,
-              preferredLanguage: profile.preferredLanguage,
-            } : undefined,
-            uploadedMaterials,
+              educationLevel: profile.education_level,
+              learningStyle: profile.learning_style,
+              preferredLanguage: profile.preferred_language,
+            },
+            uploadedMaterials: materials.map(m => m.file_name),
           }),
         }
       );
@@ -108,7 +130,6 @@ const ChatInterface: React.FC = () => {
 
           textBuffer += decoder.decode(value, { stream: true });
 
-          // Process line-by-line
           let newlineIndex: number;
           while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
             let line = textBuffer.slice(0, newlineIndex);
@@ -129,7 +150,6 @@ const ChatInterface: React.FC = () => {
                 setStreamingContent(fullContent);
               }
             } catch {
-              // Incomplete JSON, put it back
               textBuffer = line + '\n' + textBuffer;
               break;
             }
@@ -137,18 +157,12 @@ const ChatInterface: React.FC = () => {
         }
       }
 
-      // Add the complete AI message
+      // Save AI response to database
       if (fullContent) {
-        const aiMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+        await addMessage({
           role: 'assistant',
           content: fullContent,
-          timestamp: new Date().toISOString(),
-        };
-        
-        if (currentSubject) {
-          addMessage(currentSubject.id, aiMessage);
-        }
+        });
       }
 
       setStreamingContent('');
@@ -167,9 +181,13 @@ const ChatInterface: React.FC = () => {
     }
   };
 
-  const handleUploadClick = () => {
-    setActiveFeature('upload');
-  };
+  if (messagesLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -181,9 +199,7 @@ const ChatInterface: React.FC = () => {
           </div>
           <div>
             <h2 className="font-semibold text-foreground">{t('sidebar.teacher')}</h2>
-            <p className="text-sm text-muted-foreground">
-              {currentSubject?.name || t('app.tagline')}
-            </p>
+            <p className="text-sm text-muted-foreground">{t('app.tagline')}</p>
           </div>
         </div>
       </div>
@@ -200,20 +216,20 @@ const ChatInterface: React.FC = () => {
             </h3>
             <p className="text-muted-foreground max-w-md mb-2">
               {language === 'ar' 
-                ? `مرحباً ${profile?.name}! أنا معلمك الذكي. يمكنني مساعدتك في فهم أي موضوع.`
-                : `Hello ${profile?.name}! I'm your intelligent teacher. I can help you understand any topic.`}
+                ? `مرحباً ${profile.name}! أنا معلمك الذكي. يمكنني مساعدتك في فهم أي موضوع.`
+                : `Hello ${profile.name}! I'm your intelligent teacher. I can help you understand any topic.`}
             </p>
             <p className="text-sm text-muted-foreground max-w-md">
-              {uploadedMaterials.length === 0 
+              {materials.length === 0 
                 ? (language === 'ar' 
                     ? 'ارفع مواد تعليمية للحصول على تجربة تعلم مخصصة أكثر.' 
                     : 'Upload learning materials for a more personalized learning experience.')
                 : (language === 'ar'
-                    ? `لديك ${uploadedMaterials.length} ملفات مرفوعة. اسألني عن أي شيء!`
-                    : `You have ${uploadedMaterials.length} files uploaded. Ask me anything!`)}
+                    ? `لديك ${materials.length} ملفات مرفوعة. اسألني عن أي شيء!`
+                    : `You have ${materials.length} files uploaded. Ask me anything!`)}
             </p>
-            {uploadedMaterials.length === 0 && (
-              <Button className="mt-6 gradient-accent" size="lg" onClick={handleUploadClick}>
+            {materials.length === 0 && (
+              <Button className="mt-6 gradient-accent" size="lg" onClick={onNavigateToUpload}>
                 <Upload className="w-5 h-5 me-2" />
                 {t('sidebar.upload')}
               </Button>
@@ -232,9 +248,7 @@ const ChatInterface: React.FC = () => {
                 <div
                   className={cn(
                     'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
-                    message.role === 'user'
-                      ? 'gradient-accent'
-                      : 'gradient-primary'
+                    message.role === 'user' ? 'gradient-accent' : 'gradient-primary'
                   )}
                 >
                   {message.role === 'user' ? (
@@ -246,14 +260,12 @@ const ChatInterface: React.FC = () => {
                 <div
                   className={cn(
                     'max-w-[75%] px-4 py-3',
-                    message.role === 'user'
-                      ? 'chat-bubble-user'
-                      : 'chat-bubble-ai'
+                    message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'
                   )}
                 >
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   <span className="text-xs opacity-60 mt-1 block">
-                    {new Date(message.timestamp).toLocaleTimeString(
+                    {new Date(message.created_at).toLocaleTimeString(
                       dir === 'rtl' ? 'ar-SA' : 'en-US',
                       { hour: '2-digit', minute: '2-digit' }
                     )}
@@ -262,7 +274,6 @@ const ChatInterface: React.FC = () => {
               </div>
             ))}
             
-            {/* Streaming message */}
             {streamingContent && (
               <div className="flex gap-3 animate-slide-up">
                 <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
@@ -304,13 +315,12 @@ const ChatInterface: React.FC = () => {
             variant="outline"
             size="icon"
             className="shrink-0 h-12 w-12 rounded-xl"
-            onClick={handleUploadClick}
+            onClick={onNavigateToUpload}
           >
             <Paperclip className="w-5 h-5" />
           </Button>
           <div className="flex-1 relative">
             <Textarea
-              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}

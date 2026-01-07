@@ -35,6 +35,7 @@ export const useProfile = () => {
     if (!user) return;
 
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -42,7 +43,27 @@ export const useProfile = () => {
         .maybeSingle();
 
       if (error) throw error;
-      setProfile(data as Profile);
+      
+      if (data) {
+        setProfile(data as Profile);
+      } else {
+        // Create profile if it doesn't exist (fallback for trigger failure)
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Learner',
+            preferred_language: 'ar'
+          })
+          .select()
+          .single();
+        
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+        } else {
+          setProfile(newProfile as Profile);
+        }
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {

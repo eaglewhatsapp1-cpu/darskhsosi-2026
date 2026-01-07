@@ -20,7 +20,8 @@ export const useChatMessages = (subjectId?: string | null) => {
   useEffect(() => {
     if (user) {
       fetchMessages();
-      subscribeToMessages();
+      const unsubscribe = subscribeToMessages();
+      return () => unsubscribe();
     } else {
       setMessages([]);
       setLoading(false);

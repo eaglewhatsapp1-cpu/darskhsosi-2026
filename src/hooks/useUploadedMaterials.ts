@@ -9,6 +9,7 @@ export interface UploadedMaterial {
   file_type: string | null;
   file_size: number | null;
   storage_path: string | null;
+  content: string | null;
   created_at: string;
 }
 
@@ -45,11 +46,42 @@ export const useUploadedMaterials = () => {
     }
   };
 
+  const uploadFile = async (file: File): Promise<{ storagePath: string; content: string | null } | null> => {
+    if (!user) return null;
+
+    try {
+      const filePath = `${user.id}/${Date.now()}_${file.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('learning-materials')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      let content: string | null = null;
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const textExtensions = ['txt', 'md', 'csv', 'json', 'xml', 'html', 'css', 'js', 'ts', 'py'];
+      
+      if (fileExt && textExtensions.includes(fileExt)) {
+        content = await file.text();
+        if (content.length > 50000) {
+          content = content.substring(0, 50000) + '\n\n[Content truncated...]';
+        }
+      }
+
+      return { storagePath: filePath, content };
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      return null;
+    }
+  };
+
   const addMaterial = async (material: {
     file_name: string;
     file_type?: string;
     file_size?: number;
     storage_path?: string;
+    content?: string | null;
   }) => {
     if (!user) return { error: new Error('Not authenticated') };
 
@@ -62,6 +94,7 @@ export const useUploadedMaterials = () => {
           file_type: material.file_type || null,
           file_size: material.file_size || null,
           storage_path: material.storage_path || null,
+          content: material.content || null,
         })
         .select()
         .single();
@@ -79,6 +112,14 @@ export const useUploadedMaterials = () => {
     if (!user) return { error: new Error('Not authenticated') };
 
     try {
+      const material = materials.find(m => m.id === id);
+      
+      if (material?.storage_path) {
+        await supabase.storage
+          .from('learning-materials')
+          .remove([material.storage_path]);
+      }
+
       const { error } = await supabase
         .from('uploaded_materials')
         .delete()
@@ -93,5 +134,5 @@ export const useUploadedMaterials = () => {
     }
   };
 
-  return { materials, loading, addMaterial, deleteMaterial, fetchMaterials };
+  return { materials, loading, addMaterial, deleteMaterial, fetchMaterials, uploadFile };
 };

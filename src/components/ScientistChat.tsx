@@ -1,0 +1,214 @@
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Card } from '@/components/ui/card';
+import { FlaskConical, Send, Loader2, User } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useProfile } from '@/hooks/useProfile';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
+interface ScientistChatProps {
+  language: 'ar' | 'en';
+}
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+const scientists = [
+  { id: 'einstein', name: { ar: 'ألبرت أينشتاين', en: 'Albert Einstein' }, field: { ar: 'الفيزياء', en: 'Physics' }, emoji: '🧪' },
+  { id: 'newton', name: { ar: 'إسحاق نيوتن', en: 'Isaac Newton' }, field: { ar: 'الفيزياء والرياضيات', en: 'Physics & Math' }, emoji: '🍎' },
+  { id: 'curie', name: { ar: 'ماري كوري', en: 'Marie Curie' }, field: { ar: 'الكيمياء والفيزياء', en: 'Chemistry & Physics' }, emoji: '⚗️' },
+  { id: 'darwin', name: { ar: 'تشارلز داروين', en: 'Charles Darwin' }, field: { ar: 'علم الأحياء', en: 'Biology' }, emoji: '🦎' },
+  { id: 'hawking', name: { ar: 'ستيفن هوكينغ', en: 'Stephen Hawking' }, field: { ar: 'الفيزياء الفلكية', en: 'Astrophysics' }, emoji: '🌌' },
+  { id: 'alkhwarizmi', name: { ar: 'الخوارزمي', en: 'Al-Khwarizmi' }, field: { ar: 'الرياضيات', en: 'Mathematics' }, emoji: '🔢' },
+];
+
+const ScientistChat: React.FC<ScientistChatProps> = ({ language }) => {
+  const { profile } = useProfile();
+  const [selectedScientist, setSelectedScientist] = useState('einstein');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const currentScientist = scientists.find(s => s.id === selectedScientist)!;
+
+  const t = (key: string) => {
+    const translations: Record<string, Record<string, string>> = {
+      title: { ar: 'تحدث مع عالم', en: 'Talk to a Scientist' },
+      subtitle: { ar: 'اختر عالماً واسأله أي سؤال!', en: 'Choose a scientist and ask them anything!' },
+      selectScientist: { ar: 'اختر العالم', en: 'Select Scientist' },
+      placeholder: { ar: 'اكتب سؤالك هنا...', en: 'Type your question here...' },
+      send: { ar: 'أرسل', en: 'Send' },
+      greeting: { ar: `مرحباً! أنا ${currentScientist.name[language]}. كيف يمكنني مساعدتك اليوم؟`, en: `Hello! I'm ${currentScientist.name[language]}. How can I help you today?` },
+    };
+    return translations[key]?.[language] || key;
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setIsLoading(true);
+
+    try {
+      const response = await supabase.functions.invoke('intelligent-teacher', {
+        body: {
+          messages: [
+            {
+              role: 'system',
+              content: `You are ${currentScientist.name.en}, the famous scientist. Respond as if you ARE this scientist, speaking in first person. Share your knowledge, discoveries, and perspectives based on your historical contributions to ${currentScientist.field.en}. Be friendly, educational, and inspiring. Keep responses conversational and engaging. Respond in ${language === 'ar' ? 'Arabic' : 'English'}.`,
+            },
+            ...messages.map(m => ({ role: m.role, content: m.content })),
+            { role: 'user', content: userMessage },
+          ],
+          learnerProfile: profile ? {
+            name: profile.name,
+            educationLevel: profile.education_level,
+            learningStyle: profile.learning_style,
+            interests: profile.interests,
+            preferredLanguage: profile.preferred_language,
+          } : null,
+        },
+      });
+
+      if (response.error) throw response.error;
+
+      const reader = response.data.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices?.[0]?.delta?.content || '';
+              fullContent += content;
+              setMessages(prev => {
+                const newMessages = [...prev];
+                newMessages[newMessages.length - 1] = { role: 'assistant', content: fullContent };
+                return newMessages;
+              });
+            } catch {}
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setMessages(prev => [...prev, { role: 'assistant', content: language === 'ar' ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Please try again.' }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="h-full flex flex-col p-6">
+      <div className="text-center mb-6">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center text-3xl">
+          {currentScientist.emoji}
+        </div>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{t('title')}</h1>
+        <p className="text-muted-foreground">{t('subtitle')}</p>
+      </div>
+
+      <Card className="p-4 mb-4">
+        <label className="text-sm font-medium mb-2 block">{t('selectScientist')}</label>
+        <Select value={selectedScientist} onValueChange={(value) => {
+          setSelectedScientist(value);
+          setMessages([]);
+        }}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {scientists.map((scientist) => (
+              <SelectItem key={scientist.id} value={scientist.id}>
+                <div className="flex items-center gap-2">
+                  <span>{scientist.emoji}</span>
+                  <span>{scientist.name[language]}</span>
+                  <span className="text-muted-foreground text-xs">({scientist.field[language]})</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Card>
+
+      <Card className="flex-1 flex flex-col overflow-hidden">
+        <ScrollArea className="flex-1 p-4">
+          {messages.length === 0 && (
+            <div className="flex gap-3 mb-4">
+              <Avatar className="w-8 h-8">
+                <AvatarFallback className="text-lg">{currentScientist.emoji}</AvatarFallback>
+              </Avatar>
+              <div className="bg-muted rounded-lg p-3 max-w-[80%]">
+                <p className="text-sm">{t('greeting')}</p>
+              </div>
+            </div>
+          )}
+          {messages.map((message, index) => (
+            <div key={index} className={`flex gap-3 mb-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              <Avatar className="w-8 h-8">
+                <AvatarFallback className="text-lg">
+                  {message.role === 'user' ? <User className="w-4 h-4" /> : currentScientist.emoji}
+                </AvatarFallback>
+              </Avatar>
+              <div className={`rounded-lg p-3 max-w-[80%] ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              </div>
+            </div>
+          ))}
+          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+            <div className="flex gap-3 mb-4">
+              <Avatar className="w-8 h-8">
+                <AvatarFallback className="text-lg">{currentScientist.emoji}</AvatarFallback>
+              </Avatar>
+              <div className="bg-muted rounded-lg p-3">
+                <Loader2 className="w-4 h-4 animate-spin" />
+              </div>
+            </div>
+          )}
+        </ScrollArea>
+
+        <div className="p-4 border-t">
+          <div className="flex gap-2">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={t('placeholder')}
+              className="min-h-[44px] max-h-[120px] resize-none"
+              dir={language === 'ar' ? 'rtl' : 'ltr'}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+            />
+            <Button onClick={handleSend} disabled={!input.trim() || isLoading} size="icon">
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export default ScientistChat;

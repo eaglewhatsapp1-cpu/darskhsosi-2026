@@ -3,7 +3,12 @@ import { Profile } from '@/hooks/useProfile';
 import ChatInterface from './ChatInterface';
 import UploadMaterials from './UploadMaterials';
 import LearningProgress from './LearningProgress';
-import FeaturePlaceholder from './FeaturePlaceholder';
+import SimplifyFeature from './SimplifyFeature';
+import SummaryFeature from './SummaryFeature';
+import MindMapFeature from './MindMapFeature';
+import ScientistChat from './ScientistChat';
+import UnderstandingTest from './UnderstandingTest';
+import VideoLearning from './VideoLearning';
 
 type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress';
 
@@ -22,32 +27,25 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
   const renderContent = () => {
     switch (activeFeature) {
       case 'teacher':
-        return (
-          <ChatInterface 
-            profile={profile} 
-            language={language}
-            onNavigateToUpload={handleNavigateToUpload}
-          />
-        );
+        return <ChatInterface profile={profile} language={language} onNavigateToUpload={handleNavigateToUpload} />;
       case 'upload':
         return <UploadMaterials language={language} />;
       case 'progress':
         return <LearningProgress language={language} />;
       case 'mindmap':
+        return <MindMapFeature language={language} />;
       case 'simplify':
+        return <SimplifyFeature language={language} />;
       case 'summary':
+        return <SummaryFeature language={language} />;
       case 'scientist':
+        return <ScientistChat language={language} />;
       case 'video':
+        return <VideoLearning language={language} />;
       case 'test':
-        return <FeaturePlaceholder feature={activeFeature} language={language} />;
+        return <UnderstandingTest language={language} />;
       default:
-        return (
-          <ChatInterface 
-            profile={profile} 
-            language={language}
-            onNavigateToUpload={handleNavigateToUpload}
-          />
-        );
+        return <ChatInterface profile={profile} language={language} onNavigateToUpload={handleNavigateToUpload} />;
     }
   };
 

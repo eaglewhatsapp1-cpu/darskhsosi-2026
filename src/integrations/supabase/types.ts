@@ -126,6 +126,7 @@ export type Database = {
       }
       uploaded_materials: {
         Row: {
+          content: string | null
           created_at: string
           file_name: string
           file_size: number | null
@@ -135,6 +136,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          content?: string | null
           created_at?: string
           file_name: string
           file_size?: number | null
@@ -144,6 +146,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          content?: string | null
           created_at?: string
           file_name?: string
           file_size?: number | null

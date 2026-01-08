@@ -2,3 +2,12 @@ project_id = "pmyojekfbufmbfpjltjn"
 
 [functions.intelligent-teacher]
 verify_jwt = false
+
+[functions.analyze-image]
+verify_jwt = false
+
+[functions.explain-link]
+verify_jwt = false
+
+[functions.generate-study-plan]
+verify_jwt = false

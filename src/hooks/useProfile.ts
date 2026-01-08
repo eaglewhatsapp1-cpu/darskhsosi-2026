@@ -13,6 +13,10 @@ export interface Profile {
   bio: string | null;
   preferred_language: 'ar' | 'en';
   avatar_url: string | null;
+  subject: string | null;
+  knowledge_ratio: number | null;
+  speaking_style: 'formal_ar' | 'colloquial_ar' | 'en' | 'mixed' | null;
+  ai_persona: 'teacher' | 'scientist' | 'examiner' | 'analyzer' | null;
   created_at: string;
   updated_at: string;
 }

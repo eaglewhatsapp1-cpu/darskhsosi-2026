@@ -1,0 +1,155 @@
+import React, { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Link2, Loader2, Send, Globe, ExternalLink } from 'lucide-react';
+import { toast } from 'sonner';
+import { Profile } from '@/hooks/useProfile';
+
+interface WebLinkExplainerProps {
+  language: 'ar' | 'en';
+  profile?: Profile;
+}
+
+const WebLinkExplainer: React.FC<WebLinkExplainerProps> = ({ language, profile }) => {
+  const [url, setUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [explanation, setExplanation] = useState<string | null>(null);
+
+  const t = (ar: string, en: string) => (language === 'ar' ? ar : en);
+
+  const handleExplain = async () => {
+    if (!url.trim()) {
+      toast.error(t('الرجاء إدخال رابط', 'Please enter a URL'));
+      return;
+    }
+
+    // Basic URL validation
+    try {
+      new URL(url);
+    } catch {
+      toast.error(t('الرجاء إدخال رابط صالح', 'Please enter a valid URL'));
+      return;
+    }
+
+    setIsLoading(true);
+    setExplanation(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('explain-link', {
+        body: { 
+          url,
+          language,
+          educationLevel: profile?.education_level || 'high',
+          learningStyle: profile?.learning_style || 'visual'
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.explanation) {
+        setExplanation(data.explanation);
+      } else {
+        throw new Error('No explanation received');
+      }
+    } catch (error: any) {
+      console.error('Error explaining link:', error);
+      toast.error(t('حدث خطأ في تحليل الرابط', 'Error analyzing the link'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full p-4 md:p-6">
+      <Card className="flex-1 flex flex-col">
+        <CardHeader className="border-b">
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="w-6 h-6 text-primary" />
+            {t('شرح الروابط والمواقع', 'Web Link Explainer')}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              'أدخل أي رابط لموقع أو مقال وسيقوم الذكاء الاصطناعي بتحليله وشرحه لك',
+              'Enter any website or article link and AI will analyze and explain it for you'
+            )}
+          </p>
+        </CardHeader>
+
+        <CardContent className="flex-1 flex flex-col gap-4 pt-4">
+          {/* URL Input */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Link2 className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder={t('https://example.com/article', 'https://example.com/article')}
+                className="ps-10"
+                dir="ltr"
+                onKeyDown={(e) => e.key === 'Enter' && handleExplain()}
+              />
+            </div>
+            <Button onClick={handleExplain} disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Send className="w-4 h-4 me-2" />
+                  {t('تحليل', 'Analyze')}
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Explanation Result */}
+          {explanation && (
+            <ScrollArea className="flex-1 border rounded-lg p-4 bg-muted/30">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b">
+                <ExternalLink className="w-4 h-4 text-primary" />
+                <a 
+                  href={url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:underline truncate"
+                >
+                  {url}
+                </a>
+              </div>
+              <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
+                {explanation}
+              </div>
+            </ScrollArea>
+          )}
+
+          {/* Empty State */}
+          {!explanation && !isLoading && (
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+              <Globe className="w-16 h-16 mb-4 opacity-20" />
+              <p className="text-center">
+                {t(
+                  'أدخل رابط أي موقع أو مقال للحصول على شرح مبسط',
+                  'Enter any website or article URL to get a simplified explanation'
+                )}
+              </p>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground">
+                {t('جاري تحليل المحتوى...', 'Analyzing content...')}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default WebLinkExplainer;

@@ -4,15 +4,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import ProfileSetup from './ProfileSetup';
 import AppSidebar from './AppSidebar';
+import AppHeader from './AppHeader';
 import MainContent from './MainContent';
 import { Loader2 } from 'lucide-react';
+import { Subject } from '@/utils/subjectColors';
 
-type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress';
+type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress' | 'weblink' | 'studyplan' | 'projects';
 
 const LearningPlatform: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
-  const { profile, loading: profileLoading, isProfileComplete, fetchProfile } = useProfile();
+  const { profile, loading: profileLoading, isProfileComplete, fetchProfile, updateProfile } = useProfile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeFeature, setActiveFeature] = useState<SidebarFeature>('teacher');
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
@@ -41,6 +43,12 @@ const LearningPlatform: React.FC = () => {
     fetchProfile();
   };
 
+  const handleSubjectChange = async (subject: Subject) => {
+    if (profile) {
+      await updateProfile({ subject });
+    }
+  };
+
   if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -64,22 +72,29 @@ const LearningPlatform: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
-      <AppSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        activeFeature={activeFeature}
-        setActiveFeature={setActiveFeature}
+    <div className="flex flex-col h-screen w-full overflow-hidden">
+      <AppHeader 
         profile={profile!}
         language={language}
-        onSignOut={signOut}
+        onSubjectChange={handleSubjectChange}
       />
-      <MainContent 
-        activeFeature={activeFeature}
-        profile={profile!}
-        language={language}
-        setActiveFeature={setActiveFeature}
-      />
+      <div className="flex flex-1 overflow-hidden">
+        <AppSidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          activeFeature={activeFeature}
+          setActiveFeature={setActiveFeature}
+          profile={profile!}
+          language={language}
+          onSignOut={signOut}
+        />
+        <MainContent 
+          activeFeature={activeFeature}
+          profile={profile!}
+          language={language}
+          setActiveFeature={setActiveFeature}
+        />
+      </div>
     </div>
   );
 };

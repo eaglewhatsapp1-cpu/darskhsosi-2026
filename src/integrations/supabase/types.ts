@@ -54,6 +54,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_persona: string | null
           avatar_url: string | null
           bio: string | null
           birth_date: string | null
@@ -61,13 +62,17 @@ export type Database = {
           education_level: string | null
           id: string
           interests: string[] | null
+          knowledge_ratio: number | null
           learning_style: string | null
           name: string
           preferred_language: string | null
+          speaking_style: string | null
+          subject: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          ai_persona?: string | null
           avatar_url?: string | null
           bio?: string | null
           birth_date?: string | null
@@ -75,13 +80,17 @@ export type Database = {
           education_level?: string | null
           id?: string
           interests?: string[] | null
+          knowledge_ratio?: number | null
           learning_style?: string | null
           name: string
           preferred_language?: string | null
+          speaking_style?: string | null
+          subject?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          ai_persona?: string | null
           avatar_url?: string | null
           bio?: string | null
           birth_date?: string | null
@@ -89,9 +98,42 @@ export type Database = {
           education_level?: string | null
           id?: string
           interests?: string[] | null
+          knowledge_ratio?: number | null
           learning_style?: string | null
           name?: string
           preferred_language?: string | null
+          speaking_style?: string | null
+          subject?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      study_plans: {
+        Row: {
+          created_at: string
+          duration_weeks: number | null
+          id: string
+          plan_data: Json
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_weeks?: number | null
+          id?: string
+          plan_data: Json
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_weeks?: number | null
+          id?: string
+          plan_data?: Json
+          subject?: string
           updated_at?: string
           user_id?: string
         }

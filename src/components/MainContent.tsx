@@ -13,7 +13,7 @@ import WebLinkExplainer from './WebLinkExplainer';
 import StudyPlanGenerator from './StudyPlanGenerator';
 import ProjectSuggestions from './ProjectSuggestions';
 
-type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress' | 'weblink' | 'studyplan' | 'projects';
+import { SidebarFeature } from './LearningPlatform';
 
 interface MainContentProps {
   activeFeature: SidebarFeature;

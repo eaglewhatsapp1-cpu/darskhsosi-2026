@@ -1,5 +1,6 @@
 import React from 'react';
 import { Profile } from '@/hooks/useProfile';
+import { SidebarFeature } from './LearningPlatform';
 import { cn } from '@/lib/utils';
 import {
   GraduationCap,
@@ -11,16 +12,16 @@ import {
   Video,
   ClipboardCheck,
   TrendingUp,
-  Settings,
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Link,
+  Calendar,
+  Rocket,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-
-type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress';
 
 interface AppSidebarProps {
   collapsed: boolean;
@@ -42,6 +43,9 @@ const features: { id: SidebarFeature; icon: React.ElementType }[] = [
   { id: 'video', icon: Video },
   { id: 'test', icon: ClipboardCheck },
   { id: 'progress', icon: TrendingUp },
+  { id: 'weblink', icon: Link },
+  { id: 'studyplan', icon: Calendar },
+  { id: 'projects', icon: Rocket },
 ];
 
 const AppSidebar: React.FC<AppSidebarProps> = ({ 
@@ -68,6 +72,9 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         'sidebar.video': 'التعلم بالفيديو',
         'sidebar.test': 'اختبار الفهم',
         'sidebar.progress': 'تقدم التعلم',
+        'sidebar.weblink': 'شرح الروابط',
+        'sidebar.studyplan': 'خطة دراسية',
+        'sidebar.projects': 'مشاريع عملية',
         'action.signout': 'تسجيل الخروج',
       },
       en: {
@@ -81,6 +88,9 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         'sidebar.video': 'Learn with Video',
         'sidebar.test': 'Understanding Test',
         'sidebar.progress': 'Learning Progress',
+        'sidebar.weblink': 'Explain Links',
+        'sidebar.studyplan': 'Study Plan',
+        'sidebar.projects': 'Projects',
         'action.signout': 'Sign Out',
       },
     };

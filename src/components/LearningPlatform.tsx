@@ -9,7 +9,7 @@ import MainContent from './MainContent';
 import { Loader2 } from 'lucide-react';
 import { Subject } from '@/utils/subjectColors';
 
-type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress' | 'weblink' | 'studyplan' | 'projects';
+export type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress' | 'weblink' | 'studyplan' | 'projects';
 
 const LearningPlatform: React.FC = () => {
   const navigate = useNavigate();

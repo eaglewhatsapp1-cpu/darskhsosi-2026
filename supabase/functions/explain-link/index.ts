@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,12 +13,95 @@ interface RequestBody {
   learningStyle?: string;
 }
 
+// SSRF Protection: Validate URL before fetching
+const ALLOWED_SCHEMES = ['http:', 'https:'];
+const BLOCKED_HOSTS = [
+  'localhost',
+  '127.0.0.1',
+  '0.0.0.0',
+  '169.254.169.254', // AWS metadata
+  'metadata.google.internal', // GCP metadata
+  'metadata.azure.internal', // Azure metadata
+];
+
+const BLOCKED_IP_PATTERNS = [
+  /^10\./, // 10.0.0.0/8
+  /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
+  /^192\.168\./, // 192.168.0.0/16
+  /^127\./, // 127.0.0.0/8 loopback
+  /^0\./, // 0.0.0.0/8
+  /^::1$/, // IPv6 loopback
+  /^fc00:/, // IPv6 private
+  /^fe80:/, // IPv6 link-local
+];
+
+function isUrlSafe(urlStr: string): { safe: boolean; reason?: string } {
+  try {
+    const url = new URL(urlStr);
+    
+    // Check scheme
+    if (!ALLOWED_SCHEMES.includes(url.protocol)) {
+      return { safe: false, reason: 'Only HTTP and HTTPS URLs are allowed' };
+    }
+    
+    const host = url.hostname.toLowerCase();
+    
+    // Check blocked hosts
+    if (BLOCKED_HOSTS.includes(host)) {
+      return { safe: false, reason: 'This URL target is not allowed' };
+    }
+    
+    // Check blocked IP patterns
+    for (const pattern of BLOCKED_IP_PATTERNS) {
+      if (pattern.test(host)) {
+        return { safe: false, reason: 'Internal network addresses are not allowed' };
+      }
+    }
+    
+    // Block file:// and other dangerous protocols that might bypass the check
+    if (url.protocol === 'file:') {
+      return { safe: false, reason: 'File URLs are not allowed' };
+    }
+    
+    return { safe: true };
+  } catch {
+    return { safe: false, reason: 'Invalid URL format' };
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log("Authenticated user:", userId);
+
     const { url, language = 'ar', educationLevel = 'high', learningStyle = 'visual' }: RequestBody = await req.json();
 
     if (!url) {
@@ -27,19 +111,35 @@ serve(async (req) => {
       );
     }
 
+    // SSRF Protection: Validate URL
+    const urlValidation = isUrlSafe(url);
+    if (!urlValidation.safe) {
+      console.warn(`SSRF attempt blocked: ${url} - ${urlValidation.reason}`);
+      return new Response(
+        JSON.stringify({ error: urlValidation.reason || 'Invalid or blocked URL' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Fetch the webpage content
+    // Fetch the webpage content with timeout
     let pageContent = '';
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const pageResponse = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; EducationalBot/1.0)',
         },
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       if (pageResponse.ok) {
         const html = await pageResponse.text();

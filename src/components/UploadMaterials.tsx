@@ -9,6 +9,51 @@ interface UploadMaterialsProps {
   language: 'ar' | 'en';
 }
 
+// MIME type validation for security
+const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_MATERIAL_TYPES = [
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+  'text/x-markdown',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp'
+];
+
+// Maximum file size (10MB)
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+const validateFile = (file: File, allowedTypes: string[], language: 'ar' | 'en'): { valid: boolean; error?: string } => {
+  // Check file size
+  if (file.size > MAX_FILE_SIZE) {
+    return { 
+      valid: false, 
+      error: language === 'ar' ? 'حجم الملف كبير جداً (الحد الأقصى 10 ميجابايت)' : 'File too large (max 10MB)' 
+    };
+  }
+  
+  // Check MIME type
+  if (file.type && !allowedTypes.includes(file.type)) {
+    // For files without MIME type, check extension as fallback
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const validExtensions = ['txt', 'md', 'csv', 'pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
+    
+    if (!ext || !validExtensions.includes(ext)) {
+      return { 
+        valid: false, 
+        error: language === 'ar' ? 'نوع الملف غير مدعوم' : 'File type not supported' 
+      };
+    }
+  }
+  
+  return { valid: true };
+};
+
 const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
   const { materials, loading, addMaterial, deleteMaterial, uploadFile } = useUploadedMaterials();
   const [isDragging, setIsDragging] = useState(false);
@@ -66,8 +111,18 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
 
   const handleFiles = async (files: File[]) => {
     setUploading(true);
+    let successCount = 0;
+    let errorCount = 0;
     
     for (const file of files) {
+      // Validate file before uploading
+      const validation = validateFile(file, ALLOWED_MATERIAL_TYPES, language);
+      if (!validation.valid) {
+        toast.error(`${file.name}: ${validation.error}`);
+        errorCount++;
+        continue;
+      }
+      
       const result = await uploadFile(file);
       
       const { error } = await addMaterial({
@@ -80,10 +135,19 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
       
       if (error) {
         toast.error(language === 'ar' ? `فشل رفع ${file.name}` : `Failed to upload ${file.name}`);
+        errorCount++;
+      } else {
+        successCount++;
       }
     }
     
-    toast.success(language === 'ar' ? 'تم رفع الملفات بنجاح' : 'Files uploaded successfully');
+    if (successCount > 0) {
+      toast.success(language === 'ar' 
+        ? `تم رفع ${successCount} ملف بنجاح` 
+        : `${successCount} file(s) uploaded successfully`
+      );
+    }
+    
     setUploading(false);
   };
 
@@ -188,3 +252,6 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
 };
 
 export default UploadMaterials;
+
+// Export validation function for use in ProfilePage
+export { validateFile, ALLOWED_AVATAR_TYPES, ALLOWED_MATERIAL_TYPES, MAX_FILE_SIZE };

@@ -325,7 +325,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
               </Label>
               <Select
                 value={formData.preferredLanguage}
-                onValueChange={(value) => setFormData({ ...formData, preferredLanguage: value })}
+                onValueChange={(value) => setFormData({ ...formData, preferredLanguage: value as 'ar' | 'en' })}
               >
                 <SelectTrigger className="h-12">
                   <SelectValue />
@@ -348,9 +348,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t('field.persona')}</Label>
-                <Select
+              <Select
                   value={formData.aiPersona}
-                  onValueChange={(value) => setFormData({ ...formData, aiPersona: value })}
+                  onValueChange={(value) => setFormData({ ...formData, aiPersona: value as 'teacher' | 'scientist' | 'examiner' | 'analyzer' })}
                 >
                   <SelectTrigger className="h-12">
                     <SelectValue />
@@ -371,7 +371,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
                 </Label>
                 <Select
                   value={formData.speakingStyle}
-                  onValueChange={(value) => setFormData({ ...formData, speakingStyle: value })}
+                  onValueChange={(value) => setFormData({ ...formData, speakingStyle: value as 'formal_ar' | 'colloquial_ar' | 'en' | 'mixed' })}
                 >
                   <SelectTrigger className="h-12">
                     <SelectValue />

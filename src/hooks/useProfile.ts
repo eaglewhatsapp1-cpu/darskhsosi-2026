@@ -46,7 +46,34 @@ export const useProfile = () => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        // Handle JWT expired error
+        if (error.code === 'PGRST303' || error.message?.includes('JWT expired')) {
+          console.log('JWT expired, attempting refresh...');
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError || !refreshData.session) {
+            console.error('Could not refresh session, signing out');
+            await supabase.auth.signOut();
+            return;
+          }
+          
+          // Retry fetch after refresh
+          const { data: retryData, error: retryError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+            
+          if (retryError) throw retryError;
+          if (retryData) {
+            setProfile(retryData as Profile);
+            return;
+          }
+        } else {
+          throw error;
+        }
+      }
       
       if (data) {
         setProfile(data as Profile);

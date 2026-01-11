@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { useChatMessages, ChatMessage } from '@/hooks/useChatMessages';
-import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
+import { useUploadedMaterials, UploadedMaterial } from '@/hooks/useUploadedMaterials';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import MaterialSelector from '@/components/chat/MaterialSelector';
 import {
   Send,
   Paperclip,
@@ -14,6 +16,7 @@ import {
   Sparkles,
   Upload,
   Loader2,
+  FileText,
 } from 'lucide-react';
 
 interface ChatInterfaceProps {
@@ -28,6 +31,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const dir = language === 'ar' ? 'rtl' : 'ltr';
@@ -77,53 +81,45 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
     });
 
     try {
+      // Get selected material names for context
+      const selectedMaterialNames = materials
+        .filter(m => selectedMaterials.includes(m.id))
+        .map(m => m.file_name);
+
       // Build message history for context
       const messageHistory = [
         ...messages.map(m => ({ role: m.role, content: m.content })),
         { role: 'user' as const, content: userInput }
       ];
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intelligent-teacher`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      // Use supabase.functions.invoke instead of direct fetch
+      const { data, error } = await supabase.functions.invoke('intelligent-teacher', {
+        body: {
+          messages: messageHistory,
+          learnerProfile: {
+            name: profile.name,
+            educationLevel: profile.education_level,
+            learningStyle: profile.learning_style,
+            preferredLanguage: profile.preferred_language,
           },
-          body: JSON.stringify({
-            messages: messageHistory,
-            learnerProfile: {
-              name: profile.name,
-              educationLevel: profile.education_level,
-              learningStyle: profile.learning_style,
-              preferredLanguage: profile.preferred_language,
-            },
-            uploadedMaterials: materials.map(m => m.file_name),
-          }),
-        }
-      );
+          uploadedMaterials: selectedMaterialNames.length > 0 ? selectedMaterialNames : materials.map(m => m.file_name),
+        },
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 429) {
-          toast.error(language === 'ar' ? 'تم تجاوز الحد. حاول مرة أخرى لاحقاً.' : 'Rate limit exceeded. Please try again later.');
-        } else if (response.status === 402) {
-          toast.error(language === 'ar' ? 'انتهى الرصيد. يرجى التحقق من حسابك.' : 'Usage limit reached. Please check your account.');
-        } else {
-          toast.error(errorData.error || (language === 'ar' ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Please try again.'));
-        }
+      if (error) {
+        console.error('Edge function error:', error);
+        toast.error(language === 'ar' ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Please try again.');
         setIsLoading(false);
         return;
       }
 
-      // Stream the response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullContent = '';
-      let textBuffer = '';
+      // Handle streaming response
+      if (data instanceof ReadableStream) {
+        const reader = data.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = '';
+        let textBuffer = '';
 
-      if (reader) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -155,13 +151,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
             }
           }
         }
-      }
 
-      // Save AI response to database
-      if (fullContent) {
+        // Save AI response to database
+        if (fullContent) {
+          await addMessage({
+            role: 'assistant',
+            content: fullContent,
+          });
+        }
+      } else if (typeof data === 'string') {
+        // Non-streaming response
         await addMessage({
           role: 'assistant',
-          content: fullContent,
+          content: data,
         });
       }
 
@@ -309,7 +311,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm">
+      <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm space-y-3">
+        {/* Material Selector Dropdown */}
+        {materials.length > 0 && (
+          <MaterialSelector
+            language={language}
+            selectedMaterials={selectedMaterials}
+            onSelectionChange={setSelectedMaterials}
+            maxSelection={5}
+          />
+        )}
+        
         <div className="flex items-end gap-3">
           <Button
             variant="outline"

@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
-import { Lightbulb, Send, Loader2, Sparkles } from 'lucide-react';
+import { Lightbulb, Loader2, Sparkles, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
+import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface SimplifyFeatureProps {
   language: 'ar' | 'en';
@@ -12,9 +14,13 @@ interface SimplifyFeatureProps {
 
 const SimplifyFeature: React.FC<SimplifyFeatureProps> = ({ language }) => {
   const { profile } = useProfile();
+  const { materials } = useUploadedMaterials();
   const [input, setInput] = useState('');
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('');
   const [result, setResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const materialsWithContent = materials.filter((m: any) => m.content);
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
@@ -23,12 +29,18 @@ const SimplifyFeature: React.FC<SimplifyFeatureProps> = ({ language }) => {
       placeholder: { ar: 'اكتب المفهوم أو الفكرة التي تريد تبسيطها...', en: 'Enter the concept you want simplified...' },
       simplify: { ar: 'بسّط لي', en: 'Simplify' },
       result: { ar: 'الشرح المبسط', en: 'Simplified Explanation' },
+      selectMaterial: { ar: 'أو اختر من موادك المرفوعة', en: 'Or select from your uploaded materials' },
+      orEnterText: { ar: 'أو أدخل مفهوماً', en: 'Or enter a concept' },
     };
     return translations[key]?.[language] || key;
   };
 
   const handleSimplify = async () => {
-    if (!input.trim() || isLoading) return;
+    const contentToSimplify = selectedMaterial 
+      ? materialsWithContent.find((m: any) => m.id === selectedMaterial)?.content 
+      : input;
+
+    if (!contentToSimplify?.trim() || isLoading) return;
 
     setIsLoading(true);
     setResult('');
@@ -39,7 +51,7 @@ const SimplifyFeature: React.FC<SimplifyFeatureProps> = ({ language }) => {
           messages: [
             {
               role: 'user',
-              content: `Please explain this concept in the simplest possible terms, as if explaining to a 5-year-old child. Use simple words, fun analogies, and examples from everyday life. The concept is: "${input}"`,
+              content: `Please explain this concept in the simplest possible terms, as if explaining to a 5-year-old child. Use simple words, fun analogies, and examples from everyday life. The concept is: "${contentToSimplify}"`,
             },
           ],
           learnerProfile: profile ? {
@@ -97,16 +109,44 @@ const SimplifyFeature: React.FC<SimplifyFeatureProps> = ({ language }) => {
       </div>
 
       <Card className="p-4 mb-6">
+        {materialsWithContent.length > 0 && (
+          <div className="mb-4">
+            <label className="text-sm font-medium mb-2 block">{t('selectMaterial')}</label>
+            <Select value={selectedMaterial} onValueChange={(value) => {
+              setSelectedMaterial(value);
+              setInput('');
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('selectMaterial')} />
+              </SelectTrigger>
+              <SelectContent>
+                {materialsWithContent.map((material: any) => (
+                  <SelectItem key={material.id} value={material.id}>
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="w-4 h-4" />
+                      {material.file_name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <label className="text-sm font-medium mb-2 block">{t('orEnterText')}</label>
         <Textarea
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setSelectedMaterial('');
+          }}
           placeholder={t('placeholder')}
           className="min-h-[100px] mb-4 resize-none"
           dir={language === 'ar' ? 'rtl' : 'ltr'}
         />
         <Button
           onClick={handleSimplify}
-          disabled={!input.trim() || isLoading}
+          disabled={(!input.trim() && !selectedMaterial) || isLoading}
           className="w-full"
         >
           {isLoading ? (

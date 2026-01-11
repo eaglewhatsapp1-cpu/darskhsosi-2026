@@ -3,11 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Lightbulb, Loader2, Sparkles, Wrench, Clock, Target, Star } from 'lucide-react';
+import { Lightbulb, Loader2, Sparkles, Wrench, Clock, Target, Star, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { Profile } from '@/hooks/useProfile';
 import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
 import { getSubjectTheme } from '@/utils/subjectColors';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ProjectSuggestionsProps {
   language: 'ar' | 'en';
@@ -27,8 +28,10 @@ interface Project {
 const ProjectSuggestions: React.FC<ProjectSuggestionsProps> = ({ language, profile }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('');
   const { materials } = useUploadedMaterials();
   
+  const materialsWithContent = materials.filter((m: any) => m.content);
   const subjectTheme = getSubjectTheme(profile?.subject || 'general');
   const t = (ar: string, en: string) => (language === 'ar' ? ar : en);
 
@@ -130,6 +133,30 @@ const ProjectSuggestions: React.FC<ProjectSuggestionsProps> = ({ language, profi
         </CardHeader>
 
         <CardContent className="flex-1 flex flex-col gap-4 pt-4">
+          {/* Material Selection */}
+          {materialsWithContent.length > 0 && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                {t('اختر مادة لبناء المشاريع عليها', 'Select material to base projects on')}
+              </label>
+              <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('اختر من موادك المرفوعة', 'Select from your uploaded materials')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {materialsWithContent.map((material: any) => (
+                    <SelectItem key={material.id} value={material.id}>
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4" />
+                        {material.file_name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Generate Button */}
           <Button 
             onClick={generateProjects} 

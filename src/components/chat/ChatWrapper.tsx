@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Profile } from '@/hooks/useProfile';
+import { supabase } from '@/integrations/supabase/client';
 import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -113,44 +114,36 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
         materials.filter(m => selectedMaterials.includes(m.id)).map(m => m.file_name)
       );
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intelligent-teacher`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      const { data, error } = await supabase.functions.invoke('intelligent-teacher', {
+        body: {
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages.map(m => ({ role: m.role, content: m.content })),
+            { role: 'user', content: messageToSend + contextMessage }
+          ],
+          learnerProfile: {
+            name: profile.name,
+            educationLevel: profile.education_level,
+            learningStyle: profile.learning_style,
+            learningStyles: profile.learning_styles,
+            preferredLanguage: profile.preferred_language,
+            hobbies: profile.hobbies,
+            goals: profile.goals,
+            strengths: profile.strengths,
+            weaknesses: profile.weaknesses,
           },
-          body: JSON.stringify({
-            messages: [
-              { role: 'system', content: systemPrompt },
-              ...messages.map(m => ({ role: m.role, content: m.content })),
-              { role: 'user', content: messageToSend + contextMessage }
-            ],
-            learnerProfile: {
-              name: profile.name,
-              educationLevel: profile.education_level,
-              learningStyle: profile.learning_style,
-              preferredLanguage: profile.preferred_language,
-            },
-            uploadedMaterials: materials.filter(m => selectedMaterials.includes(m.id)).map(m => m.file_name),
-          }),
-        }
-      );
+          uploadedMaterials: materials.filter(m => selectedMaterials.includes(m.id)).map(m => m.file_name),
+        },
+      });
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          toast.error(t('تم تجاوز الحد. حاول لاحقاً.', 'Rate limit exceeded.'));
-        } else if (response.status === 402) {
-          toast.error(t('انتهى الرصيد.', 'Usage limit reached.'));
-        } else {
-          toast.error(t('حدث خطأ.', 'An error occurred.'));
-        }
+      if (error) {
+        console.error('Edge function error:', error);
+        toast.error(t('حدث خطأ.', 'An error occurred.'));
         setIsLoading(false);
         return;
       }
 
-      const reader = response.body?.getReader();
+      const reader = data.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
       let textBuffer = '';

@@ -9,9 +9,14 @@ export interface Profile {
   birth_date: string | null;
   education_level: 'elementary' | 'middle' | 'high' | 'university' | 'professional' | null;
   learning_style: 'visual' | 'practical' | 'illustrative' | null;
+  learning_styles: string[] | null;
   interests: string[] | null;
   bio: string | null;
-  preferred_language: 'ar' | 'en';
+  hobbies: string | null;
+  goals: string | null;
+  strengths: string | null;
+  weaknesses: string | null;
+  preferred_language: 'ar' | 'en' | 'both';
   avatar_url: string | null;
   subject: string | null;
   knowledge_ratio: number | null;

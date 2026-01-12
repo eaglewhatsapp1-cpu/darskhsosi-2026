@@ -92,6 +92,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
         { role: 'user' as const, content: userInput }
       ];
 
+      // Ensure session is valid before calling function
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.error(language === 'ar' ? 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.' : 'Session expired. Please log in again.');
+        setIsLoading(false);
+        return;
+      }
+
       // Use supabase.functions.invoke instead of direct fetch
       const { data, error } = await supabase.functions.invoke('intelligent-teacher', {
         body: {
@@ -100,7 +108,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
             name: profile.name,
             educationLevel: profile.education_level,
             learningStyle: profile.learning_style,
+            learningStyles: profile.learning_styles,
             preferredLanguage: profile.preferred_language,
+            hobbies: profile.hobbies,
+            goals: profile.goals,
+            strengths: profile.strengths,
+            weaknesses: profile.weaknesses,
           },
           uploadedMaterials: selectedMaterialNames.length > 0 ? selectedMaterialNames : materials.map(m => m.file_name),
         },

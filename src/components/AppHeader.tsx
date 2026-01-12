@@ -1,6 +1,7 @@
 import React from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { getSubjectTheme, getAllSubjects, Subject } from '@/utils/subjectColors';
+import { useProfile } from '@/hooks/useProfile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Select,
@@ -9,7 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { GraduationCap, Sparkles } from 'lucide-react';
+import { GraduationCap, Sparkles, Moon, Sun, Languages } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { Button } from '@/components/ui/button';
 
 interface AppHeaderProps {
   profile: Profile;
@@ -18,10 +21,17 @@ interface AppHeaderProps {
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({ profile, language, onSubjectChange }) => {
+  const { theme, setTheme } = useTheme();
+  const { updateProfile } = useProfile();
   const subjectTheme = getSubjectTheme(profile.subject || 'general');
   const subjects = getAllSubjects();
 
   const t = (ar: string, en: string) => (language === 'ar' ? ar : en);
+
+  const toggleLanguage = async () => {
+    const newLang = language === 'ar' ? 'en' : 'ar';
+    await updateProfile({ preferred_language: newLang });
+  };
 
   const getEducationLevelText = () => {
     const levels: Record<string, { ar: string; en: string }> = {
@@ -95,9 +105,28 @@ const AppHeader: React.FC<AppHeaderProps> = ({ profile, language, onSubjectChang
           </Select>
         </div>
 
-        {/* Student Info */}
+        {/* Actions & Student Info */}
         <div className="flex items-center gap-3">
-          <div className="text-end">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            className="rounded-full"
+          >
+            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleLanguage}
+            className="rounded-full flex items-center gap-1 px-2 w-auto"
+          >
+            <Languages className="w-5 h-5" />
+            <span className="text-xs font-bold">{language === 'ar' ? 'EN' : 'AR'}</span>
+          </Button>
+
+          <div className="text-end hidden sm:block">
             <p className="font-semibold text-foreground">{profile.name}</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
               <span 

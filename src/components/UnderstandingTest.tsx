@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ClipboardCheck, Loader2, Sparkles, BookOpen, CheckCircle, XCircle } from 'lucide-react';
+import { ClipboardCheck, Loader2, Sparkles, BookOpen, CheckCircle, XCircle, Timer, Settings2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 
 interface UnderstandingTestProps {
   language: 'ar' | 'en';
@@ -16,9 +18,17 @@ interface UnderstandingTestProps {
 
 interface Question {
   question: string;
-  options: string[];
-  correctAnswer: number;
+  options?: string[];
+  correctAnswer?: number | string;
   explanation: string;
+  type: 'mcq' | 'text';
+}
+
+interface TestSettings {
+  questionType: 'mcq' | 'text' | 'mixed';
+  timedTest: boolean;
+  duration: number;
+  includeIntelligenceQuestions: boolean;
 }
 
 const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
@@ -27,29 +37,51 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
   const [input, setInput] = useState('');
   const [selectedMaterial, setSelectedMaterial] = useState<string>('');
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [answers, setAnswers] = useState<Record<number, any>>({});
   const [showResults, setShowResults] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [settings, setSettings] = useState<TestSettings>({
+    questionType: 'mcq',
+    timedTest: false,
+    duration: 10,
+    includeIntelligenceQuestions: false,
+  });
 
   const materialsWithContent = materials.filter((m: any) => m.content);
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
-      title: { ar: 'اختبار الفهم', en: 'Understanding Test' },
-      subtitle: { ar: 'اختبر فهمك للمادة', en: 'Test your understanding of the material' },
+      title: { ar: 'اختبار الفهم المطور', en: 'Enhanced Understanding Test' },
+      subtitle: { ar: 'اختبر فهمك للمادة بذكاء', en: 'Test your understanding intelligently' },
       placeholder: { ar: 'الصق النص الذي تريد إنشاء اختبار له...', en: 'Paste the text you want to create a test for...' },
-      generate: { ar: 'أنشئ الاختبار', en: 'Generate Test' },
-      selectMaterial: { ar: 'أو اختر من موادك المرفوعة', en: 'Or select from your uploaded materials' },
-      orEnterText: { ar: 'أو أدخل نصاً', en: 'Or enter text' },
-      submit: { ar: 'تحقق من الإجابات', en: 'Check Answers' },
-      tryAgain: { ar: 'حاول مرة أخرى', en: 'Try Again' },
-      correct: { ar: 'صحيح!', en: 'Correct!' },
-      incorrect: { ar: 'خطأ', en: 'Incorrect' },
+      generate: { ar: 'بدء الاختبار', en: 'Start Test' },
+      selectMaterial: { ar: 'اختر من موادك المرفوعة', en: 'Select from your uploaded materials' },
+      settings: { ar: 'إعدادات الاختبار', en: 'Test Settings' },
+      qType: { ar: 'نوع الأسئلة', en: 'Question Type' },
+      mcq: { ar: 'اختيار من متعدد', en: 'Multiple Choice' },
+      text: { ar: 'أسئلة نصية', en: 'Text Questions' },
+      mixed: { ar: 'مختلط', en: 'Mixed' },
+      timed: { ar: 'اختبار موقوت', en: 'Timed Test' },
+      duration: { ar: 'المدة (بالدقائق)', en: 'Duration (minutes)' },
+      intel: { ar: 'إضافة أسئلة ذكاء وقدرات', en: 'Include Intelligence Questions' },
+      submit: { ar: 'إنهاء الاختبار', en: 'Finish Test' },
+      tryAgain: { ar: 'اختبار جديد', en: 'New Test' },
       score: { ar: 'النتيجة', en: 'Score' },
-      question: { ar: 'سؤال', en: 'Question' },
+      timeLeft: { ar: 'الوقت المتبقي', en: 'Time Left' },
     };
     return translations[key]?.[language] || key;
   };
+
+  useEffect(() => {
+    let timer: any;
+    if (timeLeft !== null && timeLeft > 0 && !showResults) {
+      timer = setInterval(() => setTimeLeft(prev => (prev !== null ? prev - 1 : null)), 1000);
+    } else if (timeLeft === 0 && !showResults) {
+      handleSubmit();
+    }
+    return () => clearInterval(timer);
+  }, [timeLeft, showResults]);
 
   const handleGenerate = async () => {
     const contentToTest = selectedMaterial 
@@ -69,63 +101,59 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
           messages: [
             {
               role: 'user',
-              content: `Create a quiz with 5 multiple choice questions based on the following content. Return ONLY valid JSON in this exact format:
+              content: `Create a ${settings.questionType} quiz based on the following content. ${settings.includeIntelligenceQuestions ? 'Include 2 intelligence/logic questions.' : ''} Return ONLY valid JSON in this format:
 [
   {
-    "question": "Question text here?",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "question": "Question text?",
+    "type": "mcq",
+    "options": ["A", "B", "C", "D"],
     "correctAnswer": 0,
-    "explanation": "Brief explanation of why this is correct"
+    "explanation": "Why?"
+  },
+  {
+    "question": "Text question?",
+    "type": "text",
+    "explanation": "Expected answer details"
   }
 ]
 
 Content: ${contentToTest}`,
             },
           ],
-          learnerProfile: profile ? {
-            name: profile.name,
-            educationLevel: profile.education_level,
-            learningStyle: profile.learning_style,
-            interests: profile.interests,
-            preferredLanguage: profile.preferred_language,
-          } : null,
+          learnerProfile: profile,
         },
       });
 
       if (response.error) throw response.error;
 
+      // Handle streaming or direct data
       const reader = response.data.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
-
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
-
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
             if (data === '[DONE]') continue;
             try {
               const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content || '';
-              fullContent += content;
+              fullContent += parsed.choices?.[0]?.delta?.content || '';
             } catch {}
           }
         }
       }
 
-      // Parse the JSON response
       const jsonMatch = fullContent.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        setQuestions(parsed);
+        setQuestions(JSON.parse(jsonMatch[0]));
+        if (settings.timedTest) setTimeLeft(settings.duration * 60);
       }
     } catch (error) {
-      console.error('Error generating test:', error);
+      console.error('Error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -133,11 +161,14 @@ Content: ${contentToTest}`,
 
   const handleSubmit = () => {
     setShowResults(true);
+    setTimeLeft(null);
   };
 
-  const score = Object.entries(answers).filter(
-    ([idx, ans]) => questions[parseInt(idx)]?.correctAnswer === ans
-  ).length;
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="h-full flex flex-col p-6 overflow-auto">
@@ -150,130 +181,112 @@ Content: ${contentToTest}`,
       </div>
 
       {questions.length === 0 ? (
-        <Card className="p-4">
-          {materialsWithContent.length > 0 && (
-            <div className="mb-4">
-              <label className="text-sm font-medium mb-2 block">{t('selectMaterial')}</label>
-              <Select value={selectedMaterial} onValueChange={(value) => {
-                setSelectedMaterial(value);
-                setInput('');
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder={t('selectMaterial')} />
-                </SelectTrigger>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="p-6 space-y-4">
+            <h3 className="font-semibold flex items-center gap-2"><BookOpen className="w-5 h-5" /> {t('selectMaterial')}</h3>
+            {materialsWithContent.length > 0 && (
+              <Select value={selectedMaterial} onValueChange={(v) => { setSelectedMaterial(v); setInput(''); }}>
+                <SelectTrigger><SelectValue placeholder={t('selectMaterial')} /></SelectTrigger>
                 <SelectContent>
-                  {materialsWithContent.map((material: any) => (
-                    <SelectItem key={material.id} value={material.id}>
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="w-4 h-4" />
-                        {material.file_name}
-                      </div>
-                    </SelectItem>
+                  {materialsWithContent.map((m: any) => (
+                    <SelectItem key={m.id} value={m.id}>{m.file_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-          )}
-
-          <label className="text-sm font-medium mb-2 block">{t('orEnterText')}</label>
-          <Textarea
-            value={input}
-            onChange={(e) => {
-              setInput(e.target.value);
-              setSelectedMaterial('');
-            }}
-            placeholder={t('placeholder')}
-            className="min-h-[150px] mb-4 resize-none"
-            dir={language === 'ar' ? 'rtl' : 'ltr'}
-          />
-          <Button
-            onClick={handleGenerate}
-            disabled={(!input.trim() && !selectedMaterial) || isLoading}
-            className="w-full"
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin me-2" />
-            ) : (
-              <Sparkles className="w-4 h-4 me-2" />
             )}
-            {t('generate')}
-          </Button>
-        </Card>
+            <Textarea
+              value={input}
+              onChange={(e) => { setInput(e.target.value); setSelectedMaterial(''); }}
+              placeholder={t('placeholder')}
+              className="min-h-[200px] resize-none"
+              dir={language === 'ar' ? 'rtl' : 'ltr'}
+            />
+          </Card>
+
+          <Card className="p-6 space-y-6">
+            <h3 className="font-semibold flex items-center gap-2"><Settings2 className="w-5 h-5" /> {t('settings')}</h3>
+            
+            <div className="space-y-2">
+              <Label>{t('qType')}</Label>
+              <Select value={settings.questionType} onValueChange={(v: any) => setSettings({...settings, questionType: v})}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mcq">{t('mcq')}</SelectItem>
+                  <SelectItem value="text">{t('text')}</SelectItem>
+                  <SelectItem value="mixed">{t('mixed')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label>{t('timed')}</Label>
+              <Switch checked={settings.timedTest} onCheckedChange={(v) => setSettings({...settings, timedTest: v})} />
+            </div>
+
+            {settings.timedTest && (
+              <div className="space-y-2">
+                <Label>{t('duration')}</Label>
+                <Input type="number" value={settings.duration} onChange={(e) => setSettings({...settings, duration: parseInt(e.target.value)})} />
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <Label>{t('intel')}</Label>
+              <Switch checked={settings.includeIntelligenceQuestions} onCheckedChange={(v) => setSettings({...settings, includeIntelligenceQuestions: v})} />
+            </div>
+
+            <Button onClick={handleGenerate} disabled={(!input.trim() && !selectedMaterial) || isLoading} className="w-full h-12 gradient-primary">
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : <Sparkles className="w-4 h-4 me-2" />}
+              {t('generate')}
+            </Button>
+          </Card>
+        </div>
       ) : (
-        <div className="space-y-6">
-          {showResults && (
-            <Card className="p-4 bg-primary/10">
-              <div className="text-center">
-                <p className="text-lg font-semibold">
-                  {t('score')}: {score} / {questions.length}
-                </p>
+        <div className="max-w-3xl mx-auto w-full space-y-6">
+          {timeLeft !== null && (
+            <Card className="p-4 sticky top-0 z-10 bg-background/80 backdrop-blur flex items-center justify-between border-primary">
+              <div className="flex items-center gap-2 text-primary font-bold">
+                <Timer className="w-5 h-5" />
+                {t('timeLeft')}: {formatTime(timeLeft)}
               </div>
             </Card>
           )}
 
           {questions.map((q, idx) => (
-            <Card key={idx} className="p-4">
-              <h3 className="font-semibold mb-4">
-                {t('question')} {idx + 1}: {q.question}
-              </h3>
-              <RadioGroup
-                value={answers[idx]?.toString()}
-                onValueChange={(value) => setAnswers(prev => ({ ...prev, [idx]: parseInt(value) }))}
-                disabled={showResults}
-              >
-                {q.options.map((option, optIdx) => (
-                  <div key={optIdx} className={`flex items-center space-x-2 p-2 rounded ${
-                    showResults
-                      ? optIdx === q.correctAnswer
-                        ? 'bg-green-100 dark:bg-green-900/30'
-                        : answers[idx] === optIdx
-                        ? 'bg-red-100 dark:bg-red-900/30'
-                        : ''
-                      : ''
-                  }`}>
-                    <RadioGroupItem value={optIdx.toString()} id={`q${idx}-o${optIdx}`} />
-                    <Label htmlFor={`q${idx}-o${optIdx}`} className="flex-1 cursor-pointer">
-                      {option}
-                    </Label>
-                    {showResults && optIdx === q.correctAnswer && (
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    )}
-                    {showResults && answers[idx] === optIdx && optIdx !== q.correctAnswer && (
-                      <XCircle className="w-5 h-5 text-red-600" />
-                    )}
-                  </div>
-                ))}
-              </RadioGroup>
+            <Card key={idx} className="p-6 space-y-4">
+              <h3 className="font-semibold text-lg">{idx + 1}. {q.question}</h3>
+              {q.type === 'mcq' ? (
+                <RadioGroup value={answers[idx]?.toString()} onValueChange={(v) => setAnswers(prev => ({ ...prev, [idx]: parseInt(v) }))} disabled={showResults}>
+                  {q.options?.map((opt, oIdx) => (
+                    <div key={oIdx} className={`flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-lg border ${
+                      showResults ? (oIdx === q.correctAnswer ? 'bg-green-100 border-green-500' : answers[idx] === oIdx ? 'bg-red-100 border-red-500' : '') : 'hover:bg-accent'
+                    }`}>
+                      <RadioGroupItem value={oIdx.toString()} id={`q${idx}-o${oIdx}`} />
+                      <Label htmlFor={`q${idx}-o${oIdx}`} className="flex-1 cursor-pointer">{opt}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              ) : (
+                <Textarea
+                  value={answers[idx] || ''}
+                  onChange={(e) => setAnswers(prev => ({ ...prev, [idx]: e.target.value }))}
+                  disabled={showResults}
+                  placeholder={language === 'ar' ? 'اكتب إجابتك هنا...' : 'Type your answer here...'}
+                  className="min-h-[100px]"
+                />
+              )}
               {showResults && (
-                <p className="mt-3 text-sm text-muted-foreground bg-muted p-2 rounded">
+                <div className="mt-4 p-4 bg-muted rounded-lg text-sm">
+                  <p className="font-bold mb-1">{language === 'ar' ? 'التفسير:' : 'Explanation:'}</p>
                   {q.explanation}
-                </p>
+                </div>
               )}
             </Card>
           ))}
 
-          <div className="flex gap-4">
-            {!showResults ? (
-              <Button
-                onClick={handleSubmit}
-                disabled={Object.keys(answers).length !== questions.length}
-                className="flex-1"
-              >
-                {t('submit')}
-              </Button>
-            ) : (
-              <Button
-                onClick={() => {
-                  setQuestions([]);
-                  setAnswers({});
-                  setShowResults(false);
-                }}
-                className="flex-1"
-              >
-                {t('tryAgain')}
-              </Button>
-            )}
-          </div>
+          <Button onClick={showResults ? () => setQuestions([]) : handleSubmit} className="w-full h-12 gradient-primary">
+            {showResults ? t('tryAgain') : t('submit')}
+          </Button>
         </div>
       )}
     </div>

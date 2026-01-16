@@ -116,6 +116,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
             weaknesses: profile.weaknesses,
           },
           uploadedMaterials: selectedMaterialNames.length > 0 ? selectedMaterialNames : materials.map(m => m.file_name),
+          materialContent: materials
+            .filter(m => selectedMaterialNames.length > 0 ? selectedMaterialNames.includes(m.file_name) : true)
+            .map(m => `[${m.file_name}]: ${m.content || 'No content available'}`)
+            .join('\n\n'),
         },
       });
 

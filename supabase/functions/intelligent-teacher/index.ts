@@ -20,6 +20,7 @@ interface RequestBody {
     preferredLanguage: string;
   };
   uploadedMaterials?: string[];
+  materialContent?: string;
 }
 
 serve(async (req) => {
@@ -56,7 +57,7 @@ serve(async (req) => {
     const userId = claimsData.claims.sub;
     console.log("Authenticated user:", userId);
 
-    const { messages, learnerProfile, uploadedMaterials } = await req.json() as RequestBody;
+    const { messages, learnerProfile, uploadedMaterials, materialContent } = await req.json() as RequestBody;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -104,9 +105,13 @@ TEACHING APPROACH:
 - Provide constructive feedback`;
 
     if (uploadedMaterials && uploadedMaterials.length > 0) {
-      systemPrompt += `\n\nThe learner has uploaded the following materials: ${uploadedMaterials.join(', ')}. 
-Base your teaching on these materials when relevant. If asked about topics not covered in these materials, 
-politely explain that you can only teach based on the uploaded content.`;
+      systemPrompt += `\n\nThe learner has selected the following materials from their Knowledge Base: ${uploadedMaterials.join(', ')}.`;
+      
+      if (materialContent) {
+        systemPrompt += `\n\nHere is the content of the selected materials for your reference:\n${materialContent}\n\nCRITICAL: Base your teaching and answers ONLY on this content. If the answer is not in the provided content, explain that you can only answer based on the uploaded materials.`;
+      } else {
+        systemPrompt += `\n\nBase your teaching on these materials when relevant. If asked about topics not covered in these materials, politely explain that you can only teach based on the uploaded content.`;
+      }
     } else {
       systemPrompt += `\n\nNote: No learning materials have been uploaded yet. Encourage the learner to upload 
 study materials (PDFs, documents, images) for more focused and effective learning. You can still have 

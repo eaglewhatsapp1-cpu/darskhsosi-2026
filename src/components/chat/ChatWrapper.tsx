@@ -133,6 +133,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
             weaknesses: profile.weaknesses,
           },
           uploadedMaterials: materials.filter(m => selectedMaterials.includes(m.id)).map(m => m.file_name),
+          materialContent: getSelectedMaterialsContent(),
         },
       });
 

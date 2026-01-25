@@ -27,8 +27,9 @@ const LearningPlatform: React.FC = () => {
 
   useEffect(() => {
     if (profile?.preferred_language) {
-      setLanguage(profile.preferred_language);
-      document.documentElement.dir = profile.preferred_language === 'ar' ? 'rtl' : 'ltr';
+      const lang = profile.preferred_language === 'both' ? 'ar' : profile.preferred_language;
+      setLanguage(lang);
+      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
       document.documentElement.lang = profile.preferred_language;
     }
   }, [profile]);

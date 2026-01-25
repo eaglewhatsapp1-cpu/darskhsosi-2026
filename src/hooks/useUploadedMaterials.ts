@@ -46,7 +46,7 @@ export const useUploadedMaterials = () => {
     }
   };
 
-  const uploadFile = async (file: File): Promise<{ storagePath: string; content: string | null } | null> => {
+  const uploadFile = async (file: File): Promise<{ storagePath: string; content: string | null; needsPdfExtraction: boolean } | null> => {
     if (!user) return null;
 
     try {
@@ -59,6 +59,7 @@ export const useUploadedMaterials = () => {
       if (uploadError) throw uploadError;
 
       let content: string | null = null;
+      let needsPdfExtraction = false;
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       const textExtensions = ['txt', 'md', 'csv', 'json', 'xml', 'html', 'css', 'js', 'ts', 'py'];
       
@@ -67,12 +68,34 @@ export const useUploadedMaterials = () => {
         if (content.length > 50000) {
           content = content.substring(0, 50000) + '\n\n[Content truncated...]';
         }
+      } else if (fileExt === 'pdf') {
+        needsPdfExtraction = true;
       }
 
-      return { storagePath: filePath, content };
+      return { storagePath: filePath, content, needsPdfExtraction };
     } catch (error) {
       console.error('Error uploading file:', error);
       return null;
+    }
+  };
+
+  const extractPdfContent = async (materialId: string, storagePath: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-pdf-text', {
+        body: { materialId, storagePath }
+      });
+
+      if (error) {
+        console.error('PDF extraction error:', error);
+        return false;
+      }
+
+      // Refresh materials to get the updated content
+      await fetchMaterials();
+      return true;
+    } catch (error) {
+      console.error('Error extracting PDF:', error);
+      return false;
     }
   };
 
@@ -134,5 +157,5 @@ export const useUploadedMaterials = () => {
     }
   };
 
-  return { materials, loading, addMaterial, deleteMaterial, fetchMaterials, uploadFile };
+  return { materials, loading, addMaterial, deleteMaterial, fetchMaterials, uploadFile, extractPdfContent };
 };

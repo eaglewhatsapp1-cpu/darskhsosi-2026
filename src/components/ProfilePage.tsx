@@ -232,7 +232,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
 
               <div className="space-y-2">
                 <Label className="flex items-center gap-2"><Languages className="w-4 h-4 text-primary" />{t('field.language')}</Label>
-                <Select value={formData.preferredLanguage} onValueChange={(value) => setFormData({ ...formData, preferredLanguage: value })}>
+                <Select value={formData.preferredLanguage} onValueChange={(value: 'ar' | 'en' | 'both') => setFormData({ ...formData, preferredLanguage: value })}>
                   <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ar">{t('lang.ar')}</SelectItem>

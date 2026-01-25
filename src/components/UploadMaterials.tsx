@@ -55,7 +55,7 @@ const validateFile = (file: File, allowedTypes: string[], language: 'ar' | 'en')
 };
 
 const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
-  const { materials, loading, addMaterial, deleteMaterial, uploadFile } = useUploadedMaterials();
+  const { materials, loading, addMaterial, deleteMaterial, uploadFile, extractPdfContent } = useUploadedMaterials();
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -113,6 +113,7 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
     setUploading(true);
     let successCount = 0;
     let errorCount = 0;
+    const pdfMaterialsToExtract: { id: string; storagePath: string }[] = [];
     
     for (const file of files) {
       // Validate file before uploading
@@ -125,7 +126,7 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
       
       const result = await uploadFile(file);
       
-      const { error } = await addMaterial({
+      const { data, error } = await addMaterial({
         file_name: file.name,
         file_type: file.type,
         file_size: file.size,
@@ -138,6 +139,10 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
         errorCount++;
       } else {
         successCount++;
+        // Queue PDF for extraction
+        if (result?.needsPdfExtraction && data?.id && result.storagePath) {
+          pdfMaterialsToExtract.push({ id: data.id, storagePath: result.storagePath });
+        }
       }
     }
     
@@ -149,6 +154,29 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
     }
     
     setUploading(false);
+
+    // Extract PDF content in background
+    if (pdfMaterialsToExtract.length > 0) {
+      toast.info(language === 'ar' 
+        ? 'جاري استخراج محتوى ملفات PDF...'
+        : 'Extracting PDF content...'
+      );
+      
+      for (const pdf of pdfMaterialsToExtract) {
+        const success = await extractPdfContent(pdf.id, pdf.storagePath);
+        if (success) {
+          toast.success(language === 'ar' 
+            ? 'تم استخراج محتوى PDF بنجاح'
+            : 'PDF content extracted successfully'
+          );
+        } else {
+          toast.error(language === 'ar'
+            ? 'فشل استخراج محتوى PDF'
+            : 'Failed to extract PDF content'
+          );
+        }
+      }
+    }
   };
 
   const handleDelete = async (id: string) => {

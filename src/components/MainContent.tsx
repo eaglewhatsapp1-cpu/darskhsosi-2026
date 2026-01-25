@@ -52,7 +52,7 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
       case 'studyplan':
         return <StudyPlanGenerator language={language} profile={profile} />;
       case 'projects':
-        return <ProjectSuggestions language={language} profile={profile} />;
+        return <ProjectSuggestions language={language} />;
       default:
         return <ChatInterface profile={profile} language={language} onNavigateToUpload={handleNavigateToUpload} />;
     }

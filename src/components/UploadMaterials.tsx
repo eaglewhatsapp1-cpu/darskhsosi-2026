@@ -126,8 +126,9 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
       
       const result = await uploadFile(file);
       
+      // Use original filename for display, but sanitized filename was used for storage
       const { data, error } = await addMaterial({
-        file_name: file.name,
+        file_name: result?.originalFilename || file.name, // Use original filename for display
         file_type: file.type,
         file_size: file.size,
         storage_path: result?.storagePath,

@@ -171,11 +171,27 @@ ${contentToTest.substring(0, 8000)}`,
 
       console.log('Full AI response:', fullContent);
 
-      // Try to extract JSON array from the response
-      const jsonMatch = fullContent.match(/\[[\s\S]*?\]/);
-      if (jsonMatch) {
+      // Extract JSON array using bracket matching for nested arrays
+      let jsonStr = '';
+      let bracketCount = 0;
+      let startIdx = -1;
+      
+      for (let i = 0; i < fullContent.length; i++) {
+        if (fullContent[i] === '[') {
+          if (startIdx === -1) startIdx = i;
+          bracketCount++;
+        } else if (fullContent[i] === ']') {
+          bracketCount--;
+          if (bracketCount === 0 && startIdx !== -1) {
+            jsonStr = fullContent.substring(startIdx, i + 1);
+            break;
+          }
+        }
+      }
+
+      if (jsonStr) {
         try {
-          const parsedQuestions = JSON.parse(jsonMatch[0]);
+          const parsedQuestions = JSON.parse(jsonStr);
           if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
             setQuestions(parsedQuestions);
             if (settings.timedTest) setTimeLeft(settings.duration * 60);

@@ -64,7 +64,7 @@ export const useUploadedMaterials = () => {
     return sanitized + ext;
   };
 
-  const uploadFile = async (file: File): Promise<{ storagePath: string; content: string | null; needsPdfExtraction: boolean; originalFilename: string } | null> => {
+  const uploadFile = async (file: File): Promise<{ storagePath: string; content: string | null; needsExtraction: boolean; originalFilename: string; fileType: string } | null> => {
     if (!user) return null;
 
     try {
@@ -78,42 +78,49 @@ export const useUploadedMaterials = () => {
       if (uploadError) throw uploadError;
 
       let content: string | null = null;
-      let needsPdfExtraction = false;
+      let needsExtraction = false;
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       const textExtensions = ['txt', 'md', 'csv', 'json', 'xml', 'html', 'css', 'js', 'ts', 'py'];
       
+      // For text files, extract content directly
       if (fileExt && textExtensions.includes(fileExt)) {
         content = await file.text();
         if (content.length > 50000) {
           content = content.substring(0, 50000) + '\n\n[Content truncated...]';
         }
-      } else if (fileExt === 'pdf') {
-        needsPdfExtraction = true;
+      } 
+      // For PDF, DOCX, DOC, PPTX - need AI extraction
+      else if (fileExt && ['pdf', 'docx', 'doc', 'pptx'].includes(fileExt)) {
+        needsExtraction = true;
       }
 
-      return { storagePath: filePath, content, needsPdfExtraction, originalFilename: file.name };
+      return { storagePath: filePath, content, needsExtraction, originalFilename: file.name, fileType: file.type };
     } catch (error) {
       console.error('Error uploading file:', error);
       return null;
     }
   };
 
-  const extractPdfContent = async (materialId: string, storagePath: string): Promise<boolean> => {
+  const extractDocumentContent = async (materialId: string, storagePath: string, fileType: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase.functions.invoke('extract-pdf-text', {
-        body: { materialId, storagePath }
+      console.log('Extracting document content:', { materialId, storagePath, fileType });
+      
+      const { data, error } = await supabase.functions.invoke('extract-document-text', {
+        body: { materialId, storagePath, fileType }
       });
 
       if (error) {
-        console.error('PDF extraction error:', error);
+        console.error('Document extraction error:', error);
         return false;
       }
+
+      console.log('Extraction result:', data);
 
       // Refresh materials to get the updated content
       await fetchMaterials();
       return true;
     } catch (error) {
-      console.error('Error extracting PDF:', error);
+      console.error('Error extracting document:', error);
       return false;
     }
   };
@@ -176,5 +183,5 @@ export const useUploadedMaterials = () => {
     }
   };
 
-  return { materials, loading, addMaterial, deleteMaterial, fetchMaterials, uploadFile, extractPdfContent };
+  return { materials, loading, addMaterial, deleteMaterial, fetchMaterials, uploadFile, extractDocumentContent };
 };

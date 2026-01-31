@@ -3,7 +3,7 @@ import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Upload, FileText, Image, File, X, CheckCircle, Loader2 } from 'lucide-react';
+import { Upload, FileText, Image, File, X, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
 
 interface UploadMaterialsProps {
   language: 'ar' | 'en';
@@ -55,7 +55,7 @@ const validateFile = (file: File, allowedTypes: string[], language: 'ar' | 'en')
 };
 
 const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
-  const { materials, loading, addMaterial, deleteMaterial, uploadFile, extractPdfContent } = useUploadedMaterials();
+  const { materials, loading, addMaterial, deleteMaterial, uploadFile, extractDocumentContent } = useUploadedMaterials();
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -113,7 +113,7 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
     setUploading(true);
     let successCount = 0;
     let errorCount = 0;
-    const pdfMaterialsToExtract: { id: string; storagePath: string }[] = [];
+    const documentsToExtract: { id: string; storagePath: string; fileType: string }[] = [];
     
     for (const file of files) {
       // Validate file before uploading
@@ -126,13 +126,19 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
       
       const result = await uploadFile(file);
       
+      if (!result) {
+        toast.error(language === 'ar' ? `فشل رفع ${file.name}` : `Failed to upload ${file.name}`);
+        errorCount++;
+        continue;
+      }
+      
       // Use original filename for display, but sanitized filename was used for storage
       const { data, error } = await addMaterial({
-        file_name: result?.originalFilename || file.name, // Use original filename for display
+        file_name: result.originalFilename || file.name,
         file_type: file.type,
         file_size: file.size,
-        storage_path: result?.storagePath,
-        content: result?.content,
+        storage_path: result.storagePath,
+        content: result.content,
       });
       
       if (error) {
@@ -140,9 +146,13 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
         errorCount++;
       } else {
         successCount++;
-        // Queue PDF for extraction
-        if (result?.needsPdfExtraction && data?.id && result.storagePath) {
-          pdfMaterialsToExtract.push({ id: data.id, storagePath: result.storagePath });
+        // Queue documents that need extraction (PDF, DOCX, etc.)
+        if (result.needsExtraction && data?.id && result.storagePath) {
+          documentsToExtract.push({ 
+            id: data.id, 
+            storagePath: result.storagePath,
+            fileType: result.fileType
+          });
         }
       }
     }
@@ -156,27 +166,49 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
     
     setUploading(false);
 
-    // Extract PDF content in background
-    if (pdfMaterialsToExtract.length > 0) {
+    // Extract document content in background
+    if (documentsToExtract.length > 0) {
       toast.info(language === 'ar' 
-        ? 'جاري استخراج محتوى ملفات PDF...'
-        : 'Extracting PDF content...'
+        ? 'جاري استخراج محتوى الملفات...'
+        : 'Extracting document content...'
       );
       
-      for (const pdf of pdfMaterialsToExtract) {
-        const success = await extractPdfContent(pdf.id, pdf.storagePath);
+      for (const doc of documentsToExtract) {
+        const success = await extractDocumentContent(doc.id, doc.storagePath, doc.fileType);
         if (success) {
           toast.success(language === 'ar' 
-            ? 'تم استخراج محتوى PDF بنجاح'
-            : 'PDF content extracted successfully'
+            ? 'تم استخراج المحتوى بنجاح'
+            : 'Document content extracted successfully'
           );
         } else {
           toast.error(language === 'ar'
-            ? 'فشل استخراج محتوى PDF'
-            : 'Failed to extract PDF content'
+            ? 'فشل استخراج المحتوى'
+            : 'Failed to extract document content'
           );
         }
       }
+    }
+  };
+
+  const [extractingId, setExtractingId] = useState<string | null>(null);
+
+  const handleReExtract = async (material: { id: string; storage_path: string | null; file_type: string | null }) => {
+    if (!material.storage_path) {
+      toast.error(language === 'ar' ? 'لا يوجد مسار للملف' : 'No file path available');
+      return;
+    }
+    
+    setExtractingId(material.id);
+    toast.info(language === 'ar' ? 'جاري استخراج المحتوى...' : 'Extracting content...');
+    
+    const success = await extractDocumentContent(material.id, material.storage_path, material.file_type || '');
+    
+    setExtractingId(null);
+    
+    if (success) {
+      toast.success(language === 'ar' ? 'تم استخراج المحتوى بنجاح' : 'Content extracted successfully');
+    } else {
+      toast.error(language === 'ar' ? 'فشل استخراج المحتوى' : 'Failed to extract content');
     }
   };
 
@@ -260,13 +292,38 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
           <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
             {materials.map((file) => {
               const Icon = getFileIcon(file.file_name);
+              const canExtract = file.storage_path && ['pdf', 'docx', 'doc', 'pptx'].some(ext => 
+                file.file_name.toLowerCase().endsWith(`.${ext}`)
+              );
+              
               return (
                 <div key={file.id} className="flex items-center gap-3 p-3 bg-secondary/50 rounded-xl animate-slide-up">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Icon className="w-5 h-5 text-primary" />
                   </div>
                   <span className="flex-1 text-sm font-medium text-foreground truncate">{file.file_name}</span>
-                  {file.content && <span className="text-xs text-primary bg-primary/10 px-2 py-1 rounded">📄</span>}
+                  {file.content ? (
+                    <span className="text-xs text-primary bg-primary/10 px-2 py-1 rounded" title={language === 'ar' ? 'تم استخراج المحتوى' : 'Content extracted'}>
+                      ✓ {language === 'ar' ? 'جاهز' : 'Ready'}
+                    </span>
+                  ) : canExtract ? (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="shrink-0 h-8 text-xs"
+                      onClick={() => handleReExtract(file)}
+                      disabled={extractingId === file.id}
+                    >
+                      {extractingId === file.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3 h-3 me-1" />
+                          {language === 'ar' ? 'استخراج' : 'Extract'}
+                        </>
+                      )}
+                    </Button>
+                  ) : null}
                   <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => handleDelete(file.id)}>
                     <X className="w-4 h-4" />
                   </Button>

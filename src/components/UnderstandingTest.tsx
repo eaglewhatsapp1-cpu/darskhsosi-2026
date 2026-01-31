@@ -96,8 +96,15 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
     setShowResults(false);
 
     try {
-      const response = await supabase.functions.invoke('intelligent-teacher', {
-        body: {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intelligent-teacher`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
           messages: [
             {
               role: 'user',
@@ -121,13 +128,14 @@ Content: ${contentToTest}`,
             },
           ],
           learnerProfile: profile,
-        },
+        }),
       });
 
-      if (response.error) throw response.error;
+      if (!response.ok) throw new Error('Failed to generate test');
 
-      // Handle streaming or direct data
-      const reader = response.data.getReader();
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
       const decoder = new TextDecoder();
       let fullContent = '';
       while (true) {

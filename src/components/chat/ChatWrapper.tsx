@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
-import { getPersona, getPersonaSystemPrompt, AIPersona } from '@/config/aiPersonas';
+import { getPersona, getPersonaSystemPrompt } from '@/config/aiPersonas';
 import { getSubjectTheme } from '@/utils/subjectColors';
 import MaterialSelector from './MaterialSelector';
 import TemporaryUpload, { TempFile } from './TemporaryUpload';
@@ -114,8 +114,25 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
         materials.filter(m => selectedMaterials.includes(m.id)).map(m => m.file_name)
       );
 
-      const { data, error } = await supabase.functions.invoke('intelligent-teacher', {
-        body: {
+      // Get session for auth token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        toast.error(t('يجب تسجيل الدخول أولاً', 'Please login first'));
+        setIsLoading(false);
+        return;
+      }
+
+      // Use fetch directly for streaming support
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intelligent-teacher`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
           messages: [
             { role: 'system', content: systemPrompt },
             ...messages.map(m => ({ role: m.role, content: m.content })),
@@ -125,76 +142,94 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
             name: profile.name,
             educationLevel: profile.education_level,
             learningStyle: profile.learning_style,
-            learningStyles: profile.learning_styles,
             preferredLanguage: profile.preferred_language,
-            hobbies: profile.hobbies,
-            goals: profile.goals,
-            strengths: profile.strengths,
-            weaknesses: profile.weaknesses,
           },
           uploadedMaterials: materials.filter(m => selectedMaterials.includes(m.id)).map(m => m.file_name),
           materialContent: getSelectedMaterialsContent(),
-        },
+        }),
       });
 
-      if (error) {
-        console.error('Edge function error:', error);
-        toast.error(t('حدث خطأ.', 'An error occurred.'));
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Edge function error:', response.status, errorText);
+        
+        if (response.status === 429) {
+          toast.error(t('تم تجاوز الحد الأقصى. حاول مرة أخرى لاحقاً.', 'Rate limit exceeded. Please try again later.'));
+        } else if (response.status === 402) {
+          toast.error(t('يجب إضافة رصيد لحسابك.', 'Please add credits to your account.'));
+        } else {
+          toast.error(t('حدث خطأ في الخدمة.', 'Service error occurred.'));
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      if (!response.body) {
+        toast.error(t('لا توجد استجابة.', 'No response received.'));
         setIsLoading(false);
         return;
       }
 
       let fullContent = '';
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = '';
+      let streamDone = false;
 
-      // Check if data is a ReadableStream (streaming response)
-      if (data instanceof ReadableStream) {
-        const reader = data.getReader();
-        const decoder = new TextDecoder();
-        let textBuffer = '';
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
 
-          textBuffer += decoder.decode(value, { stream: true });
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
 
-          let newlineIndex: number;
-          while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
-            let line = textBuffer.slice(0, newlineIndex);
-            textBuffer = textBuffer.slice(newlineIndex + 1);
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
 
-            if (line.endsWith('\r')) line = line.slice(0, -1);
-            if (line.startsWith(':') || line.trim() === '') continue;
-            if (!line.startsWith('data: ')) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') {
+            streamDone = true;
+            break;
+          }
 
-            const jsonStr = line.slice(6).trim();
-            if (jsonStr === '[DONE]') break;
-
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                fullContent += content;
-                setStreamingContent(fullContent);
-              }
-            } catch {
-              textBuffer = line + '\n' + textBuffer;
-              break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullContent += content;
+              setStreamingContent(fullContent);
             }
+          } catch {
+            // Incomplete JSON, put it back and wait for more data
+            textBuffer = line + '\n' + textBuffer;
+            break;
           }
         }
-      } else if (data && typeof data === 'object') {
-        // Handle non-streaming JSON response
-        if (data.choices?.[0]?.message?.content) {
-          fullContent = data.choices[0].message.content;
-          setStreamingContent(fullContent);
-        } else if (typeof data === 'string') {
-          fullContent = data;
-          setStreamingContent(fullContent);
+      }
+
+      // Final flush for any remaining buffered content
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split('\n')) {
+          if (!raw) continue;
+          if (raw.endsWith('\r')) raw = raw.slice(0, -1);
+          if (raw.startsWith(':') || raw.trim() === '') continue;
+          if (!raw.startsWith('data: ')) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullContent += content;
+              setStreamingContent(fullContent);
+            }
+          } catch { /* ignore partial leftovers */ }
         }
-      } else if (typeof data === 'string') {
-        fullContent = data;
-        setStreamingContent(fullContent);
       }
 
       if (fullContent) {

@@ -149,67 +149,69 @@ const StudyPlanGenerator: React.FC<StudyPlanGeneratorProps> = ({ language, profi
 
           {/* Generated Plan */}
           {plan && (
-            <ScrollArea className="flex-1 border rounded-lg">
-              <div className="p-4 space-y-6">
-                {/* Plan Header */}
-                <div 
-                  className="p-4 rounded-lg text-white"
-                  style={{ background: subjectTheme.gradient }}
-                >
-                  <h2 className="text-xl font-bold mb-2">{plan.title}</h2>
-                  <p className="text-white/90">{plan.overview}</p>
-                </div>
+            <div className="flex-1 border rounded-lg overflow-hidden min-h-0">
+              <ScrollArea className="h-full max-h-[60vh]">
+                <div className="p-4 space-y-6">
+                  {/* Plan Header */}
+                  <div 
+                    className="p-4 rounded-lg text-white"
+                    style={{ background: subjectTheme.gradient }}
+                  >
+                    <h2 className="text-xl font-bold mb-2">{plan.title}</h2>
+                    <p className="text-white/90">{plan.overview}</p>
+                  </div>
 
-                {/* Weeks */}
-                {plan.weeks.map((week, weekIndex) => (
-                  <div key={weekIndex} className="space-y-3">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Target className="w-5 h-5" style={{ color: subjectTheme.primary }} />
-                      {t(`الأسبوع ${week.weekNumber}`, `Week ${week.weekNumber}`)} - {week.focus}
-                    </h3>
-                    
-                    <div className="grid gap-2">
-                      {week.days.map((day, dayIndex) => (
-                        <Card key={dayIndex} className="border-s-4" style={{ borderColor: subjectTheme.primary }}>
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium">{day.day}</span>
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {day.duration}
-                              </span>
-                            </div>
-                            <ul className="text-sm space-y-1">
-                              {day.topics.map((topic, i) => (
-                                <li key={i} className="flex items-start gap-2">
-                                  <span style={{ color: subjectTheme.primary }}>•</span>
-                                  {topic}
-                                </li>
-                              ))}
-                            </ul>
-                          </CardContent>
-                        </Card>
-                      ))}
+                  {/* Weeks */}
+                  {plan.weeks.map((week, weekIndex) => (
+                    <div key={weekIndex} className="space-y-3">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">
+                        <Target className="w-5 h-5" style={{ color: subjectTheme.primary }} />
+                        {t(`الأسبوع ${week.weekNumber}`, `Week ${week.weekNumber}`)} - {week.focus}
+                      </h3>
+                      
+                      <div className="grid gap-2">
+                        {week.days.map((day, dayIndex) => (
+                          <Card key={dayIndex} className="border-s-4" style={{ borderColor: subjectTheme.primary }}>
+                            <CardContent className="p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium">{day.day}</span>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {day.duration}
+                                </span>
+                              </div>
+                              <ul className="text-sm space-y-1">
+                                {day.topics.map((topic, i) => (
+                                  <li key={i} className="flex items-start gap-2">
+                                    <span style={{ color: subjectTheme.primary }}>•</span>
+                                    {topic}
+                                  </li>
+                                ))}
+                              </ul>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
 
-                {/* Tips */}
-                {plan.tips && plan.tips.length > 0 && (
-                  <div className="bg-muted/50 rounded-lg p-4">
-                    <h3 className="font-semibold mb-2">{t('نصائح للنجاح', 'Tips for Success')}</h3>
-                    <ul className="space-y-1 text-sm">
-                      {plan.tips.map((tip, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <Sparkles className="w-4 h-4 mt-0.5" style={{ color: subjectTheme.primary }} />
-                          {tip}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
+                  {/* Tips */}
+                  {plan.tips && plan.tips.length > 0 && (
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <h3 className="font-semibold mb-2">{t('نصائح للنجاح', 'Tips for Success')}</h3>
+                      <ul className="space-y-1 text-sm">
+                        {plan.tips.map((tip, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <Sparkles className="w-4 h-4 mt-0.5" style={{ color: subjectTheme.primary }} />
+                            {tip}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
           )}
 
           {/* Empty State */}

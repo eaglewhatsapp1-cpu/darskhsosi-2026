@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 interface UnderstandingTestProps {
   language: 'ar' | 'en';
@@ -97,71 +98,102 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        toast.error(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
+        setIsLoading(false);
+        return;
+      }
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intelligent-teacher`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
           messages: [
             {
               role: 'user',
-              content: `Create a ${settings.questionType} quiz based on the following content. ${settings.includeIntelligenceQuestions ? 'Include 2 intelligence/logic questions.' : ''} Return ONLY valid JSON in this format:
+              content: `أنشئ اختباراً من نوع ${settings.questionType === 'mcq' ? 'اختيار من متعدد' : settings.questionType === 'text' ? 'أسئلة مقالية' : 'مختلط'} بناءً على المحتوى التالي. ${settings.includeIntelligenceQuestions ? 'أضف سؤالين ذكاء ومنطق.' : ''} 
+
+يجب أن ترد بـ JSON فقط بهذا الشكل بدون أي نص إضافي:
 [
   {
-    "question": "Question text?",
+    "question": "نص السؤال؟",
     "type": "mcq",
-    "options": ["A", "B", "C", "D"],
+    "options": ["أ", "ب", "ج", "د"],
     "correctAnswer": 0,
-    "explanation": "Why?"
-  },
-  {
-    "question": "Text question?",
-    "type": "text",
-    "explanation": "Expected answer details"
+    "explanation": "شرح الإجابة"
   }
 ]
 
-Content: ${contentToTest}`,
+المحتوى:
+${contentToTest.substring(0, 8000)}`,
             },
           ],
           learnerProfile: profile,
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to generate test');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error('No response body');
 
       const decoder = new TextDecoder();
       let fullContent = '';
+      
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value);
+        
+        const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split('\n');
+        
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const data = line.slice(6);
+            const data = line.slice(6).trim();
             if (data === '[DONE]') continue;
             try {
               const parsed = JSON.parse(data);
-              fullContent += parsed.choices?.[0]?.delta?.content || '';
-            } catch {}
+              const content = parsed.choices?.[0]?.delta?.content || '';
+              fullContent += content;
+            } catch (e) {
+              // Skip invalid JSON chunks
+            }
           }
         }
       }
 
-      const jsonMatch = fullContent.match(/\[[\s\S]*\]/);
+      console.log('Full AI response:', fullContent);
+
+      // Try to extract JSON array from the response
+      const jsonMatch = fullContent.match(/\[[\s\S]*?\]/);
       if (jsonMatch) {
-        setQuestions(JSON.parse(jsonMatch[0]));
-        if (settings.timedTest) setTimeLeft(settings.duration * 60);
+        try {
+          const parsedQuestions = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
+            setQuestions(parsedQuestions);
+            if (settings.timedTest) setTimeLeft(settings.duration * 60);
+            toast.success(language === 'ar' ? 'تم إنشاء الاختبار بنجاح!' : 'Test generated successfully!');
+          } else {
+            throw new Error('Empty questions array');
+          }
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          toast.error(language === 'ar' ? 'فشل في تحليل الأسئلة. حاول مرة أخرى.' : 'Failed to parse questions. Try again.');
+        }
+      } else {
+        console.error('No JSON found in response:', fullContent);
+        toast.error(language === 'ar' ? 'لم يتم العثور على أسئلة. حاول مرة أخرى.' : 'No questions found. Try again.');
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error generating test:', error);
+      toast.error(language === 'ar' ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Try again.');
     } finally {
       setIsLoading(false);
     }

@@ -12,5 +12,5 @@ verify_jwt = false
 [functions.generate-study-plan]
 verify_jwt = false
 
-[functions.extract-pdf-text]
+[functions.extract-document-text]
 verify_jwt = false

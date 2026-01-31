@@ -144,12 +144,14 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
         return;
       }
 
-      const reader = data.getReader();
-      const decoder = new TextDecoder();
       let fullContent = '';
-      let textBuffer = '';
 
-      if (reader) {
+      // Check if data is a ReadableStream (streaming response)
+      if (data instanceof ReadableStream) {
+        const reader = data.getReader();
+        const decoder = new TextDecoder();
+        let textBuffer = '';
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -181,6 +183,18 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
             }
           }
         }
+      } else if (data && typeof data === 'object') {
+        // Handle non-streaming JSON response
+        if (data.choices?.[0]?.message?.content) {
+          fullContent = data.choices[0].message.content;
+          setStreamingContent(fullContent);
+        } else if (typeof data === 'string') {
+          fullContent = data;
+          setStreamingContent(fullContent);
+        }
+      } else if (typeof data === 'string') {
+        fullContent = data;
+        setStreamingContent(fullContent);
       }
 
       if (fullContent) {

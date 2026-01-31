@@ -176,6 +176,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
             content: fullContent,
           });
         }
+      } else if (data && typeof data === 'object') {
+        // Handle non-streaming JSON response
+        let content = '';
+        if (data.choices?.[0]?.message?.content) {
+          content = data.choices[0].message.content;
+        } else if (typeof data === 'string') {
+          content = data;
+        }
+        if (content) {
+          await addMessage({
+            role: 'assistant',
+            content: content,
+          });
+        }
       } else if (typeof data === 'string') {
         // Non-streaming response
         await addMessage({

@@ -46,11 +46,30 @@ export const useUploadedMaterials = () => {
     }
   };
 
-  const uploadFile = async (file: File): Promise<{ storagePath: string; content: string | null; needsPdfExtraction: boolean } | null> => {
+  // Sanitize filename to remove non-ASCII characters for storage compatibility
+  const sanitizeFilename = (filename: string): string => {
+    // Get file extension
+    const lastDotIndex = filename.lastIndexOf('.');
+    const ext = lastDotIndex > -1 ? filename.slice(lastDotIndex) : '';
+    const nameWithoutExt = lastDotIndex > -1 ? filename.slice(0, lastDotIndex) : filename;
+    
+    // Replace non-ASCII characters with transliteration or underscores
+    const sanitized = nameWithoutExt
+      .replace(/[^\x00-\x7F]/g, '_') // Replace non-ASCII with underscore
+      .replace(/\s+/g, '_') // Replace spaces with underscore
+      .replace(/_+/g, '_') // Replace multiple underscores with single
+      .replace(/^_|_$/g, '') // Remove leading/trailing underscores
+      || 'file'; // Fallback if empty
+    
+    return sanitized + ext;
+  };
+
+  const uploadFile = async (file: File): Promise<{ storagePath: string; content: string | null; needsPdfExtraction: boolean; originalFilename: string } | null> => {
     if (!user) return null;
 
     try {
-      const filePath = `${user.id}/${Date.now()}_${file.name}`;
+      const sanitizedName = sanitizeFilename(file.name);
+      const filePath = `${user.id}/${Date.now()}_${sanitizedName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('learning-materials')
@@ -72,7 +91,7 @@ export const useUploadedMaterials = () => {
         needsPdfExtraction = true;
       }
 
-      return { storagePath: filePath, content, needsPdfExtraction };
+      return { storagePath: filePath, content, needsPdfExtraction, originalFilename: file.name };
     } catch (error) {
       console.error('Error uploading file:', error);
       return null;

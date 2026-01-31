@@ -15,6 +15,8 @@ import TemporaryUpload, { TempFile } from './TemporaryUpload';
 import PromptEnhancer from './PromptEnhancer';
 import ExportButtons from './ExportButtons';
 import SmartSuggestions from './SmartSuggestions';
+import MarkdownContent from './MarkdownContent';
+import MindMapParser from '@/components/mindmap/MindMapParser';
 
 interface Message {
   id: string;
@@ -331,13 +333,24 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
               </div>
               <div
                 className={cn(
-                  'max-w-[75%] px-4 py-3 rounded-2xl',
+                  'max-w-[85%] px-4 py-3 rounded-2xl',
                   message.role === 'user' 
                     ? 'bg-primary text-primary-foreground' 
                     : 'bg-muted'
                 )}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                {message.role === 'user' ? (
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Show Mind Map if persona is mindmap/analyzer */}
+                    {(personaId === 'mindmap' || personaId === 'analyzer') && (
+                      <MindMapParser content={message.content} language={language} />
+                    )}
+                    {/* Always show formatted text */}
+                    <MarkdownContent content={message.content} />
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -350,8 +363,8 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
               >
                 <Bot className="w-4 h-4 text-white" />
               </div>
-              <div className="max-w-[75%] px-4 py-3 rounded-2xl bg-muted">
-                <p className="text-sm whitespace-pre-wrap">{streamingContent}</p>
+              <div className="max-w-[85%] px-4 py-3 rounded-2xl bg-muted">
+                <MarkdownContent content={streamingContent} />
               </div>
             </div>
           )}

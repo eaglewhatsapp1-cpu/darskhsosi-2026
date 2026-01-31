@@ -21,7 +21,7 @@ const MindMapFeature: React.FC<MindMapFeatureProps> = ({ language }) => {
   return (
     <div className="h-full flex flex-col">
       <ChatWrapper
-        personaId="analyzer"
+        personaId="mindmap"
         profile={profile}
         language={language}
         showMaterialSelector={true}

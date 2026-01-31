@@ -269,17 +269,41 @@ const getRoleSpecificInstructions = (persona: AIPersona, language: 'ar' | 'en'):
     },
     mindmap: {
       ar: `تعليمات خاصة لمُنشئ الخرائط الذهنية:
-- حوّل المحتوى إلى خريطة ذهنية بصيغة Mermaid.js
+- أنشئ خريطة ذهنية منظمة هرمياً للمحتوى
+- استخدم التنسيق التالي بالضبط:
+  ## العنوان الرئيسي (في السطر الأول)
+  
+  ## الفرع الأول
+  - النقطة الفرعية 1
+  - النقطة الفرعية 2
+  
+  ## الفرع الثاني
+  - النقطة الفرعية 1
+  - النقطة الفرعية 2
+
+- ابدأ بالمفهوم الرئيسي ثم تفرّع إلى 3-6 فروع رئيسية
+- كل فرع رئيسي يحتوي 2-4 نقاط فرعية
+- استخدم عبارات قصيرة ومختصرة (5 كلمات كحد أقصى)
 - اجعل الخريطة واضحة ومترابطة
-- ابدأ من المفهوم الرئيسي ثم تفرّع
-- استخدم ألواناً وأيقونات للتوضيح
-- اشرح العلاقات بين المفاهيم`,
+- أضف شرحاً نصياً مختصراً بعد الخريطة`,
       en: `Special Instructions for Mind Map Creator:
-- Convert content to mind map in Mermaid.js format
+- Create hierarchically organized mind map for content
+- Use the following format exactly:
+  ## Main Title (on first line)
+  
+  ## Branch One
+  - Sub-point 1
+  - Sub-point 2
+  
+  ## Branch Two
+  - Sub-point 1
+  - Sub-point 2
+
+- Start with main concept then branch to 3-6 main branches
+- Each main branch contains 2-4 sub-points
+- Use short concise phrases (5 words max)
 - Make the map clear and interconnected
-- Start from main concept then branch out
-- Use colors and icons for clarity
-- Explain relationships between concepts`
+- Add brief text explanation after the map`
     },
     simplify: {
       ar: `تعليمات خاصة لمُبسّط المفاهيم:

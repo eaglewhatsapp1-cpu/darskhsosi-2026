@@ -61,11 +61,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     };
     return levels[profile.education_level || 'high']?.[language] || '';
   };
-  return <header className="w-full border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm border-4 border-amber-50 py-[8px]" style={{
+  return <header className="w-full border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm" style={{
     borderColor: subjectTheme.primary,
     borderBottomWidth: '3px'
   }}>
-      <div className="flex items-center justify-between gap-4 my-[14px] mx-[14px] px-[22px] py-0 bg-[#242424] text-[#fcfbf8]">
+      <div className="flex items-center justify-between gap-4 px-[24px] py-[48px] my-[14px] mx-[14px] text-[#e7f3ee] bg-amber-950">
         {/* Logo & Platform Name */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{
@@ -74,11 +74,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <GraduationCap className="w-6 h-6 text-white" />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <h1 className="text-xl font-bold flex items-center gap-2 text-amber-50">
               {t('درس خصوصي', 'Private Tutor')}
               <Sparkles className="w-4 h-4 text-amber-500" />
             </h1>
-            <span className="text-xs text-muted-foreground mx-0 my-[6px]">
+            <span className="text-xs text-muted-foreground">
               {t('مساعدك التعليمي الذكي', 'Your Smart Learning Assistant')}
             </span>
           </div>
@@ -110,7 +110,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
 
         {/* Actions & Student Info */}
-        <div className="flex items-center gap-3 px-[74px]">
+        <div className="flex items-center gap-3 text-amber-100">
           <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="rounded-full">
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </Button>
@@ -121,8 +121,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </Button>
 
           <div className="text-end hidden sm:block">
-            <p className="font-semibold text-foreground">{profile.name}</p>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
+            <p className="font-semibold bg-transparent text-amber-50">{profile.name}</p>
+            <p className="text-xs flex items-center gap-1 justify-end text-center font-bold text-amber-50">
               <span className="inline-block w-2 h-2 rounded-full" style={{
               backgroundColor: subjectTheme.primary
             }} />

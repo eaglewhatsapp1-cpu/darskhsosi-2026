@@ -8,34 +8,31 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import MaterialSelector from '@/components/chat/MaterialSelector';
-import {
-  Send,
-  Paperclip,
-  Bot,
-  User,
-  Sparkles,
-  Upload,
-  Loader2,
-  FileText,
-} from 'lucide-react';
-
+import { Send, Paperclip, Bot, User, Sparkles, Upload, Loader2, FileText } from 'lucide-react';
 interface ChatInterfaceProps {
   profile: Profile;
   language: 'ar' | 'en';
   onNavigateToUpload: () => void;
 }
-
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavigateToUpload }) => {
-  const { messages, loading: messagesLoading, addMessage } = useChatMessages(null);
-  const { materials } = useUploadedMaterials();
+const ChatInterface: React.FC<ChatInterfaceProps> = ({
+  profile,
+  language,
+  onNavigateToUpload
+}) => {
+  const {
+    messages,
+    loading: messagesLoading,
+    addMessage
+  } = useChatMessages(null);
+  const {
+    materials
+  } = useUploadedMaterials();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
   const dir = language === 'ar' ? 'rtl' : 'ltr';
-
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
       ar: {
@@ -44,7 +41,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
         'app.welcome': 'مرحباً بك في رحلة التعلم',
         'chat.placeholder': 'اكتب سؤالك هنا...',
         'chat.thinking': 'يفكر...',
-        'sidebar.upload': 'رفع المواد',
+        'sidebar.upload': 'رفع المواد'
       },
       en: {
         'sidebar.teacher': 'Intelligent Teacher',
@@ -52,23 +49,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
         'app.welcome': 'Welcome to Your Learning Journey',
         'chat.placeholder': 'Type your question here...',
         'chat.thinking': 'Thinking...',
-        'sidebar.upload': 'Upload Materials',
-      },
+        'sidebar.upload': 'Upload Materials'
+      }
     };
     return translations[language][key] || key;
   };
-
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({
+      behavior: 'smooth'
+    });
   };
-
   useEffect(() => {
     scrollToBottom();
   }, [messages, streamingContent]);
-
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-
     const userInput = input.trim();
     setInput('');
     setIsLoading(true);
@@ -77,23 +72,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
     // Save user message to database
     await addMessage({
       role: 'user',
-      content: userInput,
+      content: userInput
     });
-
     try {
       // Get selected material names for context
-      const selectedMaterialNames = materials
-        .filter(m => selectedMaterials.includes(m.id))
-        .map(m => m.file_name);
+      const selectedMaterialNames = materials.filter(m => selectedMaterials.includes(m.id)).map(m => m.file_name);
 
       // Build message history for context
-      const messageHistory = [
-        ...messages.map(m => ({ role: m.role, content: m.content })),
-        { role: 'user' as const, content: userInput }
-      ];
+      const messageHistory = [...messages.map(m => ({
+        role: m.role,
+        content: m.content
+      })), {
+        role: 'user' as const,
+        content: userInput
+      }];
 
       // Ensure session is valid before calling function
-      const { data: sessionData } = await supabase.auth.getSession();
+      const {
+        data: sessionData
+      } = await supabase.auth.getSession();
       if (!sessionData.session) {
         toast.error(language === 'ar' ? 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.' : 'Session expired. Please log in again.');
         setIsLoading(false);
@@ -101,7 +98,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
       }
 
       // Use supabase.functions.invoke instead of direct fetch
-      const { data, error } = await supabase.functions.invoke('intelligent-teacher', {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('intelligent-teacher', {
         body: {
           messages: messageHistory,
           learnerProfile: {
@@ -113,16 +113,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
             hobbies: profile.hobbies,
             goals: profile.goals,
             strengths: profile.strengths,
-            weaknesses: profile.weaknesses,
+            weaknesses: profile.weaknesses
           },
           uploadedMaterials: selectedMaterialNames.length > 0 ? selectedMaterialNames : materials.map(m => m.file_name),
-          materialContent: materials
-            .filter(m => selectedMaterialNames.length > 0 ? selectedMaterialNames.includes(m.file_name) : true)
-            .map(m => `[${m.file_name}]: ${m.content || 'No content available'}`)
-            .join('\n\n'),
-        },
+          materialContent: materials.filter(m => selectedMaterialNames.length > 0 ? selectedMaterialNames.includes(m.file_name) : true).map(m => `[${m.file_name}]: ${m.content || 'No content available'}`).join('\n\n')
+        }
       });
-
       if (error) {
         console.error('Edge function error:', error);
         toast.error(language === 'ar' ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Please try again.');
@@ -136,25 +132,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
         const decoder = new TextDecoder();
         let fullContent = '';
         let textBuffer = '';
-
         while (true) {
-          const { done, value } = await reader.read();
+          const {
+            done,
+            value
+          } = await reader.read();
           if (done) break;
-
-          textBuffer += decoder.decode(value, { stream: true });
-
+          textBuffer += decoder.decode(value, {
+            stream: true
+          });
           let newlineIndex: number;
           while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
             let line = textBuffer.slice(0, newlineIndex);
             textBuffer = textBuffer.slice(newlineIndex + 1);
-
             if (line.endsWith('\r')) line = line.slice(0, -1);
             if (line.startsWith(':') || line.trim() === '') continue;
             if (!line.startsWith('data: ')) continue;
-
             const jsonStr = line.slice(6).trim();
             if (jsonStr === '[DONE]') break;
-
             try {
               const parsed = JSON.parse(jsonStr);
               const content = parsed.choices?.[0]?.delta?.content as string | undefined;
@@ -173,7 +168,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
         if (fullContent) {
           await addMessage({
             role: 'assistant',
-            content: fullContent,
+            content: fullContent
           });
         }
       } else if (data && typeof data === 'object') {
@@ -187,17 +182,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
         if (content) {
           await addMessage({
             role: 'assistant',
-            content: content,
+            content: content
           });
         }
       } else if (typeof data === 'string') {
         // Non-streaming response
         await addMessage({
           role: 'assistant',
-          content: data,
+          content: data
         });
       }
-
       setStreamingContent('');
     } catch (error) {
       console.error('Chat error:', error);
@@ -206,24 +200,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
       setIsLoading(false);
     }
   };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
-
   if (messagesLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
+    return <div className="flex items-center justify-center h-full">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="flex flex-col h-full">
+  return <div className="flex flex-col h-full">
       {/* Chat Header */}
       <div className="p-4 border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="flex items-center gap-3">
@@ -239,8 +227,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-        {messages.length === 0 && !streamingContent ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+        {messages.length === 0 && !streamingContent ? <div className="flex flex-col items-center justify-center h-full text-center p-8 py-[22px] my-[28px]">
             <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center mb-6 animate-float">
               <Sparkles className="w-10 h-10 text-primary" />
             </div>
@@ -248,80 +235,42 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
               {t('app.welcome')}
             </h3>
             <p className="text-muted-foreground max-w-md mb-2">
-              {language === 'ar' 
-                ? `مرحباً ${profile.name}! أنا معلمك الذكي. يمكنني مساعدتك في فهم أي موضوع.`
-                : `Hello ${profile.name}! I'm your intelligent teacher. I can help you understand any topic.`}
+              {language === 'ar' ? `مرحباً ${profile.name}! أنا معلمك الذكي. يمكنني مساعدتك في فهم أي موضوع.` : `Hello ${profile.name}! I'm your intelligent teacher. I can help you understand any topic.`}
             </p>
             <p className="text-sm text-muted-foreground max-w-md">
-              {materials.length === 0 
-                ? (language === 'ar' 
-                    ? 'ارفع مواد تعليمية للحصول على تجربة تعلم مخصصة أكثر.' 
-                    : 'Upload learning materials for a more personalized learning experience.')
-                : (language === 'ar'
-                    ? `لديك ${materials.length} ملفات مرفوعة. اسألني عن أي شيء!`
-                    : `You have ${materials.length} files uploaded. Ask me anything!`)}
+              {materials.length === 0 ? language === 'ar' ? 'ارفع مواد تعليمية للحصول على تجربة تعلم مخصصة أكثر.' : 'Upload learning materials for a more personalized learning experience.' : language === 'ar' ? `لديك ${materials.length} ملفات مرفوعة. اسألني عن أي شيء!` : `You have ${materials.length} files uploaded. Ask me anything!`}
             </p>
-            {materials.length === 0 && (
-              <Button className="mt-6 gradient-accent" size="lg" onClick={onNavigateToUpload}>
+            {materials.length === 0 && <Button className="mt-6 gradient-accent" size="lg" onClick={onNavigateToUpload}>
                 <Upload className="w-5 h-5 me-2" />
                 {t('sidebar.upload')}
-              </Button>
-            )}
-          </div>
-        ) : (
-          <>
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn(
-                  'flex gap-3 animate-slide-up',
-                  message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                )}
-              >
-                <div
-                  className={cn(
-                    'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
-                    message.role === 'user' ? 'gradient-accent' : 'gradient-primary'
-                  )}
-                >
-                  {message.role === 'user' ? (
-                    <User className="w-4 h-4 text-accent-foreground" />
-                  ) : (
-                    <Bot className="w-4 h-4 text-primary-foreground" />
-                  )}
+              </Button>}
+          </div> : <>
+            {messages.map(message => <div key={message.id} className={cn('flex gap-3 animate-slide-up', message.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
+                <div className={cn('w-8 h-8 rounded-full flex items-center justify-center shrink-0', message.role === 'user' ? 'gradient-accent' : 'gradient-primary')}>
+                  {message.role === 'user' ? <User className="w-4 h-4 text-accent-foreground" /> : <Bot className="w-4 h-4 text-primary-foreground" />}
                 </div>
-                <div
-                  className={cn(
-                    'max-w-[75%] px-4 py-3',
-                    message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'
-                  )}
-                >
+                <div className={cn('max-w-[75%] px-4 py-3', message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai')}>
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   <span className="text-xs opacity-60 mt-1 block">
-                    {new Date(message.created_at).toLocaleTimeString(
-                      dir === 'rtl' ? 'ar-SA' : 'en-US',
-                      { hour: '2-digit', minute: '2-digit' }
-                    )}
+                    {new Date(message.created_at).toLocaleTimeString(dir === 'rtl' ? 'ar-SA' : 'en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
                   </span>
                 </div>
-              </div>
-            ))}
+              </div>)}
             
-            {streamingContent && (
-              <div className="flex gap-3 animate-slide-up">
+            {streamingContent && <div className="flex gap-3 animate-slide-up">
                 <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
                   <Bot className="w-4 h-4 text-primary-foreground" />
                 </div>
                 <div className="chat-bubble-ai max-w-[75%] px-4 py-3">
                   <p className="text-sm whitespace-pre-wrap">{streamingContent}</p>
                 </div>
-              </div>
-            )}
-          </>
-        )}
+              </div>}
+          </>}
         
-        {isLoading && !streamingContent && (
-          <div className="flex gap-3 animate-slide-up">
+        {isLoading && !streamingContent && <div className="flex gap-3 animate-slide-up">
             <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center">
               <Bot className="w-4 h-4 text-primary-foreground" />
             </div>
@@ -329,64 +278,42 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">{t('chat.thinking')}</span>
                 <div className="flex gap-1">
-                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" style={{ animationDelay: '300ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" style={{
+                animationDelay: '0ms'
+              }} />
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" style={{
+                animationDelay: '150ms'
+              }} />
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" style={{
+                animationDelay: '300ms'
+              }} />
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          </div>}
         
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm space-y-3">
+      <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm space-y-3 px-[21px] py-0 pr-[14px] pb-0">
         {/* Material Selector Dropdown */}
-        {materials.length > 0 && (
-          <div data-helper-target="material-selector">
-            <MaterialSelector
-              language={language}
-              selectedMaterials={selectedMaterials}
-              onSelectionChange={setSelectedMaterials}
-              maxSelection={5}
-            />
-          </div>
-        )}
+        {materials.length > 0 && <div data-helper-target="material-selector">
+            <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} maxSelection={5} />
+          </div>}
         
         <div className="flex items-end gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            className="shrink-0 h-12 w-12 rounded-xl"
-            onClick={onNavigateToUpload}
-          >
+          <Button variant="outline" size="icon" className="shrink-0 h-12 w-12 rounded-xl" onClick={onNavigateToUpload}>
             <Paperclip className="w-5 h-5" />
           </Button>
           <div className="flex-1 relative" data-helper-target="chat-input">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t('chat.placeholder')}
-              className="min-h-[48px] max-h-[150px] resize-none pe-12 rounded-xl"
-              rows={1}
-              disabled={isLoading}
-            />
+            <Textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={t('chat.placeholder')} className="min-h-[48px] max-h-[150px] resize-none pe-12 rounded-xl" rows={1} disabled={isLoading} />
           </div>
-          <Button
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            className="shrink-0 h-12 w-12 rounded-xl gradient-primary hover:opacity-90 transition-opacity"
-            size="icon"
-          >
+          <Button onClick={handleSend} disabled={!input.trim() || isLoading} className="shrink-0 h-12 w-12 rounded-xl gradient-primary hover:opacity-90 transition-opacity" size="icon">
             <Send className={cn('w-5 h-5', dir === 'rtl' && 'rotate-180')} />
           </Button>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ChatInterface;

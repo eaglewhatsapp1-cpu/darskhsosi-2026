@@ -61,11 +61,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     };
     return levels[profile.education_level || 'high']?.[language] || '';
   };
-  return <header className="w-full border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm" style={{
+  return <header className="w-full border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm border-4 border-amber-50 py-[8px]" style={{
     borderColor: subjectTheme.primary,
     borderBottomWidth: '3px'
   }}>
-      <div className="flex items-center justify-between gap-4 bg-teal-950 px-[25px] py-[21px] my-[17px] mx-[9px]">
+      <div className="flex items-center justify-between gap-4 my-[14px] mx-[14px] px-[22px] py-0 bg-[#242424]">
         {/* Logo & Platform Name */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{

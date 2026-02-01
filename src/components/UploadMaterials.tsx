@@ -249,6 +249,7 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
       </div>
 
       <div
+        data-helper-target="upload-zone"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -289,7 +290,7 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
             <CheckCircle className="w-4 h-4 text-primary" />
             {t('upload.files')} ({materials.length})
           </h3>
-          <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
+          <div data-helper-target="uploaded-files" className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
             {materials.map((file) => {
               const Icon = getFileIcon(file.file_name);
               const canExtract = file.storage_path && ['pdf', 'docx', 'doc', 'pptx'].some(ext => 

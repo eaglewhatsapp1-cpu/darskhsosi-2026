@@ -298,7 +298,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
 
       {/* Material Selector */}
       {showMaterialSelector && (
-        <div className="p-3 border-b border-border">
+        <div className="p-3 border-b border-border" data-helper-target="material-selector">
           <MaterialSelector
             language={language}
             selectedMaterials={selectedMaterials}
@@ -417,6 +417,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
             disabled={isLoading}
           />
           <Textarea
+            data-helper-target="chat-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}

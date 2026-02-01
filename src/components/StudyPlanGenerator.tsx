@@ -107,7 +107,7 @@ const StudyPlanGenerator: React.FC<StudyPlanGeneratorProps> = ({ language, profi
 
         <CardContent className="flex-1 flex flex-col gap-4 pt-4">
           {/* Controls */}
-          <div className="flex flex-wrap gap-4 items-end">
+          <div data-helper-target="studyplan-form" className="flex flex-wrap gap-4 items-end">
             <div className="flex-1 min-w-[200px]">
               <label className="text-sm font-medium mb-2 block">
                 {t('مدة الخطة', 'Plan Duration')}

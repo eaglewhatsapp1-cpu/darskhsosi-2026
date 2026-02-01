@@ -345,12 +345,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
       <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm space-y-3">
         {/* Material Selector Dropdown */}
         {materials.length > 0 && (
-          <MaterialSelector
-            language={language}
-            selectedMaterials={selectedMaterials}
-            onSelectionChange={setSelectedMaterials}
-            maxSelection={5}
-          />
+          <div data-helper-target="material-selector">
+            <MaterialSelector
+              language={language}
+              selectedMaterials={selectedMaterials}
+              onSelectionChange={setSelectedMaterials}
+              maxSelection={5}
+            />
+          </div>
         )}
         
         <div className="flex items-end gap-3">
@@ -362,7 +364,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ profile, language, onNavi
           >
             <Paperclip className="w-5 h-5" />
           </Button>
-          <div className="flex-1 relative">
+          <div className="flex-1 relative" data-helper-target="chat-input">
             <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}

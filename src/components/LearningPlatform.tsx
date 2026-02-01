@@ -6,7 +6,7 @@ import ProfileSetup from './ProfileSetup';
 import AppSidebar from './AppSidebar';
 import AppHeader from './AppHeader';
 import MainContent from './MainContent';
-import FloatingHelper from './FloatingHelper';
+import FloatingHelper from './floatingHelper';
 import { Loader2 } from 'lucide-react';
 import { Subject } from '@/utils/subjectColors';
 

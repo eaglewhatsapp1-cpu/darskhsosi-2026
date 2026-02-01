@@ -238,7 +238,7 @@ ${contentToTest.substring(0, 8000)}`,
 
       {questions.length === 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6 space-y-4">
+          <Card className="p-6 space-y-4" data-helper-target="test-settings">
             <h3 className="font-semibold flex items-center gap-2"><BookOpen className="w-5 h-5" /> {t('selectMaterial')}</h3>
             {materialsWithContent.length > 0 && (
               <Select value={selectedMaterial} onValueChange={(v) => { setSelectedMaterial(v); setInput(''); }}>
@@ -291,7 +291,7 @@ ${contentToTest.substring(0, 8000)}`,
               <Switch checked={settings.includeIntelligenceQuestions} onCheckedChange={(v) => setSettings({...settings, includeIntelligenceQuestions: v})} />
             </div>
 
-            <Button onClick={handleGenerate} disabled={(!input.trim() && !selectedMaterial) || isLoading} className="w-full h-12 gradient-primary">
+            <Button data-helper-target="start-test" onClick={handleGenerate} disabled={(!input.trim() && !selectedMaterial) || isLoading} className="w-full h-12 gradient-primary">
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : <Sparkles className="w-4 h-4 me-2" />}
               {t('generate')}
             </Button>

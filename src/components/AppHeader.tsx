@@ -65,7 +65,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     borderColor: subjectTheme.primary,
     borderBottomWidth: '3px'
   }}>
-      <div className="flex items-center justify-between gap-4 my-[14px] mx-[14px] px-[22px] py-0 bg-[#242424]">
+      <div className="flex items-center justify-between gap-4 my-[14px] mx-[14px] px-[22px] py-0 bg-[#242424] text-[#fcfbf8]">
         {/* Logo & Platform Name */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{
@@ -78,7 +78,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               {t('درس خصوصي', 'Private Tutor')}
               <Sparkles className="w-4 h-4 text-amber-500" />
             </h1>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground mx-0 my-[6px]">
               {t('مساعدك التعليمي الذكي', 'Your Smart Learning Assistant')}
             </span>
           </div>
@@ -110,7 +110,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
 
         {/* Actions & Student Info */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 px-[74px]">
           <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="rounded-full">
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </Button>

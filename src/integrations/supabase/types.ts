@@ -63,10 +63,12 @@ export type Database = {
           id: string
           interests: string[] | null
           knowledge_ratio: number | null
+          learning_languages: string[] | null
           learning_style: string | null
           name: string
           preferred_language: string | null
           speaking_style: string | null
+          study_target: string | null
           subject: string | null
           updated_at: string
           user_id: string
@@ -81,10 +83,12 @@ export type Database = {
           id?: string
           interests?: string[] | null
           knowledge_ratio?: number | null
+          learning_languages?: string[] | null
           learning_style?: string | null
           name: string
           preferred_language?: string | null
           speaking_style?: string | null
+          study_target?: string | null
           subject?: string | null
           updated_at?: string
           user_id: string
@@ -99,10 +103,12 @@ export type Database = {
           id?: string
           interests?: string[] | null
           knowledge_ratio?: number | null
+          learning_languages?: string[] | null
           learning_style?: string | null
           name?: string
           preferred_language?: string | null
           speaking_style?: string | null
+          study_target?: string | null
           subject?: string | null
           updated_at?: string
           user_id?: string

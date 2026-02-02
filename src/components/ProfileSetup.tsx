@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useProfile } from '@/hooks/useProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { GraduationCap, Sparkles, BookOpen, Calendar, Heart, Languages, Loader2 } from 'lucide-react';
+import { GraduationCap, Sparkles, BookOpen, Calendar, Heart, Languages, Loader2, Target } from 'lucide-react';
 
 interface ProfileSetupProps {
   onComplete: () => void;
@@ -23,9 +23,11 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
     name: profile?.name || '',
     birthDate: profile?.birth_date || '',
     educationLevel: profile?.education_level || '',
-    learningStyle: profile?.learning_style || '',
+    learningStyles: profile?.learning_styles || (profile?.learning_style ? [profile.learning_style] : []),
+    learningLanguages: profile?.learning_languages || ['ar'],
     interests: profile?.interests?.join(', ') || '',
     bio: profile?.bio || '',
+    studyTarget: profile?.study_target || '',
     preferredLanguage: profile?.preferred_language || currentLanguage,
   });
 
@@ -35,9 +37,11 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
         name: profile.name || '',
         birthDate: profile.birth_date || '',
         educationLevel: profile.education_level || '',
-        learningStyle: profile.learning_style || '',
+        learningStyles: profile.learning_styles || (profile.learning_style ? [profile.learning_style] : []),
+        learningLanguages: profile.learning_languages || ['ar'],
         interests: profile.interests?.join(', ') || '',
         bio: profile.bio || '',
+        studyTarget: profile.study_target || '',
         preferredLanguage: profile.preferred_language || currentLanguage,
       });
     }
@@ -50,10 +54,13 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
         'profile.name': 'الاسم',
         'profile.birthDate': 'تاريخ الميلاد',
         'profile.educationLevel': 'المستوى التعليمي',
-        'profile.learningStyle': 'أسلوب التعلم',
+        'profile.learningStyle': 'أسلوب التعلم (يمكنك اختيار أكثر من واحد)',
+        'profile.learningLanguages': 'لغات التعلم (يمكنك اختيار أكثر من واحد)',
         'profile.interests': 'الاهتمامات',
         'profile.bio': 'نبذة مختصرة',
-        'profile.language': 'اللغة المفضلة',
+        'profile.language': 'لغة واجهة التطبيق',
+        'profile.studyTarget': 'هدف الدراسة (نهاية الدورة)',
+        'profile.studyTargetPlaceholder': 'مثال: اجتياز امتحان الثانوية العامة بتقدير ممتاز',
         'profile.save': 'حفظ الملف الشخصي',
         'education.elementary': 'ابتدائي',
         'education.middle': 'متوسط',
@@ -63,6 +70,8 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
         'style.visual': 'بصري',
         'style.practical': 'عملي',
         'style.illustrative': 'توضيحي',
+        'lang.ar': 'العربية',
+        'lang.en': 'الإنجليزية',
         'app.name': 'درس خصوصي',
         'app.tagline': 'منصة التعلم المفتوح بالذكاء الاصطناعي',
       },
@@ -71,10 +80,13 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
         'profile.name': 'Name',
         'profile.birthDate': 'Birth Date',
         'profile.educationLevel': 'Education Level',
-        'profile.learningStyle': 'Learning Style',
+        'profile.learningStyle': 'Learning Style (Select multiple)',
+        'profile.learningLanguages': 'Learning Languages (Select multiple)',
         'profile.interests': 'Interests',
         'profile.bio': 'Short Bio',
-        'profile.language': 'Preferred Language',
+        'profile.language': 'App Interface Language',
+        'profile.studyTarget': 'Study Target (End of Cycle)',
+        'profile.studyTargetPlaceholder': 'Example: Pass high school exams with excellent grades',
         'profile.save': 'Save Profile',
         'education.elementary': 'Elementary',
         'education.middle': 'Middle School',
@@ -84,6 +96,8 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
         'style.visual': 'Visual',
         'style.practical': 'Practical',
         'style.illustrative': 'Illustrative',
+        'lang.ar': 'Arabic',
+        'lang.en': 'English',
         'app.name': 'Dars Khusoosi',
         'app.tagline': 'AI-Powered Open Learning Platform',
       },
@@ -91,10 +105,28 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
     return translations[currentLanguage][key] || key;
   };
 
+  const handleLearningStyleToggle = (style: string) => {
+    setFormData(prev => ({
+      ...prev,
+      learningStyles: prev.learningStyles.includes(style)
+        ? prev.learningStyles.filter(s => s !== style)
+        : [...prev.learningStyles, style]
+    }));
+  };
+
+  const handleLearningLanguageToggle = (lang: string) => {
+    setFormData(prev => ({
+      ...prev,
+      learningLanguages: prev.learningLanguages.includes(lang)
+        ? prev.learningLanguages.filter(l => l !== lang)
+        : [...prev.learningLanguages, lang]
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.educationLevel || !formData.learningStyle) {
+    if (!formData.name || !formData.educationLevel || formData.learningStyles.length === 0) {
       toast.error(currentLanguage === 'ar' ? 'الرجاء ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
       return;
     }
@@ -109,9 +141,12 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
       name: formData.name,
       birth_date: formData.birthDate || null,
       education_level: formData.educationLevel as 'elementary' | 'middle' | 'high' | 'university' | 'professional',
-      learning_style: formData.learningStyle as 'visual' | 'practical' | 'illustrative',
+      learning_style: formData.learningStyles[0] as 'visual' | 'practical' | 'illustrative',
+      learning_styles: formData.learningStyles,
+      learning_languages: formData.learningLanguages,
       interests: formData.interests.split(',').map(i => i.trim()).filter(Boolean),
       bio: formData.bio || null,
+      study_target: formData.studyTarget || null,
       preferred_language: preferredLang,
     });
 
@@ -198,25 +233,68 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
               </Select>
             </div>
 
-            {/* Learning Style */}
-            <div className="space-y-2">
+            {/* Learning Style - Multi-select */}
+            <div className="space-y-3">
               <Label className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-primary" />
                 {t('profile.learningStyle')} *
               </Label>
-              <Select
-                value={formData.learningStyle}
-                onValueChange={(value) => setFormData({ ...formData, learningStyle: value })}
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="visual">{t('style.visual')}</SelectItem>
-                  <SelectItem value="practical">{t('style.practical')}</SelectItem>
-                  <SelectItem value="illustrative">{t('style.illustrative')}</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {['visual', 'practical', 'illustrative'].map((style) => (
+                  <div 
+                    key={style} 
+                    className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors" 
+                    onClick={() => handleLearningStyleToggle(style)}
+                  >
+                    <Checkbox 
+                      checked={formData.learningStyles.includes(style)} 
+                      onCheckedChange={() => handleLearningStyleToggle(style)} 
+                    />
+                    <Label className="cursor-pointer flex-1">{t(`style.${style}`)}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Learning Languages - Multi-select */}
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <Languages className="w-4 h-4 text-primary" />
+                {t('profile.learningLanguages')} *
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { value: 'ar', label: t('lang.ar') },
+                  { value: 'en', label: t('lang.en') },
+                ].map((lang) => (
+                  <div 
+                    key={lang.value} 
+                    className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors" 
+                    onClick={() => handleLearningLanguageToggle(lang.value)}
+                  >
+                    <Checkbox 
+                      checked={formData.learningLanguages.includes(lang.value)} 
+                      onCheckedChange={() => handleLearningLanguageToggle(lang.value)} 
+                    />
+                    <Label className="cursor-pointer flex-1">{lang.label}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Study Target */}
+            <div className="space-y-2">
+              <Label htmlFor="studyTarget" className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-primary" />
+                {t('profile.studyTarget')}
+              </Label>
+              <Textarea
+                id="studyTarget"
+                value={formData.studyTarget}
+                onChange={(e) => setFormData({ ...formData, studyTarget: e.target.value })}
+                placeholder={t('profile.studyTargetPlaceholder')}
+                className="min-h-[80px] resize-none"
+              />
             </div>
 
             {/* Interests */}
@@ -234,7 +312,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
               />
             </div>
 
-            {/* Preferred Language */}
+            {/* Preferred App Language */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Languages className="w-4 h-4 text-primary" />
@@ -248,8 +326,8 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ar">العربية</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="ar">{t('lang.ar')}</SelectItem>
+                  <SelectItem value="en">{t('lang.en')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

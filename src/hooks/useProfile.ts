@@ -10,12 +10,14 @@ export interface Profile {
   education_level: 'elementary' | 'middle' | 'high' | 'university' | 'professional' | null;
   learning_style: 'visual' | 'practical' | 'illustrative' | null;
   learning_styles: string[] | null;
+  learning_languages: string[] | null;
   interests: string[] | null;
   bio: string | null;
   hobbies: string | null;
   goals: string | null;
   strengths: string | null;
   weaknesses: string | null;
+  study_target: string | null;
   preferred_language: 'ar' | 'en' | 'both';
   avatar_url: string | null;
   subject: string | null;

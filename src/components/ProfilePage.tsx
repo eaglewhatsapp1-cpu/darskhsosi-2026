@@ -51,10 +51,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
     goals: profile.goals || '',
     strengths: profile.strengths || '',
     weaknesses: profile.weaknesses || '',
-    studyTarget: profile.study_target || '',
     educationLevel: profile.education_level || '',
     learningStyles: profile.learning_styles || [profile.learning_style].filter(Boolean) as string[],
-    learningLanguages: profile.learning_languages || ['ar'],
     interests: profile.interests?.join(', ') || '',
     preferredLanguage: profile.preferred_language || 'ar',
     aiPersona: profile.ai_persona || 'teacher',
@@ -75,14 +73,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
       'field.goals': { ar: 'الأهداف التعليمية', en: 'Learning Goals' },
       'field.strengths': { ar: 'نقاط القوة', en: 'Strengths' },
       'field.weaknesses': { ar: 'نقاط الضعف', en: 'Weaknesses' },
-      'field.studyTarget': { ar: 'هدف الدراسة (نهاية الدورة)', en: 'Study Target (End of Cycle)' },
-      'field.studyTargetPlaceholder': { ar: 'مثال: اجتياز امتحان الثانوية العامة بتقدير ممتاز', en: 'Example: Pass high school exams with excellent grades' },
       'field.avatar': { ar: 'الصورة الشخصية', en: 'Profile Photo' },
       'field.education': { ar: 'المستوى التعليمي', en: 'Education Level' },
       'field.style': { ar: 'أسلوب التعلم (يمكنك اختيار أكثر من واحد)', en: 'Learning Style (Select multiple)' },
-      'field.learningLanguages': { ar: 'لغات التعلم (يمكنك اختيار أكثر من واحد)', en: 'Learning Languages (Select multiple)' },
       'field.interests': { ar: 'الاهتمامات', en: 'Interests' },
-      'field.language': { ar: 'لغة واجهة التطبيق', en: 'App Interface Language' },
+      'field.language': { ar: 'اللغة المفضلة', en: 'Preferred Language' },
       'field.persona': { ar: 'شخصية المعلم', en: 'AI Persona' },
       'field.speaking': { ar: 'أسلوب التحدث', en: 'Speaking Style' },
       'field.knowledge': { ar: 'حدود المعرفة', en: 'Knowledge Boundary' },
@@ -116,15 +111,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
     }));
   };
 
-  const handleLearningLanguageToggle = (lang: string) => {
-    setFormData(prev => ({
-      ...prev,
-      learningLanguages: prev.learningLanguages.includes(lang)
-        ? prev.learningLanguages.filter(l => l !== lang)
-        : [...prev.learningLanguages, lang]
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -137,10 +123,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
       goals: formData.goals || null,
       strengths: formData.strengths || null,
       weaknesses: formData.weaknesses || null,
-      study_target: formData.studyTarget || null,
       education_level: formData.educationLevel as Profile['education_level'],
       learning_styles: formData.learningStyles,
-      learning_languages: formData.learningLanguages,
       learning_style: formData.learningStyles[0] as Profile['learning_style'],
       interests: formData.interests.split(',').map(i => i.trim()).filter(Boolean),
       preferred_language: formData.preferredLanguage as Profile['preferred_language'],
@@ -211,21 +195,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
                 <Input id="weaknesses" value={formData.weaknesses} onChange={(e) => setFormData({ ...formData, weaknesses: e.target.value })} className="h-12" />
               </div>
             </div>
-
-            {/* Study Target */}
-            <div className="mt-4 space-y-2">
-              <Label htmlFor="studyTarget" className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-primary" />
-                {t('field.studyTarget')}
-              </Label>
-              <Textarea 
-                id="studyTarget" 
-                value={formData.studyTarget} 
-                onChange={(e) => setFormData({ ...formData, studyTarget: e.target.value })} 
-                placeholder={t('field.studyTargetPlaceholder')}
-                className="min-h-[80px] resize-none" 
-              />
-            </div>
           </Card>
 
           <Card className="p-6">
@@ -249,56 +218,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
                 </Select>
               </div>
 
-              {/* Learning Styles - Multi-select */}
               <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-primary" />
-                  {t('field.style')}
-                </Label>
+                <Label>{t('field.style')}</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {['visual', 'practical', 'illustrative'].map((style) => (
-                    <div 
-                      key={style} 
-                      className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors" 
-                      onClick={() => handleLearningStyleToggle(style)}
-                    >
-                      <Checkbox 
-                        checked={formData.learningStyles.includes(style)} 
-                        onCheckedChange={() => handleLearningStyleToggle(style)} 
-                      />
-                      <Label className="cursor-pointer flex-1">{t(`style.${style}`)}</Label>
+                    <div key={style} className="flex items-center space-x-2 rtl:space-x-reverse border p-3 rounded-lg hover:bg-accent cursor-pointer" onClick={() => handleLearningStyleToggle(style)}>
+                      <Checkbox checked={formData.learningStyles.includes(style)} onCheckedChange={() => handleLearningStyleToggle(style)} />
+                      <Label className="cursor-pointer">{t(`style.${style}`)}</Label>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Learning Languages - Multi-select */}
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <Languages className="w-4 h-4 text-primary" />
-                  {t('field.learningLanguages')}
-                </Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { value: 'ar', label: t('lang.ar') },
-                    { value: 'en', label: t('lang.en') },
-                  ].map((lang) => (
-                    <div 
-                      key={lang.value} 
-                      className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors" 
-                      onClick={() => handleLearningLanguageToggle(lang.value)}
-                    >
-                      <Checkbox 
-                        checked={formData.learningLanguages.includes(lang.value)} 
-                        onCheckedChange={() => handleLearningLanguageToggle(lang.value)} 
-                      />
-                      <Label className="cursor-pointer flex-1">{lang.label}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* App Interface Language */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2"><Languages className="w-4 h-4 text-primary" />{t('field.language')}</Label>
                 <Select value={formData.preferredLanguage} onValueChange={(value: 'ar' | 'en' | 'both') => setFormData({ ...formData, preferredLanguage: value })}>

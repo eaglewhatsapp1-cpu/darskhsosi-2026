@@ -244,6 +244,58 @@
   .animate-pulse-soft {
     animation: pulseSoft 2s ease-in-out infinite;
   }
+
+  /* GSAP Theme Transition Styles */
+  .gsap-theme-animate {
+    transition: background-color 0.4s ease, 
+                color 0.3s ease, 
+                border-color 0.3s ease,
+                box-shadow 0.3s ease;
+  }
+
+  /* Smooth color transitions for all themed elements */
+  .dark .gsap-theme-animate,
+  :root .gsap-theme-animate {
+    will-change: background-color, color, border-color;
+  }
+
+  /* Theme particle animation */
+  .theme-particle {
+    will-change: transform, opacity;
+  }
+
+  /* Enhanced card hover with GSAP-like smoothness */
+  .gsap-card-hover {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease;
+  }
+
+  .gsap-card-hover:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 20px 40px -15px hsl(var(--primary) / 0.15);
+  }
+
+  /* Button press effect */
+  .gsap-button-press:active {
+    transform: scale(0.96);
+    transition: transform 0.1s ease;
+  }
+
+  /* Floating effect for decorative elements */
+  .gsap-float {
+    animation: gsapFloat 3s ease-in-out infinite;
+  }
+
+  /* Glow pulse effect */
+  .gsap-glow-pulse {
+    animation: gsapGlowPulse 2s ease-in-out infinite;
+  }
+
+  /* Stagger child helper class */
+  .gsap-stagger-child {
+    opacity: 0;
+    transform: translateY(20px);
+  }
 }
 
 @keyframes fadeIn {
@@ -287,4 +339,22 @@
 @keyframes pulseSoft {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
+}
+
+@keyframes gsapFloat {
+  0%, 100% { 
+    transform: translateY(0);
+  }
+  50% { 
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes gsapGlowPulse {
+  0%, 100% { 
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.2);
+  }
+  50% { 
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.4);
+  }
 }

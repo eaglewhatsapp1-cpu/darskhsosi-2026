@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { SidebarFeature } from './LearningPlatform';
 import { cn } from '@/lib/utils';
@@ -6,6 +6,8 @@ import { GraduationCap, Upload, Network, Lightbulb, FileText, Users, Video, Clip
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import gsap from 'gsap';
+
 interface AppSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
@@ -64,7 +66,50 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   language,
   onSignOut
 }) => {
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const navItemsRef = useRef<HTMLUListElement>(null);
   const dir = language === 'ar' ? 'rtl' : 'ltr';
+
+  // GSAP entrance animation
+  useEffect(() => {
+    if (!sidebarRef.current || !navItemsRef.current) return;
+
+    const ctx = gsap.context(() => {
+      // Slide in sidebar
+      gsap.fromTo(
+        sidebarRef.current,
+        { x: dir === 'rtl' ? 100 : -100, opacity: 0 },
+        { x: 0, opacity: 1, duration: 0.6, ease: 'power3.out' }
+      );
+
+      // Stagger nav items
+      gsap.fromTo(
+        navItemsRef.current?.querySelectorAll('li'),
+        { x: dir === 'rtl' ? 30 : -30, opacity: 0 },
+        { 
+          x: 0, 
+          opacity: 1, 
+          duration: 0.4, 
+          stagger: 0.05, 
+          delay: 0.3,
+          ease: 'power2.out'
+        }
+      );
+    });
+
+    return () => ctx.revert();
+  }, [dir]);
+
+  // Animate on collapse/expand
+  useEffect(() => {
+    if (!navItemsRef.current) return;
+    
+    gsap.fromTo(
+      navItemsRef.current.querySelectorAll('li'),
+      { scale: 0.9, opacity: 0.7 },
+      { scale: 1, opacity: 1, duration: 0.3, stagger: 0.02, ease: 'power2.out' }
+    );
+  }, [collapsed]);
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
       ar: {
@@ -121,7 +166,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
       professional: 'Professional'
     }
   };
-  return <aside className={cn('h-screen bg-sidebar flex flex-col transition-all duration-300 border-e border-sidebar-border', collapsed ? 'w-16' : 'w-64')}>
+  return <aside ref={sidebarRef} className={cn('h-screen bg-sidebar flex flex-col transition-all duration-300 border-e border-sidebar-border gsap-theme-animate', collapsed ? 'w-16' : 'w-64')}>
       {/* Header */}
       <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
         {!collapsed && <div className="flex items-center gap-3 animate-fade-in">
@@ -141,7 +186,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
       {/* Navigation */}
       <nav className="flex-1 py-4 overflow-y-auto custom-scrollbar">
-        <ul className="space-y-1 px-[32px] py-[34px]">
+        <ul ref={navItemsRef} className="space-y-1 px-[32px] py-[34px]">
           {features.map(feature => {
           const Icon = feature.icon;
           const isActive = activeFeature === feature.id;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import ChatInterface from './ChatInterface';
 import UploadMaterials from './UploadMaterials';
@@ -12,6 +12,7 @@ import VideoLearning from './VideoLearning';
 import WebLinkExplainer from './WebLinkExplainer';
 import StudyPlanGenerator from './StudyPlanGenerator';
 import ProjectSuggestions from './ProjectSuggestions';
+import gsap from 'gsap';
 
 import { SidebarFeature } from './LearningPlatform';
 
@@ -23,9 +24,59 @@ interface MainContentProps {
 }
 
 const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, language, setActiveFeature }) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const previousFeature = useRef<SidebarFeature | null>(null);
+
   const handleNavigateToUpload = () => {
     setActiveFeature('upload');
   };
+
+  // GSAP page transition animation
+  useEffect(() => {
+    if (!contentRef.current) return;
+
+    // Only animate if feature changed
+    if (previousFeature.current !== activeFeature) {
+      const ctx = gsap.context(() => {
+        // Animate content in
+        gsap.fromTo(
+          contentRef.current,
+          { 
+            opacity: 0, 
+            y: 30,
+            scale: 0.98
+          },
+          { 
+            opacity: 1, 
+            y: 0, 
+            scale: 1,
+            duration: 0.5, 
+            ease: 'power3.out'
+          }
+        );
+
+        // Animate children with stagger
+        const children = contentRef.current?.querySelectorAll('.gsap-stagger-child');
+        if (children && children.length > 0) {
+          gsap.fromTo(
+            children,
+            { opacity: 0, y: 20 },
+            { 
+              opacity: 1, 
+              y: 0, 
+              duration: 0.4, 
+              stagger: 0.08,
+              delay: 0.2,
+              ease: 'power2.out'
+            }
+          );
+        }
+      });
+
+      previousFeature.current = activeFeature;
+      return () => ctx.revert();
+    }
+  }, [activeFeature]);
 
   const renderContent = () => {
     switch (activeFeature) {
@@ -59,8 +110,10 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
   };
 
   return (
-    <main className="flex-1 h-full overflow-hidden bg-background geometric-pattern">
-      {renderContent()}
+    <main className="flex-1 h-full overflow-hidden bg-background geometric-pattern gsap-theme-animate">
+      <div ref={contentRef} className="h-full">
+        {renderContent()}
+      </div>
     </main>
   );
 };

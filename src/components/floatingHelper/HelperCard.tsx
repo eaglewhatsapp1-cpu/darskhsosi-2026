@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, ChevronRight, ChevronLeft } from 'lucide-react';
@@ -26,8 +27,34 @@ const HelperCard: React.FC<HelperCardProps> = ({
   onPrev,
   onAction
 }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
   const dir = language === 'ar' ? 'rtl' : 'ltr';
   const step = steps[currentStep];
+
+  // GSAP entrance animation
+  useEffect(() => {
+    if (!cardRef.current) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        cardRef.current,
+        { 
+          opacity: 0, 
+          scale: 0.8, 
+          y: 20 
+        },
+        { 
+          opacity: 1, 
+          scale: 1, 
+          y: 0, 
+          duration: 0.4, 
+          ease: 'back.out(1.7)' 
+        }
+      );
+    });
+
+    return () => ctx.revert();
+  }, [currentStep]);
 
   // Calculate card position based on target element and preferred position
   const getCardStyle = (): React.CSSProperties => {
@@ -88,8 +115,9 @@ const HelperCard: React.FC<HelperCardProps> = ({
 
   return (
     <Card 
+      ref={cardRef}
       className={cn(
-        "w-80 shadow-2xl animate-in fade-in-0 zoom-in-95",
+        "w-80 shadow-2xl gsap-theme-animate",
         "bg-card/95 backdrop-blur-lg border-primary/20"
       )}
       style={getCardStyle()}

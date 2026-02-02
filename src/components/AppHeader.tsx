@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { getSubjectTheme, getAllSubjects, Subject } from '@/utils/subjectColors';
 import { useProfile } from '@/hooks/useProfile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GraduationCap, Sparkles, Moon, Sun, Languages } from 'lucide-react';
-import { useTheme } from 'next-themes';
+import { GraduationCap, Sparkles, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import AnimatedThemeToggle from '@/components/ui/AnimatedThemeToggle';
+import gsap from 'gsap';
+
 interface AppHeaderProps {
   profile: Profile;
   language: 'ar' | 'en';
@@ -17,15 +19,43 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   language,
   onSubjectChange
 }) => {
-  const {
-    theme,
-    setTheme
-  } = useTheme();
-  const {
-    updateProfile
-  } = useProfile();
+  const { updateProfile } = useProfile();
   const subjectTheme = getSubjectTheme(profile.subject || 'general');
   const subjects = getAllSubjects();
+  const headerRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
+
+  // GSAP entrance animation
+  useEffect(() => {
+    if (!headerRef.current) return;
+
+    const ctx = gsap.context(() => {
+      // Animate header slide down
+      gsap.fromTo(
+        headerRef.current,
+        { y: -100, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }
+      );
+
+      // Animate logo with bounce
+      if (logoRef.current) {
+        gsap.fromTo(
+          logoRef.current,
+          { scale: 0, rotate: -180 },
+          { scale: 1, rotate: 0, duration: 0.6, delay: 0.3, ease: 'elastic.out(1, 0.5)' }
+        );
+      }
+
+      // Stagger animate other elements
+      gsap.fromTo(
+        '.header-animate-item',
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, delay: 0.4, ease: 'power2.out' }
+      );
+    });
+
+    return () => ctx.revert();
+  }, []);
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
   const toggleLanguage = async () => {
     const newLang = language === 'ar' ? 'en' : 'ar';
@@ -61,22 +91,24 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     };
     return levels[profile.education_level || 'high']?.[language] || '';
   };
-  return <header className="w-full border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm" style={{
+  return <header ref={headerRef} className="w-full border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm gsap-theme-animate" style={{
     borderColor: subjectTheme.primary,
     borderBottomWidth: '3px'
   }}>
-      <div className="flex items-center justify-between gap-4 px-[24px] py-[48px] my-[14px] mx-[14px] text-[#e7f3ee] bg-amber-950">
+      <div className="flex items-center justify-between gap-4 px-[24px] py-[48px] my-[14px] mx-[14px] text-[#e7f3ee] bg-amber-950 rounded-xl">
         {/* Logo & Platform Name */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{
-          background: subjectTheme.gradient
-        }}>
+          <div 
+            ref={logoRef}
+            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-transform duration-300" 
+            style={{ background: subjectTheme.gradient }}
+          >
             <GraduationCap className="w-6 h-6 text-white" />
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col header-animate-item">
             <h1 className="text-xl font-bold flex items-center gap-2 text-amber-50">
               {t('درس خصوصي', 'Private Tutor')}
-              <Sparkles className="w-4 h-4 text-amber-500" />
+              <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
             </h1>
             <span className="text-xs text-muted-foreground">
               {t('مساعدك التعليمي الذكي', 'Your Smart Learning Assistant')}
@@ -85,9 +117,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
 
         {/* Subject Selector */}
-        <div className="flex-1 max-w-xs">
+        <div className="flex-1 max-w-xs header-animate-item">
           <Select value={profile.subject || 'general'} onValueChange={value => onSubjectChange(value as Subject)}>
-            <SelectTrigger className="w-full border-2 font-medium" style={{
+            <SelectTrigger className="w-full border-2 font-medium transition-all duration-300 hover:scale-[1.02] hover:shadow-lg" style={{
             borderColor: subjectTheme.primary,
             backgroundColor: subjectTheme.secondary
           }}>
@@ -98,7 +130,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 </span>
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="gsap-theme-animate">
               {subjects.map(subject => <SelectItem key={subject.id} value={subject.id}>
                   <span className="flex items-center gap-2">
                     <span>{subject.icon}</span>
@@ -110,12 +142,15 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
 
         {/* Actions & Student Info */}
-        <div className="flex items-center gap-3 text-amber-100">
-          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="rounded-full">
-            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </Button>
+        <div className="flex items-center gap-3 text-amber-100 header-animate-item">
+          <AnimatedThemeToggle className="text-amber-100 hover:text-amber-50" />
 
-          <Button variant="ghost" size="icon" onClick={toggleLanguage} className="rounded-full flex items-center gap-1 px-2 w-auto">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleLanguage} 
+            className="rounded-full flex items-center gap-1 px-2 w-auto transition-all duration-300 hover:scale-110"
+          >
             <Languages className="w-5 h-5" />
             <span className="text-xs font-bold">{language === 'ar' ? 'EN' : 'AR'}</span>
           </Button>

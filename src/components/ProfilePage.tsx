@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Profile, useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,25 +42,52 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasInitialized = useRef(false);
   
-  const [formData, setFormData] = useState({
-    name: profile.name || '',
-    birthDate: profile.birth_date || '',
-    bio: profile.bio || '',
-    hobbies: profile.hobbies || '',
-    goals: profile.goals || '',
-    strengths: profile.strengths || '',
-    weaknesses: profile.weaknesses || '',
-    studyTarget: profile.study_target || '',
-    educationLevel: profile.education_level || '',
-    learningStyles: profile.learning_styles || [profile.learning_style].filter(Boolean) as string[],
-    learningLanguages: profile.learning_languages || ['ar'],
-    interests: profile.interests?.join(', ') || '',
-    preferredLanguage: profile.preferred_language || 'ar',
-    aiPersona: profile.ai_persona || 'teacher',
-    speakingStyle: profile.speaking_style || 'formal_ar',
-    knowledgeRatio: profile.knowledge_ratio ?? 50,
-  });
+  // Initialize with empty defaults to prevent re-render loops
+  const [formData, setFormData] = useState(() => ({
+    name: '',
+    birthDate: '',
+    bio: '',
+    hobbies: '',
+    goals: '',
+    strengths: '',
+    weaknesses: '',
+    studyTarget: '',
+    educationLevel: '',
+    learningStyles: [] as string[],
+    learningLanguages: ['ar'] as string[],
+    interests: '',
+    preferredLanguage: 'ar' as 'ar' | 'en' | 'both',
+    aiPersona: 'teacher' as string,
+    speakingStyle: 'formal_ar' as string,
+    knowledgeRatio: 50,
+  }));
+
+  // Only update form data on initial profile load
+  useEffect(() => {
+    if (profile && !hasInitialized.current) {
+      hasInitialized.current = true;
+      setFormData({
+        name: profile.name || '',
+        birthDate: profile.birth_date || '',
+        bio: profile.bio || '',
+        hobbies: profile.hobbies || '',
+        goals: profile.goals || '',
+        strengths: profile.strengths || '',
+        weaknesses: profile.weaknesses || '',
+        studyTarget: profile.study_target || '',
+        educationLevel: profile.education_level || '',
+        learningStyles: profile.learning_styles || (profile.learning_style ? [profile.learning_style] : []),
+        learningLanguages: profile.learning_languages || ['ar'],
+        interests: profile.interests?.join(', ') || '',
+        preferredLanguage: (profile.preferred_language as 'ar' | 'en' | 'both') || 'ar',
+        aiPersona: profile.ai_persona || 'teacher',
+        speakingStyle: profile.speaking_style || 'formal_ar',
+        knowledgeRatio: profile.knowledge_ratio ?? 50,
+      });
+    }
+  }, [profile]);
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {

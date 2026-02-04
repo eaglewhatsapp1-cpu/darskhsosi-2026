@@ -18,23 +18,22 @@ interface ProfileSetupProps {
 const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage, setLanguage }) => {
   const { profile, updateProfile } = useProfile();
   const [loading, setLoading] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    name: profile?.name || '',
-    birthDate: profile?.birth_date || '',
-    educationLevel: profile?.education_level || '',
-    learningStyles: profile?.learning_styles || (profile?.learning_style ? [profile.learning_style] : []),
-    learningLanguages: profile?.learning_languages || ['ar'],
-    interests: profile?.interests?.join(', ') || '',
-    bio: profile?.bio || '',
-    studyTarget: profile?.study_target || '',
-    preferredLanguage: profile?.preferred_language || currentLanguage,
-  });
-
-  // Only update form data on initial profile load, not on every profile change
   const hasInitialized = React.useRef(false);
   
-  useEffect(() => {
+  const [formData, setFormData] = useState(() => ({
+    name: '',
+    birthDate: '',
+    educationLevel: '',
+    learningStyles: [] as string[],
+    learningLanguages: ['ar'],
+    interests: '',
+    bio: '',
+    studyTarget: '',
+    preferredLanguage: currentLanguage as 'ar' | 'en',
+  }));
+
+  // Only update form data on initial profile load, not on every profile change
+  React.useEffect(() => {
     if (profile && !hasInitialized.current) {
       hasInitialized.current = true;
       setFormData({
@@ -46,7 +45,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
         interests: profile.interests?.join(', ') || '',
         bio: profile.bio || '',
         studyTarget: profile.study_target || '',
-        preferredLanguage: profile.preferred_language || currentLanguage,
+        preferredLanguage: (profile.preferred_language as 'ar' | 'en') || currentLanguage,
       });
     }
   }, [profile, currentLanguage]);

@@ -31,8 +31,12 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
     preferredLanguage: profile?.preferred_language || currentLanguage,
   });
 
+  // Only update form data on initial profile load, not on every profile change
+  const hasInitialized = React.useRef(false);
+  
   useEffect(() => {
-    if (profile) {
+    if (profile && !hasInitialized.current) {
+      hasInitialized.current = true;
       setFormData({
         name: profile.name || '',
         birthDate: profile.birth_date || '',

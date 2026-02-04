@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { SidebarFeature } from './LearningPlatform';
 import { cn } from '@/lib/utils';
@@ -68,48 +68,43 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 }) => {
   const sidebarRef = useRef<HTMLDivElement>(null);
   const navItemsRef = useRef<HTMLUListElement>(null);
+  const hasAnimated = useRef(false);
   const dir = language === 'ar' ? 'rtl' : 'ltr';
 
-  // GSAP entrance animation
-  useEffect(() => {
-    if (!sidebarRef.current || !navItemsRef.current) return;
+  // GSAP entrance animation - run once on mount
+  useLayoutEffect(() => {
+    if (!sidebarRef.current || hasAnimated.current) return;
+    hasAnimated.current = true;
 
-    const ctx = gsap.context(() => {
-      // Slide in sidebar
-      gsap.fromTo(
-        sidebarRef.current,
-        { x: dir === 'rtl' ? 100 : -100, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.6, ease: 'power3.out' }
-      );
+    gsap.fromTo(
+      sidebarRef.current,
+      { x: dir === 'rtl' ? 50 : -50, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.5, ease: 'power2.out' }
+    );
 
-      // Stagger nav items
+    if (navItemsRef.current) {
+      const items = navItemsRef.current.querySelectorAll('li');
       gsap.fromTo(
-        navItemsRef.current?.querySelectorAll('li'),
-        { x: dir === 'rtl' ? 30 : -30, opacity: 0 },
+        items,
+        { x: dir === 'rtl' ? 20 : -20, opacity: 0 },
         { 
           x: 0, 
           opacity: 1, 
-          duration: 0.4, 
-          stagger: 0.05, 
-          delay: 0.3,
+          duration: 0.3, 
+          stagger: 0.03, 
+          delay: 0.2,
           ease: 'power2.out'
         }
       );
-    });
+    }
 
-    return () => ctx.revert();
+    return () => {
+      if (sidebarRef.current) gsap.killTweensOf(sidebarRef.current);
+      if (navItemsRef.current) {
+        gsap.killTweensOf(navItemsRef.current.querySelectorAll('li'));
+      }
+    };
   }, [dir]);
-
-  // Animate on collapse/expand
-  useEffect(() => {
-    if (!navItemsRef.current) return;
-    
-    gsap.fromTo(
-      navItemsRef.current.querySelectorAll('li'),
-      { scale: 0.9, opacity: 0.7 },
-      { scale: 1, opacity: 1, duration: 0.3, stagger: 0.02, ease: 'power2.out' }
-    );
-  }, [collapsed]);
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
       ar: {

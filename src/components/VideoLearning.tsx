@@ -130,34 +130,34 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
   };
 
   return (
-    <div className="h-full flex flex-col p-6">
-      <div className="text-center mb-6">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-          <Video className="w-8 h-8 text-primary" />
+    <div className="h-full flex flex-col p-3 sm:p-6">
+      <div className="text-center mb-4 sm:mb-6">
+        <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+          <Video className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">{t('title')}</h1>
-        <p className="text-muted-foreground">{t('subtitle')}</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">{t('title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
       {!videoId ? (
-        <Card className="p-4">
-          <div className="flex gap-2">
+        <Card className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Input
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
               placeholder={t('urlPlaceholder')}
-              className="flex-1"
+              className="flex-1 text-sm"
               dir="ltr"
             />
-            <Button onClick={handleLoadVideo} disabled={!videoUrl.trim()}>
+            <Button onClick={handleLoadVideo} disabled={!videoUrl.trim()} className="w-full sm:w-auto">
               <Play className="w-4 h-4 me-2" />
               {t('load')}
             </Button>
           </div>
         </Card>
       ) : (
-        <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-          <Card className="overflow-hidden">
+        <div className="flex-1 flex flex-col gap-3 sm:gap-4 overflow-hidden">
+          <Card className="overflow-hidden shrink-0">
             <div className="aspect-video">
               <iframe
                 width="100%"
@@ -171,39 +171,39 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
             </div>
           </Card>
 
-          <Card className="flex-1 flex flex-col overflow-hidden">
-            <ScrollArea className="flex-1 p-4">
+          <Card className="flex-1 flex flex-col overflow-hidden min-h-[200px]">
+            <ScrollArea className="flex-1 p-3 sm:p-4">
               {messages.length === 0 && (
-                <div className="flex gap-3 mb-4">
-                  <Avatar className="w-8 h-8">
-                    <AvatarFallback><MessageSquare className="w-4 h-4" /></AvatarFallback>
+                <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <Avatar className="w-7 h-7 sm:w-8 sm:h-8 shrink-0">
+                    <AvatarFallback><MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></AvatarFallback>
                   </Avatar>
-                  <div className="bg-muted rounded-lg p-3 max-w-[80%]">
+                  <div className="bg-muted rounded-lg p-2.5 sm:p-3 max-w-[85%] sm:max-w-[80%]">
                     <p className="text-sm">{t('greeting')}</p>
                   </div>
                 </div>
               )}
               {messages.map((message, index) => (
-                <div key={index} className={`flex gap-3 mb-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <Avatar className="w-8 h-8">
+                <div key={index} className={`flex gap-2 sm:gap-3 mb-3 sm:mb-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                  <Avatar className="w-7 h-7 sm:w-8 sm:h-8 shrink-0">
                     <AvatarFallback>
-                      {message.role === 'user' ? '👤' : <MessageSquare className="w-4 h-4" />}
+                      {message.role === 'user' ? '👤' : <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                     </AvatarFallback>
                   </Avatar>
-                  <div className={`rounded-lg p-3 max-w-[80%] ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <div className={`rounded-lg p-2.5 sm:p-3 max-w-[85%] sm:max-w-[80%] ${message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                   </div>
                 </div>
               ))}
             </ScrollArea>
 
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
+            <div className="p-2 sm:p-4 border-t">
+              <div className="flex gap-1.5 sm:gap-2">
                 <Textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={t('askPlaceholder')}
-                  className="min-h-[44px] max-h-[120px] resize-none"
+                  className="min-h-[44px] max-h-[100px] sm:max-h-[120px] resize-none text-sm"
                   dir={language === 'ar' ? 'rtl' : 'ltr'}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -212,14 +212,14 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
                     }
                   }}
                 />
-                <Button onClick={handleSend} disabled={!input.trim() || isLoading} size="icon">
+                <Button onClick={handleSend} disabled={!input.trim() || isLoading} size="icon" className="h-10 w-10 sm:h-11 sm:w-11 shrink-0">
                   {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
             </div>
           </Card>
 
-          <Button variant="outline" onClick={() => setVideoId('')}>
+          <Button variant="outline" onClick={() => setVideoId('')} className="shrink-0">
             {language === 'ar' ? 'تغيير الفيديو' : 'Change Video'}
           </Button>
         </div>

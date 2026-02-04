@@ -266,31 +266,33 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
   return (
     <div className="flex flex-col h-full" dir={dir}>
       {/* Header */}
-      <div className="p-4 border-b border-border bg-card/50 backdrop-blur-sm">
+      <div className="p-2 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm">
         {customHeader || (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <div 
-                className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-lg sm:text-xl shrink-0"
                 style={{ background: subjectTheme.gradient }}
               >
                 {persona.icon}
               </div>
-              <div>
-                <h2 className="font-semibold text-foreground">
+              <div className="min-w-0">
+                <h2 className="font-semibold text-foreground text-sm sm:text-base truncate">
                   {language === 'ar' ? persona.nameAr : persona.nameEn}
                 </h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate hidden xs:block">
                   {language === 'ar' ? persona.descriptionAr : persona.descriptionEn}
                 </p>
               </div>
             </div>
             {showExport && lastAiMessage && (
-              <ExportButtons 
-                language={language} 
-                content={lastAiMessage}
-                title={language === 'ar' ? persona.nameAr : persona.nameEn}
-              />
+              <div className="shrink-0">
+                <ExportButtons 
+                  language={language} 
+                  content={lastAiMessage}
+                  title={language === 'ar' ? persona.nameAr : persona.nameEn}
+                />
+              </div>
             )}
           </div>
         )}
@@ -298,7 +300,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
 
       {/* Material Selector */}
       {showMaterialSelector && (
-        <div className="p-3 border-b border-border" data-helper-target="material-selector">
+        <div className="p-2 sm:p-3 border-b border-border" data-helper-target="material-selector">
           <MaterialSelector
             language={language}
             selectedMaterials={selectedMaterials}
@@ -308,39 +310,39 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
       )}
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 p-2 sm:p-4">
+        <div className="space-y-3 sm:space-y-4">
           {messages.map((message) => (
             <div
               key={message.id}
               className={cn(
-                'flex gap-3',
+                'flex gap-2 sm:gap-3',
                 message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
               )}
             >
               <div
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                  'w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0',
                   message.role === 'user' ? 'bg-primary' : 'bg-secondary'
                 )}
                 style={message.role === 'assistant' ? { background: subjectTheme.gradient } : undefined}
               >
                 {message.role === 'user' ? (
-                  <User className="w-4 h-4 text-primary-foreground" />
+                  <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
                 ) : (
-                  <Bot className="w-4 h-4 text-white" />
+                  <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
                 )}
               </div>
               <div
                 className={cn(
-                  'max-w-[85%] px-4 py-3 rounded-2xl',
+                  'max-w-[88%] sm:max-w-[85%] px-3 py-2 sm:px-4 sm:py-3 rounded-2xl',
                   message.role === 'user' 
                     ? 'bg-primary text-primary-foreground' 
                     : 'bg-muted'
                 )}
               >
                 {message.role === 'user' ? (
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                 ) : (
                   <div className="space-y-4">
                     {/* Show Mind Map if persona is mindmap/analyzer */}
@@ -356,28 +358,28 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
           ))}
           
           {streamingContent && (
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3">
               <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0"
                 style={{ background: subjectTheme.gradient }}
               >
-                <Bot className="w-4 h-4 text-white" />
+                <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
-              <div className="max-w-[85%] px-4 py-3 rounded-2xl bg-muted">
+              <div className="max-w-[88%] sm:max-w-[85%] px-3 py-2 sm:px-4 sm:py-3 rounded-2xl bg-muted">
                 <MarkdownContent content={streamingContent} />
               </div>
             </div>
           )}
 
           {isLoading && !streamingContent && (
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3">
               <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center"
                 style={{ background: subjectTheme.gradient }}
               >
-                <Bot className="w-4 h-4 text-white" />
+                <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
-              <div className="bg-muted px-4 py-3 rounded-2xl">
+              <div className="bg-muted px-3 py-2 sm:px-4 sm:py-3 rounded-2xl">
                 <Loader2 className="w-4 h-4 animate-spin" />
               </div>
             </div>
@@ -389,7 +391,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
 
       {/* Smart Suggestions */}
       {showSuggestions && messages.length > 0 && !isLoading && (
-        <div className="px-4 py-2">
+        <div className="px-2 sm:px-4 py-2">
           <SmartSuggestions
             language={language}
             personaId={personaId}
@@ -399,9 +401,9 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
       )}
 
       {/* Input Area */}
-      <div className="p-4 border-t border-border bg-card/50">
+      <div className="p-2 sm:p-4 border-t border-border bg-card/50">
         {showTempUpload && (
-          <div className="mb-3">
+          <div className="mb-2 sm:mb-3">
             <TemporaryUpload
               language={language}
               tempFiles={tempFiles}
@@ -409,7 +411,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
             />
           </div>
         )}
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-1.5 sm:gap-2">
           <PromptEnhancer
             language={language}
             prompt={input}
@@ -422,7 +424,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('اكتب رسالتك...', 'Type your message...')}
-            className="flex-1 min-h-[48px] max-h-[120px] resize-none rounded-xl"
+            className="flex-1 min-h-[44px] sm:min-h-[48px] max-h-[100px] sm:max-h-[120px] resize-none rounded-xl text-sm"
             rows={1}
             disabled={isLoading}
           />
@@ -430,10 +432,10 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
             onClick={() => handleSend()}
             disabled={!input.trim() || isLoading}
             size="icon"
-            className="h-12 w-12 rounded-xl"
+            className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl shrink-0"
             style={{ background: subjectTheme.gradient }}
           >
-            <Send className={cn('w-5 h-5', dir === 'rtl' && 'rotate-180')} />
+            <Send className={cn('w-4 h-4 sm:w-5 sm:h-5', dir === 'rtl' && 'rotate-180')} />
           </Button>
         </div>
       </div>

@@ -4,12 +4,9 @@ import gsap from 'gsap';
 // Stagger reveal animation for lists and grids
 export const useStaggerReveal = (
   selector: string,
-  options?: {
-    delay?: number;
-    duration?: number;
-    stagger?: number;
-    from?: gsap.TweenVars;
-  }
+  delay: number = 0.1,
+  duration: number = 0.5,
+  stagger: number = 0.08
 ) => {
   const hasAnimated = useRef(false);
 
@@ -21,33 +18,32 @@ export const useStaggerReveal = (
 
     hasAnimated.current = true;
 
-    gsap.fromTo(
+    const tween = gsap.fromTo(
       elements,
       {
         opacity: 0,
         y: 30,
-        scale: 0.95,
-        ...options?.from
+        scale: 0.95
       },
       {
         opacity: 1,
         y: 0,
         scale: 1,
-        duration: options?.duration ?? 0.5,
-        stagger: options?.stagger ?? 0.08,
-        delay: options?.delay ?? 0.1,
+        duration,
+        stagger,
+        delay,
         ease: 'power3.out'
       }
     );
 
     return () => {
-      gsap.killTweensOf(elements);
+      tween.kill();
     };
-  }, [selector, options]);
+  }, [selector, delay, duration, stagger]);
 };
 
 // Magnetic hover effect
-export const useMagneticHover = (ref: React.RefObject<HTMLElement>, strength: number = 0.3) => {
+export const useMagneticHover = (ref: React.RefObject<HTMLElement | null>, strength: number = 0.3) => {
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
@@ -83,17 +79,22 @@ export const useMagneticHover = (ref: React.RefObject<HTMLElement>, strength: nu
     return () => {
       element.removeEventListener('mousemove', handleMouseMove);
       element.removeEventListener('mouseleave', handleMouseLeave);
+      gsap.killTweensOf(element);
     };
-  }, [ref, strength]);
+  }, [strength]);
 };
 
 // Page transition animation
-export const usePageTransition = (ref: React.RefObject<HTMLElement>) => {
+export const usePageTransition = (ref: React.RefObject<HTMLElement | null>) => {
+  const hasAnimated = useRef(false);
+
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element || hasAnimated.current) return;
 
-    gsap.fromTo(
+    hasAnimated.current = true;
+
+    const tween = gsap.fromTo(
       element,
       {
         opacity: 0,
@@ -110,46 +111,44 @@ export const usePageTransition = (ref: React.RefObject<HTMLElement>) => {
     );
 
     return () => {
-      gsap.killTweensOf(element);
+      tween.kill();
     };
-  }, [ref]);
+  }, []);
 };
 
 // Floating animation for decorative elements
 export const useFloatingAnimation = (
-  ref: React.RefObject<HTMLElement>,
-  options?: {
-    yAmount?: number;
-    duration?: number;
-    delay?: number;
-  }
+  ref: React.RefObject<HTMLElement | null>,
+  yAmount: number = 10,
+  duration: number = 2,
+  delay: number = 0
 ) => {
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
 
-    gsap.to(element, {
-      y: options?.yAmount ?? 10,
-      duration: options?.duration ?? 2,
-      delay: options?.delay ?? 0,
+    const tween = gsap.to(element, {
+      y: yAmount,
+      duration,
+      delay,
       ease: 'power1.inOut',
       yoyo: true,
       repeat: -1
     });
 
     return () => {
-      gsap.killTweensOf(element);
+      tween.kill();
     };
-  }, [ref, options]);
+  }, [yAmount, duration, delay]);
 };
 
 // Glow pulse animation
-export const useGlowPulse = (ref: React.RefObject<HTMLElement>, color: string = 'hsl(27 95% 60%)') => {
+export const useGlowPulse = (ref: React.RefObject<HTMLElement | null>, color: string = 'hsl(27 95% 60%)') => {
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
 
-    gsap.to(element, {
+    const tween = gsap.to(element, {
       boxShadow: `0 0 30px ${color.replace(')', ' / 0.5)')}`,
       duration: 1.5,
       ease: 'power1.inOut',
@@ -158,21 +157,24 @@ export const useGlowPulse = (ref: React.RefObject<HTMLElement>, color: string = 
     });
 
     return () => {
-      gsap.killTweensOf(element);
+      tween.kill();
     };
-  }, [ref, color]);
+  }, [color]);
 };
 
 // Text reveal animation
-export const useTextReveal = (ref: React.RefObject<HTMLElement>) => {
+export const useTextReveal = (ref: React.RefObject<HTMLElement | null>) => {
+  const hasAnimated = useRef(false);
+
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element || hasAnimated.current) return;
 
+    hasAnimated.current = true;
     const text = element.textContent || '';
     element.innerHTML = '';
     
-    const chars = text.split('').map((char, i) => {
+    const chars = text.split('').map((char) => {
       const span = document.createElement('span');
       span.textContent = char === ' ' ? '\u00A0' : char;
       span.style.display = 'inline-block';
@@ -181,7 +183,7 @@ export const useTextReveal = (ref: React.RefObject<HTMLElement>) => {
       return span;
     });
 
-    gsap.to(chars, {
+    const tween = gsap.to(chars, {
       opacity: 1,
       y: 0,
       duration: 0.05,
@@ -191,48 +193,45 @@ export const useTextReveal = (ref: React.RefObject<HTMLElement>) => {
     });
 
     return () => {
-      gsap.killTweensOf(chars);
+      tween.kill();
     };
-  }, [ref]);
+  }, []);
 };
 
 // Scroll-triggered animation
 export const useScrollAnimation = (
-  ref: React.RefObject<HTMLElement>,
-  options?: {
-    threshold?: number;
-    from?: gsap.TweenVars;
-    to?: gsap.TweenVars;
-  }
+  ref: React.RefObject<HTMLElement | null>,
+  threshold: number = 0.1
 ) => {
+  const hasAnimated = useRef(false);
+
   useEffect(() => {
     const element = ref.current;
-    if (!element) return;
+    if (!element || hasAnimated.current) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
+          if (entry.isIntersecting && !hasAnimated.current) {
+            hasAnimated.current = true;
             gsap.fromTo(
               element,
               {
                 opacity: 0,
-                y: 50,
-                ...options?.from
+                y: 50
               },
               {
                 opacity: 1,
                 y: 0,
                 duration: 0.6,
-                ease: 'power3.out',
-                ...options?.to
+                ease: 'power3.out'
               }
             );
             observer.unobserve(element);
           }
         });
       },
-      { threshold: options?.threshold ?? 0.1 }
+      { threshold }
     );
 
     observer.observe(element);
@@ -241,7 +240,7 @@ export const useScrollAnimation = (
       observer.disconnect();
       gsap.killTweensOf(element);
     };
-  }, [ref, options]);
+  }, [threshold]);
 };
 
 // Button press animation

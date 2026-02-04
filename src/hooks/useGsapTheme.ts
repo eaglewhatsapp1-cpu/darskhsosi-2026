@@ -119,15 +119,8 @@ export const useGsapTheme = () => {
     animateThemeTransition(newTheme);
   }, [resolvedTheme, animateThemeTransition]);
 
-  // Watch for theme changes and animate elements
+  // Watch for theme changes - simplified to avoid re-render loops
   useEffect(() => {
-    if (previousTheme.current && previousTheme.current !== resolvedTheme && !isAnimating.current) {
-      // Theme changed externally, animate elements
-      gsap.fromTo('.gsap-theme-animate',
-        { opacity: 0.9 },
-        { opacity: 1, duration: 0.3, stagger: 0.01 }
-      );
-    }
     previousTheme.current = resolvedTheme;
   }, [resolvedTheme]);
 

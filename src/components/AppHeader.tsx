@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { getSubjectTheme, getAllSubjects, Subject } from '@/utils/subjectColors';
 import { useProfile } from '@/hooks/useProfile';
@@ -24,37 +24,31 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const subjects = getAllSubjects();
   const headerRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
+  const hasAnimated = useRef(false);
 
-  // GSAP entrance animation
-  useEffect(() => {
-    if (!headerRef.current) return;
+  // GSAP entrance animation - run once on mount
+  useLayoutEffect(() => {
+    if (!headerRef.current || hasAnimated.current) return;
+    hasAnimated.current = true;
 
-    const ctx = gsap.context(() => {
-      // Animate header slide down
+    gsap.fromTo(
+      headerRef.current,
+      { y: -50, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' }
+    );
+
+    if (logoRef.current) {
       gsap.fromTo(
-        headerRef.current,
-        { y: -100, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }
+        logoRef.current,
+        { scale: 0.5, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.5, delay: 0.2, ease: 'back.out(1.7)' }
       );
+    }
 
-      // Animate logo with bounce
-      if (logoRef.current) {
-        gsap.fromTo(
-          logoRef.current,
-          { scale: 0, rotate: -180 },
-          { scale: 1, rotate: 0, duration: 0.6, delay: 0.3, ease: 'elastic.out(1, 0.5)' }
-        );
-      }
-
-      // Stagger animate other elements
-      gsap.fromTo(
-        '.header-animate-item',
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, delay: 0.4, ease: 'power2.out' }
-      );
-    });
-
-    return () => ctx.revert();
+    return () => {
+      if (headerRef.current) gsap.killTweensOf(headerRef.current);
+      if (logoRef.current) gsap.killTweensOf(logoRef.current);
+    };
   }, []);
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
   const toggleLanguage = async () => {

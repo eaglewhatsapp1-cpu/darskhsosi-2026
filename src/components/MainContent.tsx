@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef, useLayoutEffect } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import ChatInterface from './ChatInterface';
 import UploadMaterials from './UploadMaterials';
@@ -25,57 +25,37 @@ interface MainContentProps {
 
 const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, language, setActiveFeature }) => {
   const contentRef = useRef<HTMLDivElement>(null);
-  const previousFeature = useRef<SidebarFeature | null>(null);
 
   const handleNavigateToUpload = () => {
     setActiveFeature('upload');
   };
 
-  // GSAP page transition animation
-  useEffect(() => {
-    if (!contentRef.current) return;
+  // GSAP page transition animation using useLayoutEffect to avoid conflicts
+  useLayoutEffect(() => {
+    const element = contentRef.current;
+    if (!element) return;
 
-    // Only animate if feature changed
-    if (previousFeature.current !== activeFeature) {
-      const ctx = gsap.context(() => {
-        // Animate content in
-        gsap.fromTo(
-          contentRef.current,
-          { 
-            opacity: 0, 
-            y: 30,
-            scale: 0.98
-          },
-          { 
-            opacity: 1, 
-            y: 0, 
-            scale: 1,
-            duration: 0.5, 
-            ease: 'power3.out'
-          }
-        );
+    // Kill any existing animations first
+    gsap.killTweensOf(element);
 
-        // Animate children with stagger
-        const children = contentRef.current?.querySelectorAll('.gsap-stagger-child');
-        if (children && children.length > 0) {
-          gsap.fromTo(
-            children,
-            { opacity: 0, y: 20 },
-            { 
-              opacity: 1, 
-              y: 0, 
-              duration: 0.4, 
-              stagger: 0.08,
-              delay: 0.2,
-              ease: 'power2.out'
-            }
-          );
-        }
-      });
+    // Animate content in
+    gsap.fromTo(
+      element,
+      { 
+        opacity: 0, 
+        y: 20
+      },
+      { 
+        opacity: 1, 
+        y: 0, 
+        duration: 0.4, 
+        ease: 'power2.out'
+      }
+    );
 
-      previousFeature.current = activeFeature;
-      return () => ctx.revert();
-    }
+    return () => {
+      gsap.killTweensOf(element);
+    };
   }, [activeFeature]);
 
   const renderContent = () => {

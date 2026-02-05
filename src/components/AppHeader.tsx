@@ -89,7 +89,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     borderColor: subjectTheme.primary,
     borderBottomWidth: '3px'
   }}>
-      <div className="flex items-center justify-between gap-4 px-[24px] py-[48px] my-[14px] mx-[14px] text-[#e7f3ee] bg-amber-950 rounded-xl">
+      <div className="flex items-center justify-between gap-4 px-6 py-6 my-3.5 mx-3.5 header-banner rounded-xl">
         {/* Logo & Platform Name */}
         <div className="flex items-center gap-3">
           <div 
@@ -100,11 +100,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <GraduationCap className="w-6 h-6 text-white" />
           </div>
           <div className="flex flex-col header-animate-item">
-            <h1 className="text-xl font-bold flex items-center gap-2 text-amber-50">
+            <h1 className="text-xl font-bold flex items-center gap-2 text-header-foreground">
               {t('درس خصوصي', 'Private Tutor')}
-              <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+              <Sparkles className="w-4 h-4 text-primary animate-pulse" />
             </h1>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-header-muted">
               {t('مساعدك التعليمي الذكي', 'Your Smart Learning Assistant')}
             </span>
           </div>
@@ -136,22 +136,22 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
 
         {/* Actions & Student Info */}
-        <div className="flex items-center gap-3 text-amber-100 header-animate-item">
-          <AnimatedThemeToggle className="text-amber-100 hover:text-amber-50" />
+        <div className="flex items-center gap-3 text-header-foreground header-animate-item">
+          <AnimatedThemeToggle className="text-header-foreground hover:text-header-foreground/80" />
 
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={toggleLanguage} 
-            className="rounded-full flex items-center gap-1 px-2 w-auto transition-all duration-300 hover:scale-110"
+            className="rounded-full flex items-center gap-1 px-2 w-auto transition-all duration-300 hover:scale-110 text-header-foreground hover:text-header-foreground/80 hover:bg-header-foreground/10"
           >
             <Languages className="w-5 h-5" />
             <span className="text-xs font-bold">{language === 'ar' ? 'EN' : 'AR'}</span>
           </Button>
 
           <div className="text-end hidden sm:block">
-            <p className="font-semibold bg-transparent text-amber-50">{profile.name}</p>
-            <p className="text-xs flex items-center gap-1 justify-end text-center font-bold text-amber-50">
+            <p className="font-semibold text-header-foreground">{profile.name}</p>
+            <p className="text-xs flex items-center gap-1 justify-end font-medium text-header-muted">
               <span className="inline-block w-2 h-2 rounded-full" style={{
               backgroundColor: subjectTheme.primary
             }} />
@@ -162,7 +162,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           borderColor: subjectTheme.primary
         }}>
             <AvatarImage src={profile.avatar_url || ''} alt={profile.name} />
-            <AvatarFallback className="text-white font-bold" style={{
+            <AvatarFallback className="text-primary-foreground font-bold" style={{
             background: subjectTheme.gradient
           }}>
               {profile.name?.charAt(0)?.toUpperCase() || 'م'}

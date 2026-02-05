@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,25 +18,14 @@ interface ProfileSetupProps {
 const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage, setLanguage }) => {
   const { profile, updateProfile } = useProfile();
   const [loading, setLoading] = useState(false);
-  const hasInitialized = React.useRef(false);
+  const hasInitialized = useRef(false);
   
-  const [formData, setFormData] = useState(() => ({
-    name: '',
-    birthDate: '',
-    educationLevel: '',
-    learningStyles: [] as string[],
-    learningLanguages: ['ar'],
-    interests: '',
-    bio: '',
-    studyTarget: '',
-    preferredLanguage: currentLanguage as 'ar' | 'en',
-  }));
-
-  // Only update form data on initial profile load, not on every profile change
-  React.useEffect(() => {
+  // Initialize form data with profile data or empty defaults
+  // Use lazy initializer + ref to prevent loops
+  const [formData, setFormData] = useState(() => {
     if (profile && !hasInitialized.current) {
       hasInitialized.current = true;
-      setFormData({
+      return {
         name: profile.name || '',
         birthDate: profile.birth_date || '',
         educationLevel: profile.education_level || '',
@@ -46,9 +35,20 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
         bio: profile.bio || '',
         studyTarget: profile.study_target || '',
         preferredLanguage: (profile.preferred_language as 'ar' | 'en') || currentLanguage,
-      });
+      };
     }
-  }, [profile, currentLanguage]);
+    return {
+      name: '',
+      birthDate: '',
+      educationLevel: '',
+      learningStyles: [] as string[],
+      learningLanguages: ['ar'],
+      interests: '',
+      bio: '',
+      studyTarget: '',
+      preferredLanguage: currentLanguage as 'ar' | 'en',
+    };
+  });
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {

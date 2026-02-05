@@ -74,14 +74,14 @@ const Landing: React.FC = () => {
   };
 
   const features = [
-    { icon: Bot, title: t('feature.ai'), desc: t('feature.ai.desc'), color: 'from-teal-500 to-teal-600' },
-    { icon: Network, title: t('feature.mindmap'), desc: t('feature.mindmap.desc'), color: 'from-purple-500 to-purple-600' },
-    { icon: FileText, title: t('feature.summary'), desc: t('feature.summary.desc'), color: 'from-blue-500 to-blue-600' },
-    { icon: ClipboardCheck, title: t('feature.test'), desc: t('feature.test.desc'), color: 'from-green-500 to-green-600' },
-    { icon: Lightbulb, title: t('feature.simplify'), desc: t('feature.simplify.desc'), color: 'from-amber-500 to-amber-600' },
-    { icon: Video, title: t('feature.video'), desc: t('feature.video.desc'), color: 'from-red-500 to-red-600' },
-    { icon: Users, title: t('feature.scientist'), desc: t('feature.scientist.desc'), color: 'from-indigo-500 to-indigo-600' },
-    { icon: Calendar, title: t('feature.studyplan'), desc: t('feature.studyplan.desc'), color: 'from-pink-500 to-pink-600' },
+    { icon: Bot, title: t('feature.ai'), desc: t('feature.ai.desc'), colorClass: 'bg-feature-ai' },
+    { icon: Network, title: t('feature.mindmap'), desc: t('feature.mindmap.desc'), colorClass: 'bg-feature-mindmap' },
+    { icon: FileText, title: t('feature.summary'), desc: t('feature.summary.desc'), colorClass: 'bg-feature-summary' },
+    { icon: ClipboardCheck, title: t('feature.test'), desc: t('feature.test.desc'), colorClass: 'bg-feature-test' },
+    { icon: Lightbulb, title: t('feature.simplify'), desc: t('feature.simplify.desc'), colorClass: 'bg-feature-simplify' },
+    { icon: Video, title: t('feature.video'), desc: t('feature.video.desc'), colorClass: 'bg-feature-video' },
+    { icon: Users, title: t('feature.scientist'), desc: t('feature.scientist.desc'), colorClass: 'bg-feature-scientist' },
+    { icon: Calendar, title: t('feature.studyplan'), desc: t('feature.studyplan.desc'), colorClass: 'bg-feature-studyplan' },
   ];
 
   if (checkingAuth) {
@@ -100,9 +100,9 @@ const Landing: React.FC = () => {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
-              <GraduationCap className="w-6 h-6 text-white" />
+              <GraduationCap className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">{t('hero.name')}</span>
+            <span className="heading-4 text-foreground">{t('hero.name')}</span>
           </div>
           
           {/* Actions */}
@@ -144,20 +144,20 @@ const Landing: React.FC = () => {
             </div>
             
             {/* Title */}
-            <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-6 animate-slide-up">
+            <h1 className="heading-display text-foreground mb-6 animate-slide-up">
               {t('hero.title')}
-              <span className="block mt-2 bg-gradient-to-r from-primary via-teal-400 to-accent bg-clip-text text-transparent">
+              <span className="block mt-2 bg-gradient-to-r from-primary via-teal-glow to-accent-foreground bg-clip-text text-transparent">
                 {t('hero.name')}
               </span>
             </h1>
             
             {/* Subtitle */}
-            <p className="text-xl md:text-2xl text-primary font-semibold mb-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <p className="heading-3 text-primary mb-4 animate-slide-up" style={{ animationDelay: '0.1s' }}>
               {t('hero.subtitle')}
             </p>
             
             {/* Description */}
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <p className="body-lg text-muted-foreground max-w-2xl mx-auto mb-10 animate-slide-up" style={{ animationDelay: '0.2s' }}>
               {t('hero.description')}
             </p>
             
@@ -184,21 +184,21 @@ const Landing: React.FC = () => {
             {/* Stats */}
             <div className="flex items-center justify-center gap-8 mt-16 animate-fade-in" style={{ animationDelay: '0.5s' }}>
               <div className="text-center">
-                <div className="text-3xl font-bold text-foreground">8+</div>
-                <div className="text-sm text-muted-foreground">{language === 'ar' ? 'أداة تعليمية' : 'Learning Tools'}</div>
+                <div className="heading-2 text-foreground">8+</div>
+                <div className="caption">{language === 'ar' ? 'أداة تعليمية' : 'Learning Tools'}</div>
               </div>
               <div className="w-px h-12 bg-border" />
               <div className="text-center">
-                <div className="text-3xl font-bold text-foreground flex items-center justify-center gap-1">
-                  <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
+                <div className="heading-2 text-foreground flex items-center justify-center gap-1">
+                  <Star className="w-6 h-6 text-accent-foreground fill-accent-foreground" />
                   AI
                 </div>
-                <div className="text-sm text-muted-foreground">{language === 'ar' ? 'مدعوم بالذكاء' : 'Powered'}</div>
+                <div className="caption">{language === 'ar' ? 'مدعوم بالذكاء' : 'Powered'}</div>
               </div>
               <div className="w-px h-12 bg-border" />
               <div className="text-center">
-                <div className="text-3xl font-bold text-foreground">24/7</div>
-                <div className="text-sm text-muted-foreground">{language === 'ar' ? 'متاح دائماً' : 'Available'}</div>
+                <div className="heading-2 text-foreground">24/7</div>
+                <div className="caption">{language === 'ar' ? 'متاح دائماً' : 'Available'}</div>
               </div>
             </div>
           </div>
@@ -215,10 +215,10 @@ const Landing: React.FC = () => {
         <div className="container mx-auto px-4">
           {/* Section Header */}
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-4xl font-bold text-foreground mb-4">
+            <h2 className="heading-1 text-foreground mb-4">
               {t('features.title')}
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="body-lg text-muted-foreground">
               {t('features.subtitle')}
             </p>
           </div>
@@ -231,11 +231,11 @@ const Landing: React.FC = () => {
                 className="group bg-card rounded-2xl border border-border p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                  <feature.icon className="w-7 h-7 text-white" />
+                <div className={`w-14 h-14 rounded-2xl ${feature.colorClass} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <feature.icon className="w-7 h-7 text-primary-foreground" />
                 </div>
-                <h3 className="text-lg font-bold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.desc}</p>
+                <h3 className="heading-4 text-foreground mb-2">{feature.title}</h3>
+                <p className="body-sm text-muted-foreground">{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -247,13 +247,13 @@ const Landing: React.FC = () => {
         <div className="absolute inset-0 gradient-primary opacity-10" />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center mx-auto mb-8 shadow-glow">
-              <GraduationCap className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center mx-auto mb-8 shadow-glow animate-float">
+              <GraduationCap className="w-10 h-10 text-primary-foreground" />
             </div>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
+            <h2 className="heading-1 text-foreground mb-4">
               {t('cta.title')}
             </h2>
-            <p className="text-lg text-muted-foreground mb-10">
+            <p className="body-lg text-muted-foreground mb-10">
               {t('cta.subtitle')}
             </p>
             <Button 
@@ -274,11 +274,11 @@ const Landing: React.FC = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <GraduationCap className="w-4 h-4 text-white" />
+                <GraduationCap className="w-4 h-4 text-primary-foreground" />
               </div>
               <span className="font-bold text-foreground">{t('hero.name')}</span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="caption">
               © {new Date().getFullYear()} {t('hero.name')}. {t('footer.rights')}
             </p>
             <Button

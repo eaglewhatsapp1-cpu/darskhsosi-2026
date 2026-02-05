@@ -49,6 +49,22 @@
     /* Custom Learning Platform Colors */
     --teal-glow: 174 84% 45%;
     --amber-glow: 38 92% 60%;
+    
+    /* Header Banner Colors */
+    --header-bg: 20 50% 18%;
+    --header-foreground: 33 50% 95%;
+    --header-muted: 33 30% 80%;
+    
+    /* Feature Colors - Semantic */
+    --feature-ai: 174 70% 45%;
+    --feature-mindmap: 270 65% 55%;
+    --feature-summary: 210 70% 55%;
+    --feature-test: 150 65% 45%;
+    --feature-simplify: 38 90% 55%;
+    --feature-video: 0 75% 55%;
+    --feature-scientist: 230 65% 55%;
+    --feature-studyplan: 330 70% 55%;
+    
     --gradient-primary: linear-gradient(135deg, hsl(174 84% 32%), hsl(174 70% 25%));
     --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%), hsl(28 90% 55%));
     --gradient-warm: linear-gradient(180deg, hsl(45 30% 97%), hsl(45 40% 94%));
@@ -86,6 +102,17 @@
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
+    
+    /* Typography Scale */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.25rem;
+    --text-2xl: 1.5rem;
+    --text-3xl: 1.875rem;
+    --text-4xl: 2.25rem;
+    --text-5xl: 3rem;
   }
 
   .dark {
@@ -116,6 +143,21 @@
     --border: 0 0% 32%;
     --input: 0 0% 32%;
     --ring: 27 95% 60%;
+    
+    /* Header Banner Colors - Dark */
+    --header-bg: 20 35% 12%;
+    --header-foreground: 33 50% 95%;
+    --header-muted: 33 20% 70%;
+    
+    /* Feature Colors - Semantic (brighter for dark mode) */
+    --feature-ai: 174 75% 50%;
+    --feature-mindmap: 270 70% 65%;
+    --feature-summary: 210 75% 60%;
+    --feature-test: 150 70% 50%;
+    --feature-simplify: 38 95% 60%;
+    --feature-video: 0 80% 60%;
+    --feature-scientist: 230 70% 65%;
+    --feature-studyplan: 330 75% 60%;
 
     --sidebar-background: 156 3% 8%;
     --sidebar-foreground: 0 0% 98%;
@@ -196,6 +238,52 @@
 
   .chat-bubble-ai {
     @apply bg-card border border-border rounded-2xl rounded-bl-md shadow-soft;
+  }
+  
+  /* Header banner */
+  .header-banner {
+    @apply bg-[hsl(var(--header-bg))] text-[hsl(var(--header-foreground))];
+  }
+  
+  .header-banner-muted {
+    @apply text-[hsl(var(--header-muted))];
+  }
+  
+  /* Typography utilities */
+  .heading-display {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight;
+  }
+  
+  .heading-1 {
+    @apply text-3xl md:text-4xl font-bold tracking-tight;
+  }
+  
+  .heading-2 {
+    @apply text-2xl md:text-3xl font-semibold;
+  }
+  
+  .heading-3 {
+    @apply text-xl md:text-2xl font-semibold;
+  }
+  
+  .heading-4 {
+    @apply text-lg font-medium;
+  }
+  
+  .body-lg {
+    @apply text-lg leading-relaxed;
+  }
+  
+  .body-base {
+    @apply text-base leading-relaxed;
+  }
+  
+  .body-sm {
+    @apply text-sm leading-normal;
+  }
+  
+  .caption {
+    @apply text-xs text-muted-foreground;
   }
 
   [dir="rtl"] .chat-bubble-user {

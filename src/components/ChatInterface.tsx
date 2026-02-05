@@ -219,8 +219,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
           </div>
           <div className="min-w-0">
-            <h2 className="font-semibold text-foreground text-sm sm:text-base truncate">{t('sidebar.teacher')}</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">{t('app.tagline')}</p>
+            <h2 className="heading-4 text-foreground truncate">{t('sidebar.teacher')}</h2>
+            <p className="caption truncate">{t('app.tagline')}</p>
           </div>
         </div>
       </div>
@@ -231,13 +231,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-secondary flex items-center justify-center mb-4 sm:mb-6 animate-float">
               <Sparkles className="w-7 h-7 sm:w-10 sm:h-10 text-primary" />
             </div>
-            <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+            <h3 className="heading-3 text-foreground mb-2">
               {t('app.welcome')}
             </h3>
-            <p className="text-sm text-muted-foreground max-w-md mb-2">
+            <p className="body-sm text-muted-foreground max-w-md mb-2">
               {language === 'ar' ? `مرحباً ${profile.name}! أنا معلمك الذكي. يمكنني مساعدتك في فهم أي موضوع.` : `Hello ${profile.name}! I'm your intelligent teacher. I can help you understand any topic.`}
             </p>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
+            <p className="caption max-w-md">
               {materials.length === 0 ? language === 'ar' ? 'ارفع مواد تعليمية للحصول على تجربة تعلم مخصصة أكثر.' : 'Upload learning materials for a more personalized learning experience.' : language === 'ar' ? `لديك ${materials.length} ملفات مرفوعة. اسألني عن أي شيء!` : `You have ${materials.length} files uploaded. Ask me anything!`}
             </p>
             {materials.length === 0 && <Button className="mt-4 sm:mt-6 gradient-accent" size="default" onClick={onNavigateToUpload}>
@@ -250,8 +250,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   {message.role === 'user' ? <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" /> : <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />}
                 </div>
                 <div className={cn('max-w-[88%] sm:max-w-[75%] px-3 py-2 sm:px-4 sm:py-3', message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai')}>
-                  <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-                  <span className="text-xs opacity-60 mt-1 block">
+                  <p className="body-sm whitespace-pre-wrap break-words">{message.content}</p>
+                  <span className="caption opacity-60 mt-1 block">
                     {new Date(message.created_at).toLocaleTimeString(dir === 'rtl' ? 'ar-SA' : 'en-US', {
                 hour: '2-digit',
                 minute: '2-digit'
@@ -265,7 +265,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
                 </div>
                 <div className="chat-bubble-ai max-w-[88%] sm:max-w-[75%] px-3 py-2 sm:px-4 sm:py-3">
-                  <p className="text-sm whitespace-pre-wrap break-words">{streamingContent}</p>
+                  <p className="body-sm whitespace-pre-wrap break-words">{streamingContent}</p>
                 </div>
               </div>}
           </>}
@@ -276,7 +276,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             </div>
             <div className="chat-bubble-ai px-3 py-2 sm:px-4 sm:py-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">{t('chat.thinking')}</span>
+                <span className="body-sm text-muted-foreground">{t('chat.thinking')}</span>
                 <div className="flex gap-1">
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary animate-pulse-soft" style={{
                 animationDelay: '0ms'

@@ -169,7 +169,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
               <GraduationCap className="w-5 h-5 text-accent-foreground" />
             </div>
             <div>
-              <h1 className="font-bold text-sidebar-foreground text-lg leading-tight">
+              <h1 className="heading-4 text-sidebar-foreground leading-tight">
                 {t('app.name')}
               </h1>
             </div>
@@ -181,13 +181,13 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
       {/* Navigation */}
       <nav className="flex-1 py-4 overflow-y-auto custom-scrollbar">
-        <ul ref={navItemsRef} className="space-y-1 px-[32px] py-[34px]">
+        <ul ref={navItemsRef} className="space-y-1 px-4 py-4">
           {features.map(feature => {
           const Icon = feature.icon;
           const isActive = activeFeature === feature.id;
           const button = <button data-helper-target={`sidebar-${feature.id}`} onClick={() => setActiveFeature(feature.id)} className={cn('w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200', isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-accent' : 'text-sidebar-foreground hover:bg-sidebar-accent')}>
                 <Icon className="w-5 h-5 shrink-0" />
-                {!collapsed && <span className="text-sm font-medium truncate">
+                {!collapsed && <span className="body-sm font-medium truncate">
                     {t(`sidebar.${feature.id}`)}
                   </span>}
               </button>;
@@ -212,10 +212,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
             </AvatarFallback>
           </Avatar>
           {!collapsed && <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">
+              <p className="body-sm font-medium text-sidebar-foreground truncate">
                 {profile.name}
               </p>
-              <p className="text-xs text-sidebar-foreground/60 truncate">
+              <p className="caption truncate">
                 {profile.education_level && educationLabels[language][profile.education_level]}
               </p>
             </div>}

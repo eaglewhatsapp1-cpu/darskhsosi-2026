@@ -247,13 +247,13 @@ const Landing: React.FC = () => {
         <div className="absolute inset-0 gradient-primary opacity-10" />
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center mx-auto mb-8 shadow-glow">
-              <GraduationCap className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center mx-auto mb-8 shadow-glow animate-float">
+              <GraduationCap className="w-10 h-10 text-primary-foreground" />
             </div>
-            <h2 className="text-4xl font-bold text-foreground mb-4">
+            <h2 className="heading-1 text-foreground mb-4">
               {t('cta.title')}
             </h2>
-            <p className="text-lg text-muted-foreground mb-10">
+            <p className="body-lg text-muted-foreground mb-10">
               {t('cta.subtitle')}
             </p>
             <Button 
@@ -274,11 +274,11 @@ const Landing: React.FC = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <GraduationCap className="w-4 h-4 text-white" />
+                <GraduationCap className="w-4 h-4 text-primary-foreground" />
               </div>
               <span className="font-bold text-foreground">{t('hero.name')}</span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="caption">
               © {new Date().getFullYear()} {t('hero.name')}. {t('footer.rights')}
             </p>
             <Button

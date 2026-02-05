@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Profile, useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,31 +44,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasInitialized = useRef(false);
   
-  // Initialize with empty defaults to prevent re-render loops
-  const [formData, setFormData] = useState(() => ({
-    name: '',
-    birthDate: '',
-    bio: '',
-    hobbies: '',
-    goals: '',
-    strengths: '',
-    weaknesses: '',
-    studyTarget: '',
-    educationLevel: '',
-    learningStyles: [] as string[],
-    learningLanguages: ['ar'] as string[],
-    interests: '',
-    preferredLanguage: 'ar' as 'ar' | 'en' | 'both',
-    aiPersona: 'teacher' as string,
-    speakingStyle: 'formal_ar' as string,
-    knowledgeRatio: 50,
-  }));
-
-  // Only update form data on initial profile load
-  useEffect(() => {
+  // Initialize form data from profile using lazy initializer to prevent loops
+  const [formData, setFormData] = useState(() => {
     if (profile && !hasInitialized.current) {
       hasInitialized.current = true;
-      setFormData({
+      return {
         name: profile.name || '',
         birthDate: profile.birth_date || '',
         bio: profile.bio || '',
@@ -85,9 +65,27 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
         aiPersona: profile.ai_persona || 'teacher',
         speakingStyle: profile.speaking_style || 'formal_ar',
         knowledgeRatio: profile.knowledge_ratio ?? 50,
-      });
+      };
     }
-  }, [profile]);
+    return {
+      name: '',
+      birthDate: '',
+      bio: '',
+      hobbies: '',
+      goals: '',
+      strengths: '',
+      weaknesses: '',
+      studyTarget: '',
+      educationLevel: '',
+      learningStyles: [] as string[],
+      learningLanguages: ['ar'] as string[],
+      interests: '',
+      preferredLanguage: 'ar' as 'ar' | 'en' | 'both',
+      aiPersona: 'teacher' as string,
+      speakingStyle: 'formal_ar' as string,
+      knowledgeRatio: 50,
+    };
+  });
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {

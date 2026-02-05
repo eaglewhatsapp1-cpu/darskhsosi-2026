@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
@@ -19,6 +19,7 @@ const LearningPlatform: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeFeature, setActiveFeature] = useState<SidebarFeature>('teacher');
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
+  const hasInitializedLanguage = useRef(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -26,8 +27,10 @@ const LearningPlatform: React.FC = () => {
     }
   }, [user, authLoading, navigate]);
 
+  // Sync language from profile - only on initial load to prevent re-render loops
   useEffect(() => {
-    if (profile?.preferred_language) {
+    if (profile?.preferred_language && !hasInitializedLanguage.current) {
+      hasInitializedLanguage.current = true;
       const lang = profile.preferred_language === 'both' ? 'ar' : profile.preferred_language;
       setLanguage(lang);
       document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';

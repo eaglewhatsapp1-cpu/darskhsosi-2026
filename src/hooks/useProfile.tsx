@@ -31,7 +31,7 @@ export interface Profile {
 interface ProfileContextType {
   profile: Profile | null;
   loading: boolean;
-  updateProfile: (updates: Partial<Profile>) => Promise<{ data: Profile | null; error: Error | null }>;
+  updateProfile: (updates: Partial<Profile>) => Promise<{ data?: Profile | null; error?: Error | null }>;
   fetchProfile: () => Promise<void>;
   isProfileComplete: boolean;
 }
@@ -120,7 +120,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
   }, [user, fetchProfile]);
 
   const updateProfile = useCallback(async (updates: Partial<Profile>) => {
-    if (!user) return { error: new Error('Not authenticated') };
+    if (!user) return { data: null, error: new Error('Not authenticated') };
 
     try {
       const { data, error } = await supabase
@@ -131,11 +131,12 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (error) throw error;
-      setProfile(data as Profile);
-      return { data, error: null };
+      const profileData = data as Profile;
+      setProfile(profileData);
+      return { data: profileData, error: null };
     } catch (error) {
       console.error('Error updating profile:', error);
-      return { data: null, error };
+      return { data: null, error: error as Error };
     }
   }, [user]);
 

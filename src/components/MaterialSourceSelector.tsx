@@ -26,7 +26,8 @@ const MaterialSourceSelector: React.FC<MaterialSourceSelectorProps> = ({
   const { materials } = useUploadedMaterials();
   const materialsWithContent = materials.filter((m: UploadedMaterial) => m.content);
   
-  const sourceType = selectedMaterial ? 'materials' : textInput ? 'text' : '';
+  // Always default to 'text' to prevent undefined/empty value causing RadioGroup re-render loops
+  const sourceType = selectedMaterial ? 'materials' : 'text';
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
@@ -52,13 +53,16 @@ const MaterialSourceSelector: React.FC<MaterialSourceSelectorProps> = ({
       <Label className="text-sm font-medium">{t('source.title')}</Label>
       
       <RadioGroup
-        value={sourceType || 'text'}
+        value={sourceType}
         onValueChange={handleSourceChange}
         className="grid grid-cols-2 gap-4"
       >
-        <div className={`flex items-center space-x-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-          sourceType === 'materials' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-        }`}>
+        <div 
+          key="source-materials-wrapper"
+          className={`flex items-center space-x-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+            sourceType === 'materials' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+          }`}
+        >
           <RadioGroupItem value="materials" id="source-materials" />
           <Label htmlFor="source-materials" className="flex items-center gap-2 cursor-pointer flex-1">
             <BookOpen className="w-5 h-5 text-primary" />
@@ -66,9 +70,12 @@ const MaterialSourceSelector: React.FC<MaterialSourceSelectorProps> = ({
           </Label>
         </div>
         
-        <div className={`flex items-center space-x-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-          sourceType === 'text' || !sourceType ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-        }`}>
+        <div 
+          key="source-text-wrapper"
+          className={`flex items-center space-x-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+            sourceType === 'text' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+          }`}
+        >
           <RadioGroupItem value="text" id="source-text" />
           <Label htmlFor="source-text" className="flex items-center gap-2 cursor-pointer flex-1">
             <FileText className="w-5 h-5 text-primary" />
@@ -103,7 +110,7 @@ const MaterialSourceSelector: React.FC<MaterialSourceSelectorProps> = ({
         </div>
       )}
 
-      {(sourceType === 'text' || !sourceType) && (
+      {sourceType === 'text' && (
         <div className="animate-fade-in">
           <Textarea
             value={textInput}

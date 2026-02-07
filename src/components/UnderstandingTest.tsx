@@ -311,10 +311,14 @@ ${contentToTest.substring(0, 8000)}`,
           {questions.map((q, idx) => (
             <Card key={idx} className="p-6 space-y-4">
               <h3 className="font-semibold text-lg">{idx + 1}. {q.question}</h3>
-              {q.type === 'mcq' ? (
-                <RadioGroup value={answers[idx]?.toString()} onValueChange={(v) => setAnswers(prev => ({ ...prev, [idx]: parseInt(v) }))} disabled={showResults}>
-                  {q.options?.map((opt, oIdx) => (
-                    <div key={oIdx} className={`flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-lg border ${
+              {q.type === 'mcq' && q.options && q.options.length > 0 ? (
+                <RadioGroup 
+                  value={answers[idx] !== undefined ? answers[idx].toString() : ''} 
+                  onValueChange={(v) => setAnswers(prev => ({ ...prev, [idx]: parseInt(v) }))} 
+                  disabled={showResults}
+                >
+                  {q.options.map((opt, oIdx) => (
+                    <div key={`q${idx}-opt${oIdx}`} className={`flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-lg border ${
                       showResults ? (oIdx === q.correctAnswer ? 'bg-green-100 border-green-500' : answers[idx] === oIdx ? 'bg-red-100 border-red-500' : '') : 'hover:bg-accent'
                     }`}>
                       <RadioGroupItem value={oIdx.toString()} id={`q${idx}-o${oIdx}`} />

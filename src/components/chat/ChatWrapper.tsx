@@ -238,7 +238,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
       {/* Header */}
       <div className="p-2 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm px-0 py-0">
         {customHeader || <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="gap-2 min-w-0 flex-1 items-start justify-start flex flex-row sm:gap-[38px] mt-[38px]">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-lg sm:text-xl shrink-0" style={{
             background: subjectTheme.gradient
           }}>

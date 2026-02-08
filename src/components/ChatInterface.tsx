@@ -227,7 +227,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4 custom-scrollbar">
-        {messages.length === 0 && !streamingContent ? <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8 px-0 mt-[111px] my-[107px] py-0">
+        {messages.length === 0 && !streamingContent ? <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8 px-0 mt-[111px] py-0 my-[78px]">
             <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-secondary flex items-center justify-center mb-4 sm:mb-6 animate-float">
               <Sparkles className="w-7 h-7 sm:w-10 sm:h-10 text-primary" />
             </div>
@@ -296,7 +296,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="p-2 sm:p-4 border-t border-border bg-card/50 backdrop-blur-sm space-y-2 sm:space-y-3 py-0 px-0 my-0 mt-0 mb-0">
+      <div className="p-2 sm:p-4 border-t border-border bg-card/50 backdrop-blur-sm space-y-2 sm:space-y-3 py-0 px-0 my-0 mb-0 mt-[79px]">
         {/* Material Selector Dropdown */}
         {materials.length > 0 && <div data-helper-target="material-selector">
             <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} maxSelection={5} />

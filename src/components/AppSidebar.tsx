@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import gsap from 'gsap';
-
 interface AppSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
@@ -75,29 +74,29 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
   useLayoutEffect(() => {
     if (!sidebarRef.current || hasAnimated.current) return;
     hasAnimated.current = true;
-
-    gsap.fromTo(
-      sidebarRef.current,
-      { x: dir === 'rtl' ? 50 : -50, opacity: 0 },
-      { x: 0, opacity: 1, duration: 0.5, ease: 'power2.out' }
-    );
-
+    gsap.fromTo(sidebarRef.current, {
+      x: dir === 'rtl' ? 50 : -50,
+      opacity: 0
+    }, {
+      x: 0,
+      opacity: 1,
+      duration: 0.5,
+      ease: 'power2.out'
+    });
     if (navItemsRef.current) {
       const items = navItemsRef.current.querySelectorAll('li');
-      gsap.fromTo(
-        items,
-        { x: dir === 'rtl' ? 20 : -20, opacity: 0 },
-        { 
-          x: 0, 
-          opacity: 1, 
-          duration: 0.3, 
-          stagger: 0.03, 
-          delay: 0.2,
-          ease: 'power2.out'
-        }
-      );
+      gsap.fromTo(items, {
+        x: dir === 'rtl' ? 20 : -20,
+        opacity: 0
+      }, {
+        x: 0,
+        opacity: 1,
+        duration: 0.3,
+        stagger: 0.03,
+        delay: 0.2,
+        ease: 'power2.out'
+      });
     }
-
     return () => {
       if (sidebarRef.current) gsap.killTweensOf(sidebarRef.current);
       if (navItemsRef.current) {
@@ -181,7 +180,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
       {/* Navigation */}
       <nav className="flex-1 py-4 overflow-y-auto custom-scrollbar">
-        <ul ref={navItemsRef} className="space-y-1 px-4 py-4">
+        <ul ref={navItemsRef} className="space-y-1 px-0 py-0 pb-[41px] pr-[25px] mt-[72px]">
           {features.map(feature => {
           const Icon = feature.icon;
           const isActive = activeFeature === feature.id;

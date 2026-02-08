@@ -227,7 +227,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-3 sm:space-y-4 custom-scrollbar">
-        {messages.length === 0 && !streamingContent ? <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8 py-[22px] my-[28px]">
+        {messages.length === 0 && !streamingContent ? <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8 px-0 mt-[111px] my-[107px] py-0">
             <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-secondary flex items-center justify-center mb-4 sm:mb-6 animate-float">
               <Sparkles className="w-7 h-7 sm:w-10 sm:h-10 text-primary" />
             </div>
@@ -296,7 +296,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="p-2 sm:p-4 border-t border-border bg-card/50 backdrop-blur-sm space-y-2 sm:space-y-3">
+      <div className="p-2 sm:p-4 border-t border-border bg-card/50 backdrop-blur-sm space-y-2 sm:space-y-3 py-0 px-0 my-0 mt-0 mb-0">
         {/* Material Selector Dropdown */}
         {materials.length > 0 && <div data-helper-target="material-selector">
             <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} maxSelection={5} />
@@ -310,7 +310,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <Textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={t('chat.placeholder')} className="min-h-[44px] sm:min-h-[48px] max-h-[100px] sm:max-h-[150px] resize-none pe-12 rounded-xl text-sm" rows={1} disabled={isLoading} />
           </div>
           <Button onClick={handleSend} disabled={!input.trim() || isLoading} className="shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-xl gradient-primary hover:opacity-90 transition-opacity" size="icon">
-            <Send className={cn('w-4 h-4 sm:w-5 sm:h-5', dir === 'rtl' && 'rotate-180')} />
+            <Send className={cn("w-4 h-4 sm:w-5 sm:h-5 my-px mx-[5px]", dir === 'rtl' && 'rotate-180')} />
           </Button>
         </div>
       </div>

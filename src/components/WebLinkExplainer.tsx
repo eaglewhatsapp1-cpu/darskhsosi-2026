@@ -63,7 +63,7 @@ const WebLinkExplainer: React.FC<WebLinkExplainerProps> = ({ language, profile }
   };
 
   return (
-    <div className="flex flex-col h-full p-4 md:p-6">
+    <div className="flex flex-col h-full p-3 sm:p-4 md:p-6">
       <Card className="flex-1 flex flex-col">
         <CardHeader className="border-b">
           <CardTitle className="flex items-center gap-2">

@@ -89,7 +89,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     borderColor: subjectTheme.primary,
     borderBottomWidth: '3px'
   }}>
-      <div className="flex items-center justify-between gap-4 px-6 py-6 my-3.5 mx-3.5 header-banner rounded-xl">
+      <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 header-banner rounded-lg mx-2 sm:mx-4 my-2 sm:my-3">
         {/* Logo & Platform Name */}
         <div className="flex items-center gap-3">
           <div 

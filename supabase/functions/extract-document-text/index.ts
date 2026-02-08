@@ -186,6 +186,15 @@ serve(async (req) => {
     }
 
     const arrayBuffer = await fileData.arrayBuffer();
+    
+    // File size validation (10MB limit)
+    if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
+      return new Response(
+        JSON.stringify({ error: 'File size exceeds 10MB limit' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     let extractedText = '';
 
     // Determine file type and extract accordingly
@@ -273,8 +282,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in extract-document-text:', error);
+    // Return generic error to client, keep details in server logs
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'Unable to process document. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

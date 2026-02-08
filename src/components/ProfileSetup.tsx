@@ -220,11 +220,11 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
                 {t('profile.educationLevel')} *
               </Label>
               <Select
-                value={formData.educationLevel}
+                value={formData.educationLevel || undefined}
                 onValueChange={(value) => setFormData({ ...formData, educationLevel: value })}
               >
                 <SelectTrigger className="h-12">
-                  <SelectValue />
+                  <SelectValue placeholder={currentLanguage === 'ar' ? 'اختر المستوى' : 'Select level'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="elementary">{t('education.elementary')}</SelectItem>
@@ -322,11 +322,11 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
                 {t('profile.language')}
               </Label>
               <Select
-                value={formData.preferredLanguage}
+                value={formData.preferredLanguage || 'ar'}
                 onValueChange={(value: string) => setFormData({ ...formData, preferredLanguage: value as 'ar' | 'en' })}
               >
                 <SelectTrigger className="h-12">
-                  <SelectValue />
+                  <SelectValue placeholder={currentLanguage === 'ar' ? 'اختر اللغة' : 'Select language'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ar">{t('lang.ar')}</SelectItem>

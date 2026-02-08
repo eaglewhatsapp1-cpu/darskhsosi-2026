@@ -8,7 +8,6 @@ import { GraduationCap, Sparkles, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AnimatedThemeToggle from '@/components/ui/AnimatedThemeToggle';
 import gsap from 'gsap';
-
 interface AppHeaderProps {
   profile: Profile;
   language: 'ar' | 'en';
@@ -19,7 +18,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   language,
   onSubjectChange
 }) => {
-  const { updateProfile } = useProfile();
+  const {
+    updateProfile
+  } = useProfile();
   const subjectTheme = getSubjectTheme(profile.subject || 'general');
   const subjects = getAllSubjects();
   const headerRef = useRef<HTMLDivElement>(null);
@@ -30,21 +31,27 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   useLayoutEffect(() => {
     if (!headerRef.current || hasAnimated.current) return;
     hasAnimated.current = true;
-
-    gsap.fromTo(
-      headerRef.current,
-      { y: -50, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' }
-    );
-
+    gsap.fromTo(headerRef.current, {
+      y: -50,
+      opacity: 0
+    }, {
+      y: 0,
+      opacity: 1,
+      duration: 0.6,
+      ease: 'power2.out'
+    });
     if (logoRef.current) {
-      gsap.fromTo(
-        logoRef.current,
-        { scale: 0.5, opacity: 0 },
-        { scale: 1, opacity: 1, duration: 0.5, delay: 0.2, ease: 'back.out(1.7)' }
-      );
+      gsap.fromTo(logoRef.current, {
+        scale: 0.5,
+        opacity: 0
+      }, {
+        scale: 1,
+        opacity: 1,
+        duration: 0.5,
+        delay: 0.2,
+        ease: 'back.out(1.7)'
+      });
     }
-
     return () => {
       if (headerRef.current) gsap.killTweensOf(headerRef.current);
       if (logoRef.current) gsap.killTweensOf(logoRef.current);
@@ -85,18 +92,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     };
     return levels[profile.education_level || 'high']?.[language] || '';
   };
-  return <header ref={headerRef} className="w-full border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm gsap-theme-animate" style={{
+  return <header ref={headerRef} className="w-full border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm gsap-theme-animate my-0" style={{
     borderColor: subjectTheme.primary,
     borderBottomWidth: '3px'
   }}>
       <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 header-banner rounded-lg mx-2 sm:mx-4 my-2 sm:my-3">
         {/* Logo & Platform Name */}
         <div className="flex items-center gap-3">
-          <div 
-            ref={logoRef}
-            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-transform duration-300" 
-            style={{ background: subjectTheme.gradient }}
-          >
+          <div ref={logoRef} className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-transform duration-300" style={{
+          background: subjectTheme.gradient
+        }}>
             <GraduationCap className="w-6 h-6 text-white" />
           </div>
           <div className="flex flex-col header-animate-item">
@@ -139,12 +144,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         <div className="flex items-center gap-3 text-header-foreground header-animate-item">
           <AnimatedThemeToggle className="text-header-foreground hover:text-header-foreground/80" />
 
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleLanguage} 
-            className="rounded-full flex items-center gap-1 px-2 w-auto transition-all duration-300 hover:scale-110 text-header-foreground hover:text-header-foreground/80 hover:bg-header-foreground/10"
-          >
+          <Button variant="ghost" size="icon" onClick={toggleLanguage} className="rounded-full flex items-center gap-1 px-2 w-auto transition-all duration-300 hover:scale-110 text-header-foreground hover:text-header-foreground/80 hover:bg-header-foreground/10">
             <Languages className="w-5 h-5" />
             <span className="text-xs font-bold">{language === 'ar' ? 'EN' : 'AR'}</span>
           </Button>

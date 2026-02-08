@@ -260,7 +260,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
       </div>
 
       {/* Material Selector */}
-      {showMaterialSelector && <div className="px-3 sm:px-4 py-2 sm:py-3 border-b border-border" data-helper-target="material-selector">
+      {showMaterialSelector && <div className="px-3 py-2 border-b border-border sm:py-0 sm:px-0 mt-[45px]" data-helper-target="material-selector">
           <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} />
         </div>}
 

@@ -29,38 +29,38 @@
     --popover-foreground: 0 0% 9%;
 
     /* Primary uses subject theme */
-    --primary: var(--subject-primary);
-    --primary-foreground: 0 0% 100%;
+    --primary: 20 90% 48%;
+    --primary-foreground: 33 100% 96%;
 
     /* Secondary */
-    --secondary: var(--subject-secondary);
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 0 0% 32%;
+    --secondary-foreground: 0 0% 98%;
 
     --muted: 0 0% 63%;
     --muted-foreground: 0 0% 9%;
 
     /* Accent uses subject theme */
-    --accent: var(--subject-secondary);
-    --accent-foreground: var(--subject-primary);
+    --accent: 47 100% 96%;
+    --accent-foreground: 37 92% 50%;
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 85% 97%;
 
     --border: 0 0% 83%;
     --input: 0 0% 83%;
-    --ring: var(--subject-primary);
+    --ring: 20 90% 48%;
 
     --radius: 0.75rem;
 
     /* Custom Learning Platform Colors */
     --teal-glow: 174 84% 45%;
     --amber-glow: 38 92% 60%;
-    
+
     /* Header Banner Colors */
     --header-bg: 20 50% 18%;
     --header-foreground: 33 50% 95%;
     --header-muted: 33 30% 80%;
-    
+
     /* Feature Colors - Semantic */
     --feature-ai: 174 70% 45%;
     --feature-mindmap: 270 65% 55%;
@@ -70,7 +70,7 @@
     --feature-video: 0 75% 55%;
     --feature-scientist: 230 65% 55%;
     --feature-studyplan: 330 70% 55%;
-    
+
     --gradient-primary: linear-gradient(135deg, hsl(174 84% 32%), hsl(174 70% 25%));
     --gradient-accent: linear-gradient(135deg, hsl(38 92% 50%), hsl(28 90% 55%));
     --gradient-warm: linear-gradient(180deg, hsl(45 30% 97%), hsl(45 40% 94%));
@@ -108,7 +108,7 @@
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
-    
+
     /* Typography Scale */
     --text-xs: 0.75rem;
     --text-sm: 0.875rem;
@@ -132,32 +132,32 @@
     --popover-foreground: 0 0% 98%;
 
     /* Primary uses subject theme */
-    --primary: var(--subject-primary);
-    --primary-foreground: 0 0% 100%;
+    --primary: 27 95% 60%;
+    --primary-foreground: 12 81% 14%;
 
     /* Secondary */
-    --secondary: 0 0% 25%;
+    --secondary: 0 0% 45%;
     --secondary-foreground: 0 0% 98%;
 
     --muted: 0 0% 45%;
     --muted-foreground: 0 0% 98%;
 
     /* Accent uses subject theme */
-    --accent: 0 0% 20%;
-    --accent-foreground: var(--subject-accent);
+    --accent: 20 91% 14%;
+    --accent-foreground: 43 96% 56%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 85% 97%;
 
     --border: 0 0% 32%;
     --input: 0 0% 32%;
-    --ring: var(--subject-primary);
-    
+    --ring: 27 95% 60%;
+
     /* Header Banner Colors - Dark */
     --header-bg: 20 35% 12%;
     --header-foreground: 33 50% 95%;
     --header-muted: 33 20% 70%;
-    
+
     /* Feature Colors - Semantic (brighter for dark mode) */
     --feature-ai: 174 75% 50%;
     --feature-mindmap: 270 70% 65%;
@@ -248,49 +248,49 @@
   .chat-bubble-ai {
     @apply bg-card border border-border rounded-2xl rounded-bl-md shadow-soft;
   }
-  
+
   /* Header banner */
   .header-banner {
     @apply bg-[hsl(var(--header-bg))] text-[hsl(var(--header-foreground))];
   }
-  
+
   .header-banner-muted {
     @apply text-[hsl(var(--header-muted))];
   }
-  
+
   /* Typography utilities */
   .heading-display {
     @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight;
   }
-  
+
   .heading-1 {
     @apply text-3xl md:text-4xl font-bold tracking-tight;
   }
-  
+
   .heading-2 {
     @apply text-2xl md:text-3xl font-semibold;
   }
-  
+
   .heading-3 {
     @apply text-xl md:text-2xl font-semibold;
   }
-  
+
   .heading-4 {
     @apply text-lg font-medium;
   }
-  
+
   .body-lg {
     @apply text-lg leading-relaxed;
   }
-  
+
   .body-base {
     @apply text-base leading-relaxed;
   }
-  
+
   .body-sm {
     @apply text-sm leading-normal;
   }
-  
+
   .caption {
     @apply text-xs text-muted-foreground;
   }

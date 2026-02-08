@@ -236,9 +236,9 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
   const lastAiMessage = [...messages].reverse().find(m => m.role === 'assistant')?.content || '';
   return <div className="flex flex-col h-full" dir={dir}>
       {/* Header */}
-      <div className="p-2 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm px-0 py-0">
+      <div className="p-3 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm">
         {customHeader || <div className="flex items-center justify-between gap-2">
-            <div className="gap-2 min-w-0 flex-1 items-start justify-start flex flex-row sm:gap-[38px] mt-[38px]">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-lg sm:text-xl shrink-0" style={{
             background: subjectTheme.gradient
           }}>
@@ -260,12 +260,12 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
       </div>
 
       {/* Material Selector */}
-      {showMaterialSelector && <div className="p-2 sm:p-3 border-b border-border" data-helper-target="material-selector">
+      {showMaterialSelector && <div className="px-3 sm:px-4 py-2 sm:py-3 border-b border-border" data-helper-target="material-selector">
           <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} />
         </div>}
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-2 sm:p-4">
+      <ScrollArea className="flex-1 p-3 sm:p-4">
         <div className="space-y-3 sm:space-y-4">
           {messages.map(message => <div key={message.id} className={cn('flex gap-2 sm:gap-3', message.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
               <div className={cn('w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0', message.role === 'user' ? 'bg-primary' : 'bg-secondary')} style={message.role === 'assistant' ? {
@@ -310,12 +310,12 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
       </ScrollArea>
 
       {/* Smart Suggestions */}
-      {showSuggestions && messages.length > 0 && !isLoading && <div className="px-2 sm:px-4 py-2">
+      {showSuggestions && messages.length > 0 && !isLoading && <div className="px-3 sm:px-4 py-2">
           <SmartSuggestions language={language} personaId={personaId} onSuggestionClick={suggestion => handleSend(suggestion)} />
         </div>}
 
       {/* Input Area */}
-      <div className="p-2 sm:p-4 border-t border-border bg-card/50">
+      <div className="p-3 sm:p-4 border-t border-border bg-card/50">
         {showTempUpload && <div className="mb-2 sm:mb-3">
             <TemporaryUpload language={language} tempFiles={tempFiles} onFilesChange={setTempFiles} />
           </div>}

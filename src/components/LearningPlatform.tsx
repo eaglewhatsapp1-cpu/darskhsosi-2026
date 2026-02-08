@@ -79,7 +79,7 @@ const LearningPlatform: React.FC = () => {
   }
   return <div className="flex flex-col h-screen w-full overflow-hidden">
       <AppHeader profile={profile!} language={language} onSubjectChange={handleSubjectChange} />
-      <div className="flex-1 overflow-hidden items-start justify-center flex flex-row mx-0 mt-[23px] my-0">
+      <div className="flex flex-1 overflow-hidden">
         <AppSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} activeFeature={activeFeature} setActiveFeature={setActiveFeature} profile={profile!} language={language} onSignOut={signOut} />
         <MainContent activeFeature={activeFeature} profile={profile!} language={language} setActiveFeature={setActiveFeature} />
         <FloatingHelper language={language} currentFeature={activeFeature} onNavigate={feature => setActiveFeature(feature as SidebarFeature)} />

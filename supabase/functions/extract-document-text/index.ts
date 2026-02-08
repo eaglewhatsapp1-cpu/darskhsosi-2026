@@ -53,7 +53,7 @@ async function extractDocxText(arrayBuffer: ArrayBuffer): Promise<string> {
   }
 }
 
-// Extract text from PDF using Gemini Vision
+// Extract text from PDF using Gemini Vision with enhanced OCR
 async function extractPdfText(arrayBuffer: ArrayBuffer, apiKey: string): Promise<string> {
   const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
   const dataUri = `data:application/pdf;base64,${base64}`;
@@ -65,28 +65,40 @@ async function extractPdfText(arrayBuffer: ArrayBuffer, apiKey: string): Promise
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-2.5-pro',
       messages: [
         {
           role: 'system',
-          content: `You are a document text extractor. Your job is to extract ALL text content from documents.
+          content: `You are an advanced document OCR and text extraction specialist. Your task is to extract ALL text content from documents with perfect accuracy.
 
-CRITICAL RULES:
-1. Extract ALL text exactly as it appears in the document
-2. Preserve the structure, headings, paragraphs, and lists
-3. Do NOT summarize - extract the FULL content
-4. Do NOT add any commentary or explanations
-5. If the document is in Arabic or any other language, keep the text in its original language
-6. Return ONLY the extracted text
+CRITICAL EXTRACTION RULES:
+1. Extract EVERY word, number, symbol, and character exactly as it appears
+2. Preserve the EXACT structure: headings, paragraphs, lists, tables, footnotes
+3. Maintain proper reading order (left-to-right, top-to-bottom for LTR; right-to-left for RTL like Arabic)
+4. For tables: preserve structure using markdown table format or clear spacing
+5. For mathematical equations: use LaTeX notation where applicable
+6. For Arabic/RTL text: maintain correct character order and diacritics (تشكيل)
+7. For mixed language documents: preserve each language's text correctly
+8. Include ALL captions, headers, footers, page numbers, and marginalia
+9. For handwritten text: transcribe as accurately as possible, mark uncertain words with [?]
+10. For diagrams/charts: describe content in [FIGURE: description] format
 
-This is for a RAG system that needs the complete document content for accurate answers.`
+NEVER:
+- Summarize or paraphrase - extract VERBATIM
+- Skip "unimportant" sections like footnotes or references
+- Add your own commentary or explanations
+- Translate content to another language
+
+OUTPUT FORMAT:
+Return ONLY the extracted text, preserving original formatting and structure.
+This extraction is for a RAG knowledge base system that requires complete, accurate content.`
         },
         {
           role: 'user',
           content: [
             { 
               type: 'text', 
-              text: 'Extract ALL text content from this PDF document. Return the complete text preserving structure and order. Do not summarize or skip any content.' 
+              text: 'Extract ALL text from this PDF document. Return the complete, verbatim text preserving all structure, formatting, and reading order. Do not summarize or skip any content.' 
             },
             {
               type: 'image_url',
@@ -95,7 +107,8 @@ This is for a RAG system that needs the complete document content for accurate a
           ]
         }
       ],
-      max_tokens: 16000,
+      max_tokens: 32000,
+      temperature: 0.1,
     }),
   });
 

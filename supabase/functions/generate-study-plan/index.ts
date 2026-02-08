@@ -214,8 +214,9 @@ Create a study plan that includes:
 
   } catch (error) {
     console.error('Error in generate-study-plan:', error);
+    // Return generic error to client, keep details in server logs
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'Unable to generate study plan. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

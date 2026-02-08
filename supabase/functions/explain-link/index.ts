@@ -256,8 +256,9 @@ Provide a comprehensive summary including:
 
   } catch (error) {
     console.error('Error in explain-link:', error);
+    // Return generic error to client, keep details in server logs
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'Unable to analyze the link. Please try again.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

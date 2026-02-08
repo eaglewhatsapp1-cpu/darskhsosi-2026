@@ -22,8 +22,9 @@ const LearningPlatform: React.FC = () => {
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
   const hasInitializedLanguage = useRef(false);
 
-  // Apply dynamic subject theming across the entire app
-  useSubjectTheme(profile?.subject);
+  // Apply dynamic subject theming ONLY when profile is complete
+  // This prevents CSS variable changes from interfering with ProfileSetup's Radix components
+  useSubjectTheme(isProfileComplete ? profile?.subject : null);
 
   useEffect(() => {
     if (!authLoading && !user) {

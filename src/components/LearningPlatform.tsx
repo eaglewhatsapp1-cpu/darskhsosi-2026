@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
+import { useSubjectTheme } from '@/hooks/useSubjectTheme';
 import ProfileSetup from './ProfileSetup';
 import AppSidebar from './AppSidebar';
 import AppHeader from './AppHeader';
@@ -20,6 +21,9 @@ const LearningPlatform: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<SidebarFeature>('teacher');
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
   const hasInitializedLanguage = useRef(false);
+
+  // Apply dynamic subject theming across the entire app
+  useSubjectTheme(profile?.subject);
 
   useEffect(() => {
     if (!authLoading && !user) {

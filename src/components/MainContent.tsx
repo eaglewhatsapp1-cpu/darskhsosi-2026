@@ -90,7 +90,7 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
   };
 
   return (
-    <main className="flex-1 h-full overflow-hidden bg-background geometric-pattern gsap-theme-animate">
+    <main className="flex-1 h-full overflow-hidden bg-background gsap-theme-animate">
       <div ref={contentRef} className="h-full">
         {renderContent()}
       </div>

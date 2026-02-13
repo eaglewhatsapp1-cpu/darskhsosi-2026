@@ -211,7 +211,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>;
   }
-  return <div className="flex flex-col h-full">
+  return <div className="flex flex-col h-full gsap-theme-animate">
       {/* Chat Header */}
       <div className="p-3 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="flex items-center gap-2 sm:gap-3">

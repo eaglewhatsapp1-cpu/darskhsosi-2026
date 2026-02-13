@@ -227,7 +227,7 @@ ${contentToTest.substring(0, 8000)}`,
   };
 
   return (
-    <div className="h-full flex flex-col p-3 sm:p-4 md:p-6 overflow-auto">
+    <div className="h-full flex flex-col p-3 sm:p-4 md:p-6 overflow-auto gsap-theme-animate">
       <div className="text-center mb-6 sm:mb-8">
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
           <ClipboardCheck className="w-8 h-8 text-primary" />

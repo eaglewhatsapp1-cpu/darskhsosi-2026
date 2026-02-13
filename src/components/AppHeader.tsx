@@ -92,7 +92,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     };
     return levels[profile.education_level || 'high']?.[language] || '';
   };
-  return <header ref={headerRef} className="w-full border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm gsap-theme-animate my-0" style={{
+  return <header ref={headerRef} className="w-full border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm gsap-theme-animate" style={{
     borderColor: subjectTheme.primary,
     borderBottomWidth: '3px'
   }}>

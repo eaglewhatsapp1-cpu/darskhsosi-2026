@@ -130,7 +130,7 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
   };
 
   return (
-    <div className="h-full flex flex-col p-3 sm:p-4 md:p-6">
+    <div className="h-full flex flex-col p-3 sm:p-4 md:p-6 gsap-theme-animate">
       <div className="text-center mb-4 sm:mb-6">
         <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-primary/10 flex items-center justify-center">
           <Video className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />

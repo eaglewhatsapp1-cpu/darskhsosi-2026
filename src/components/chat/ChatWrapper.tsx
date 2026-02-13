@@ -234,7 +234,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
     }
   };
   const lastAiMessage = [...messages].reverse().find(m => m.role === 'assistant')?.content || '';
-  return <div className="flex flex-col h-full" dir={dir}>
+  return <div className="flex flex-col h-full gsap-theme-animate" dir={dir}>
       {/* Header */}
       <div className="p-3 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm">
         {customHeader || <div className="flex items-center justify-between gap-2">
@@ -260,7 +260,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
       </div>
 
       {/* Material Selector */}
-      {showMaterialSelector && <div className="px-3 py-2 border-b border-border sm:py-0 sm:px-0 mt-[45px]" data-helper-target="material-selector">
+      {showMaterialSelector && <div className="px-3 py-2 border-b border-border" data-helper-target="material-selector">
           <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} />
         </div>}
 

@@ -180,7 +180,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-3 sm:p-4 md:p-6 custom-scrollbar">
+    <div className="h-full overflow-y-auto p-3 sm:p-4 md:p-6 custom-scrollbar gsap-theme-animate">
       <div className="max-w-3xl mx-auto space-y-6 sm:space-y-8">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center">

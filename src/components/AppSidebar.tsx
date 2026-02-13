@@ -180,7 +180,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
       {/* Navigation */}
       <nav className="flex-1 py-4 overflow-y-auto custom-scrollbar">
-        <ul ref={navItemsRef} className="space-y-1 px-0 py-0 pb-[41px] pr-[25px] mt-[72px]">
+        <ul ref={navItemsRef} className="space-y-1 px-2">
           {features.map(feature => {
           const Icon = feature.icon;
           const isActive = activeFeature === feature.id;

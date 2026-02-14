@@ -66,35 +66,60 @@ serve(async (req) => {
 
     let finalMessages = [...messages];
 
-    if (!hasFrontEndSystemPrompt) {
-      // Build a fallback system prompt if one wasn't provided
-      const lang = learnerProfile?.preferredLanguage === 'ar' ? 'Arabic' : 'English';
-      const level = learnerProfile?.educationLevel || 'university';
-      const style = learnerProfile?.learningStyle || 'visual';
-      const name = learnerProfile?.name || 'Learner';
+    // Fallback profile values
+    const name = learnerProfile?.name || 'Learner';
+    const level = learnerProfile?.educationLevel || 'university';
+    const style = learnerProfile?.learningStyle || 'visual';
+    const lang = learnerProfile?.preferredLanguage === 'en' ? 'English' : 'Arabic';
 
-      let systemPrompt = `You are "Dars Khusoosi" (درس خصوصي), an intelligent educational assistant.
-You are teaching ${name}, who is at ${level} level with a ${style} learning style.
-- ALWAYS respond in ${lang}
-- Use Markdown for structured formatting.
-- Be encouraging and supportive.`;
+    if (!hasFrontEndSystemPrompt) {
+      // Build a robust system prompt if one wasn't provided
+      let systemPrompt = `You are "Dars Khusoosi" (درس خصوصي), an expert-level personalized educational companion.
+Your mission is to guide ${name} through their learning journey with a highly adapted teaching style.
+
+STUDENT CONTEXT:
+- Level: ${level}
+- Preferred Learning Style: ${style}
+- Primary Language: ${lang}
+
+TEACHING PRINCIPLES:
+1. ADAPT TO LEVEL: For "elementary", use simple analogies. For "professional", use technical terminology.
+2. ADAPT TO STYLE: If "visual", describe images/diagrams or use emoji-based layouts. If "practical", suggest exercises.
+3. LANGUAGE CONSISTENCY: Always respond primarily in ${lang}, but you can provide key terms in both Arabic and English if helpful.
+4. STRUCTURE: Use Markdown (bolding, lists, headers) to make complex topics digestible.
+5. INTERACTIVITY: End your responses with a thought-provoking question to keep the learner engaged.
+
+KNOWLEDGE BASE USAGE:`;
 
       if (uploadedMaterials && uploadedMaterials.length > 0) {
-        systemPrompt += `\n- Knowledge Base: ${uploadedMaterials.join(', ')}`;
+        systemPrompt += `\n- The learner has provided these materials: ${uploadedMaterials.join(', ')}.
+- ALWAYS prioritize information from these materials if relevant to the question.
+- If the materials don't cover a topic, mention it and provide general knowledge.`;
+
         if (materialContent) {
-          systemPrompt += `\n- Reference Content: ${materialContent.substring(0, 30000)}`;
+          systemPrompt += `\n\nREFERENCE CONTENT FOR CONTEXT:\n${materialContent.substring(0, 25000)}`;
         }
+      } else {
+        systemPrompt += `\n- No specific materials provided. Use your general academic knowledge base.`;
       }
 
       finalMessages = [{ role: "system", content: systemPrompt }, ...messages];
     } else {
-      // If we have a system prompt, just ensure it includes the material content if available and not already there
-      if (materialContent && !messages[0].content.includes('Reference Content')) {
-        finalMessages[0].content += `\n\n--- Reference Content from Knowledge Base (TRUNCATED):\n${materialContent.substring(0, 30000)}`;
+      // Enhance the existing system prompt with profile context if it's missing
+      let enhancedPrompt = finalMessages[0].content;
+
+      if (!enhancedPrompt.includes(name)) {
+        enhancedPrompt = `Student: ${name} (${level} level, ${style} learner).\n` + enhancedPrompt;
       }
+
+      if (materialContent && !enhancedPrompt.includes('REFERENCE CONTENT')) {
+        enhancedPrompt += `\n\nREFERENCE CONTENT FROM KNOWLEDGE BASE:\n${materialContent.substring(0, 25000)}`;
+      }
+
+      finalMessages[0].content = enhancedPrompt;
     }
 
-    console.log("Sending request to Lovable AI for user:", user.id);
+    console.log(`Sending request to Lovable AI for user ${user.id} using Gemini-1.5-Flash`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

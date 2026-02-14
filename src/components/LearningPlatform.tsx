@@ -29,10 +29,17 @@ const LearningPlatform: React.FC = () => {
   } = useProfile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeFeature, setActiveFeature] = useState<SidebarFeature>('teacher');
+  const [activeFeature, setActiveFeature] = useState<SidebarFeature>(() => {
+    return (localStorage.getItem('lastActiveFeature') as SidebarFeature) || 'teacher';
+  });
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
   const hasInitializedLanguage = useRef(false);
   const isMobile = useIsMobile();
+
+  // Save active feature when it changes
+  useEffect(() => {
+    localStorage.setItem('lastActiveFeature', activeFeature);
+  }, [activeFeature]);
 
   // Apply dynamic subject theming ONLY when profile is complete
   // This prevents CSS variable changes from interfering with ProfileSetup's Radix components

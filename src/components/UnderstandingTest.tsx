@@ -13,6 +13,8 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
+import { useUserProgress } from '@/hooks/useUserProgress';
+
 interface UnderstandingTestProps {
   language: 'ar' | 'en';
 }
@@ -35,6 +37,8 @@ interface TestSettings {
 const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
   const { profile } = useProfile();
   const { materials, uploadFile, addMaterial, extractDocumentContent, loading: materialsLoading } = useUploadedMaterials();
+  const { progress, saveProgress, loading: progressLoading } = useUserProgress('test');
+
   const [input, setInput] = useState('');
   const [selectedMaterial, setSelectedMaterial] = useState<string>('');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -49,6 +53,33 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
     duration: 10,
     includeIntelligenceQuestions: false,
   });
+
+  // Load progress
+  useEffect(() => {
+    if (progress && !isLoading) {
+      if (progress.questions) setQuestions(progress.questions);
+      if (progress.answers) setAnswers(progress.answers);
+      if (progress.showResults !== undefined) setShowResults(progress.showResults);
+      if (progress.settings) setSettings(progress.settings);
+      if (progress.timeLeft !== undefined) setTimeLeft(progress.timeLeft);
+    }
+  }, [progress]);
+
+  // Auto-save progress when it changes
+  useEffect(() => {
+    if (questions.length > 0 || Object.keys(answers).length > 0) {
+      const timer = setTimeout(() => {
+        saveProgress({
+          questions,
+          answers,
+          showResults,
+          settings,
+          timeLeft
+        });
+      }, 2000); // Debounce saves
+      return () => clearTimeout(timer);
+    }
+  }, [questions, answers, showResults, settings, timeLeft]);
 
   const materialsWithContent = materials.filter((m: any) => m.content);
   const materialsWithoutContent = materials.filter((m: any) => !m.content && m.storage_path);

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Profile } from '@/hooks/useProfile';
 import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
 import { getSubjectTheme } from '@/utils/subjectColors';
+import { useUserProgress } from '@/hooks/useUserProgress';
 
 interface StudyPlanGeneratorProps {
   language: 'ar' | 'en';
@@ -38,7 +39,16 @@ const StudyPlanGenerator: React.FC<StudyPlanGeneratorProps> = ({ language, profi
   const [plan, setPlan] = useState<StudyPlan | null>(null);
   const [duration, setDuration] = useState('2');
   const { materials } = useUploadedMaterials();
-  
+  const { progress, saveProgress, loading: progressLoading } = useUserProgress('studyplan');
+
+  // Load plan from progress if it exists
+  useEffect(() => {
+    if (progress && progress.plan && !plan) {
+      setPlan(progress.plan);
+      if (progress.duration) setDuration(progress.duration);
+    }
+  }, [progress, plan]);
+
   const subjectTheme = getSubjectTheme(profile?.subject || 'general');
   const t = (ar: string, en: string) => (language === 'ar' ? ar : en);
 
@@ -75,6 +85,8 @@ const StudyPlanGenerator: React.FC<StudyPlanGeneratorProps> = ({ language, profi
 
       if (data?.plan) {
         setPlan(data.plan);
+        // Save to progress
+        await saveProgress({ plan: data.plan, duration });
         toast.success(t('تم إنشاء الخطة الدراسية بنجاح!', 'Study plan generated successfully!'));
       }
     } catch (error: any) {
@@ -85,7 +97,7 @@ const StudyPlanGenerator: React.FC<StudyPlanGeneratorProps> = ({ language, profi
     }
   };
 
-  const dayNames = language === 'ar' 
+  const dayNames = language === 'ar'
     ? ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة']
     : ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -123,9 +135,9 @@ const StudyPlanGenerator: React.FC<StudyPlanGeneratorProps> = ({ language, profi
                 </SelectContent>
               </Select>
             </div>
-            
-            <Button 
-              onClick={generatePlan} 
+
+            <Button
+              onClick={generatePlan}
               disabled={isLoading}
               style={{ background: subjectTheme.gradient }}
               className="text-white"
@@ -153,7 +165,7 @@ const StudyPlanGenerator: React.FC<StudyPlanGeneratorProps> = ({ language, profi
               <ScrollArea className="h-full max-h-[60vh]">
                 <div className="p-4 space-y-6">
                   {/* Plan Header */}
-                  <div 
+                  <div
                     className="p-4 rounded-lg text-white"
                     style={{ background: subjectTheme.gradient }}
                   >
@@ -168,7 +180,7 @@ const StudyPlanGenerator: React.FC<StudyPlanGeneratorProps> = ({ language, profi
                         <Target className="w-5 h-5" style={{ color: subjectTheme.primary }} />
                         {t(`الأسبوع ${week.weekNumber}`, `Week ${week.weekNumber}`)} - {week.focus}
                       </h3>
-                      
+
                       <div className="grid gap-2">
                         {week.days.map((day, dayIndex) => (
                           <Card key={dayIndex} className="border-s-4" style={{ borderColor: subjectTheme.primary }}>

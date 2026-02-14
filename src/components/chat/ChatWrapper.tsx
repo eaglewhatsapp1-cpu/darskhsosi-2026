@@ -17,12 +17,15 @@ import ExportButtons from './ExportButtons';
 import SmartSuggestions from './SmartSuggestions';
 import MarkdownContent from './MarkdownContent';
 import MindMapParser from '@/components/mindmap/MindMapParser';
+import { useUserProgress } from '@/hooks/useUserProgress';
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
 }
+
 interface ChatWrapperProps {
   personaId: string;
   profile: Profile;
@@ -35,6 +38,7 @@ interface ChatWrapperProps {
   customHeader?: React.ReactNode;
   onOutputGenerated?: (output: string) => void;
 }
+
 const ChatWrapper: React.FC<ChatWrapperProps> = ({
   personaId,
   profile,
@@ -50,6 +54,8 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
   const {
     materials
   } = useUploadedMaterials();
+  const { progress, saveProgress } = useUserProgress(personaId as any);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState(initialContent || '');
   const [isLoading, setIsLoading] = useState(false);
@@ -57,6 +63,36 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [tempFiles, setTempFiles] = useState<TempFile[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load progress
+  useEffect(() => {
+    if (progress && messages.length === 0) {
+      if (progress.messages) {
+        setMessages(progress.messages.map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp)
+        })));
+      }
+      if (progress.selectedMaterials) {
+        setSelectedMaterials(progress.selectedMaterials);
+      }
+    }
+  }, [progress]);
+
+  // Save progress
+  useEffect(() => {
+    if (messages.length > 0) {
+      const timer = setTimeout(() => {
+        saveProgress({
+          messages,
+          selectedMaterials,
+          lastUpdated: new Date().toISOString()
+        });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, selectedMaterials]);
+
   const persona = getPersona(personaId);
   const subjectTheme = getSubjectTheme(profile.subject || 'general');
   const dir = language === 'ar' ? 'rtl' : 'ltr';
@@ -70,7 +106,13 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
     scrollToBottom();
   }, [messages, streamingContent]);
   const getSelectedMaterialsContent = () => {
-    return materials.filter(m => selectedMaterials.includes(m.id)).map(m => `[${m.file_name}]: ${m.content || 'No content available'}`).join('\n\n');
+    const selected = materials.filter(m => selectedMaterials.includes(m.id));
+    if (selected.length === 0) return '';
+
+    return selected.map(m => {
+      const cleanContent = (m.content || 'No content').substring(0, 15000);
+      return `### Material: ${m.file_name}\n${cleanContent}`;
+    }).join('\n\n---\n\n');
   };
   const handleSend = async (customMessage?: string) => {
     const messageToSend = customMessage || input.trim();
@@ -206,7 +248,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
               fullContent += content;
               setStreamingContent(fullContent);
             }
-          } catch {/* ignore partial leftovers */}
+          } catch {/* ignore partial leftovers */ }
         }
       }
       if (fullContent) {
@@ -235,100 +277,100 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
   };
   const lastAiMessage = [...messages].reverse().find(m => m.role === 'assistant')?.content || '';
   return <div className="flex flex-col h-full gsap-theme-animate" dir={dir}>
-      {/* Header */}
-      <div className="p-3 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm">
-        {customHeader || <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-lg sm:text-xl shrink-0" style={{
+    {/* Header */}
+    <div className="p-3 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm">
+      {customHeader || <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-lg sm:text-xl shrink-0" style={{
             background: subjectTheme.gradient
           }}>
-                {persona.icon}
-              </div>
-              <div className="min-w-0">
-                <h2 className="font-semibold text-foreground text-sm sm:text-base truncate">
-                  {language === 'ar' ? persona.nameAr : persona.nameEn}
-                </h2>
-                <p className="text-xs sm:text-sm text-muted-foreground truncate hidden xs:block">
-                  {language === 'ar' ? persona.descriptionAr : persona.descriptionEn}
-                </p>
-              </div>
-            </div>
-            {showExport && lastAiMessage && <div className="shrink-0">
-                <ExportButtons language={language} content={lastAiMessage} title={language === 'ar' ? persona.nameAr : persona.nameEn} />
-              </div>}
-          </div>}
-      </div>
-
-      {/* Material Selector */}
-      {showMaterialSelector && <div className="px-3 py-2 border-b border-border" data-helper-target="material-selector">
-          <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} />
+            {persona.icon}
+          </div>
+          <div className="min-w-0">
+            <h2 className="font-semibold text-foreground text-sm sm:text-base truncate">
+              {language === 'ar' ? persona.nameAr : persona.nameEn}
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate hidden xs:block">
+              {language === 'ar' ? persona.descriptionAr : persona.descriptionEn}
+            </p>
+          </div>
+        </div>
+        {showExport && lastAiMessage && <div className="shrink-0">
+          <ExportButtons language={language} content={lastAiMessage} title={language === 'ar' ? persona.nameAr : persona.nameEn} />
         </div>}
+      </div>}
+    </div>
 
-      {/* Messages */}
-      <ScrollArea className="flex-1 p-3 sm:p-4">
-        <div className="space-y-3 sm:space-y-4">
-          {messages.map(message => <div key={message.id} className={cn('flex gap-2 sm:gap-3', message.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
-              <div className={cn('w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0', message.role === 'user' ? 'bg-primary' : 'bg-secondary')} style={message.role === 'assistant' ? {
+    {/* Material Selector */}
+    {showMaterialSelector && <div className="px-3 py-2 border-b border-border" data-helper-target="material-selector">
+      <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} />
+    </div>}
+
+    {/* Messages */}
+    <ScrollArea className="flex-1 p-3 sm:p-4">
+      <div className="space-y-3 sm:space-y-4">
+        {messages.map(message => <div key={message.id} className={cn('flex gap-2 sm:gap-3', message.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
+          <div className={cn('w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0', message.role === 'user' ? 'bg-primary' : 'bg-secondary')} style={message.role === 'assistant' ? {
             background: subjectTheme.gradient
           } : undefined}>
-                {message.role === 'user' ? <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" /> : <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />}
-              </div>
-              <div className={cn('max-w-[88%] sm:max-w-[85%] px-3 py-2 sm:px-4 sm:py-3 rounded-2xl', message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
-                {message.role === 'user' ? <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p> : <div className="space-y-4">
-                    {/* Show Mind Map if persona is mindmap/analyzer */}
-                    {(personaId === 'mindmap' || personaId === 'analyzer') && <MindMapParser content={message.content} language={language} />}
-                    {/* Always show formatted text */}
-                    <MarkdownContent content={message.content} />
-                  </div>}
-              </div>
-            </div>)}
-          
-          {streamingContent && <div className="flex gap-2 sm:gap-3">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0" style={{
+            {message.role === 'user' ? <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" /> : <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />}
+          </div>
+          <div className={cn('max-w-[88%] sm:max-w-[85%] px-3 py-2 sm:px-4 sm:py-3 rounded-2xl', message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted')}>
+            {message.role === 'user' ? <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p> : <div className="space-y-4">
+              {/* Show Mind Map if persona is mindmap/analyzer */}
+              {(personaId === 'mindmap' || personaId === 'analyzer') && <MindMapParser content={message.content} language={language} />}
+              {/* Always show formatted text */}
+              <MarkdownContent content={message.content} />
+            </div>}
+          </div>
+        </div>)}
+
+        {streamingContent && <div className="flex gap-2 sm:gap-3">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0" style={{
             background: subjectTheme.gradient
           }}>
-                <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-              </div>
-              <div className="max-w-[88%] sm:max-w-[85%] px-3 py-2 sm:px-4 sm:py-3 rounded-2xl bg-muted">
-                <MarkdownContent content={streamingContent} />
-              </div>
-            </div>}
-
-          {isLoading && !streamingContent && <div className="flex gap-2 sm:gap-3">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center" style={{
-            background: subjectTheme.gradient
-          }}>
-                <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-              </div>
-              <div className="bg-muted px-3 py-2 sm:px-4 sm:py-3 rounded-2xl">
-                <Loader2 className="w-4 h-4 animate-spin" />
-              </div>
-            </div>}
-
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
-
-      {/* Smart Suggestions */}
-      {showSuggestions && messages.length > 0 && !isLoading && <div className="px-3 sm:px-4 py-2">
-          <SmartSuggestions language={language} personaId={personaId} onSuggestionClick={suggestion => handleSend(suggestion)} />
+            <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+          </div>
+          <div className="max-w-[88%] sm:max-w-[85%] px-3 py-2 sm:px-4 sm:py-3 rounded-2xl bg-muted">
+            <MarkdownContent content={streamingContent} />
+          </div>
         </div>}
 
-      {/* Input Area */}
-      <div className="p-3 sm:p-4 border-t border-border bg-card/50">
-        {showTempUpload && <div className="mb-2 sm:mb-3">
-            <TemporaryUpload language={language} tempFiles={tempFiles} onFilesChange={setTempFiles} />
-          </div>}
-        <div className="flex items-end gap-1.5 sm:gap-2">
-          <PromptEnhancer language={language} prompt={input} onEnhancedPrompt={setInput} disabled={isLoading} />
-          <Textarea data-helper-target="chat-input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={t('اكتب رسالتك...', 'Type your message...')} className="flex-1 min-h-[44px] sm:min-h-[48px] max-h-[100px] sm:max-h-[120px] resize-none rounded-xl text-sm" rows={1} disabled={isLoading} />
-          <Button onClick={() => handleSend()} disabled={!input.trim() || isLoading} size="icon" className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl shrink-0" style={{
+        {isLoading && !streamingContent && <div className="flex gap-2 sm:gap-3">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center" style={{
+            background: subjectTheme.gradient
+          }}>
+            <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+          </div>
+          <div className="bg-muted px-3 py-2 sm:px-4 sm:py-3 rounded-2xl">
+            <Loader2 className="w-4 h-4 animate-spin" />
+          </div>
+        </div>}
+
+        <div ref={messagesEndRef} />
+      </div>
+    </ScrollArea>
+
+    {/* Smart Suggestions */}
+    {showSuggestions && messages.length > 0 && !isLoading && <div className="px-3 sm:px-4 py-2">
+      <SmartSuggestions language={language} personaId={personaId} onSuggestionClick={suggestion => handleSend(suggestion)} />
+    </div>}
+
+    {/* Input Area */}
+    <div className="p-3 sm:p-4 border-t border-border bg-card/50">
+      {showTempUpload && <div className="mb-2 sm:mb-3">
+        <TemporaryUpload language={language} tempFiles={tempFiles} onFilesChange={setTempFiles} />
+      </div>}
+      <div className="flex items-end gap-1.5 sm:gap-2">
+        <PromptEnhancer language={language} prompt={input} onEnhancedPrompt={setInput} disabled={isLoading} />
+        <Textarea data-helper-target="chat-input" value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={t('اكتب رسالتك...', 'Type your message...')} className="flex-1 min-h-[44px] sm:min-h-[48px] max-h-[100px] sm:max-h-[120px] resize-none rounded-xl text-sm" rows={1} disabled={isLoading} />
+        <Button onClick={() => handleSend()} disabled={!input.trim() || isLoading} size="icon" className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl shrink-0" style={{
           background: subjectTheme.gradient
         }}>
-            <Send className={cn('w-4 h-4 sm:w-5 sm:h-5', dir === 'rtl' && 'rotate-180')} />
-          </Button>
-        </div>
+          <Send className={cn('w-4 h-4 sm:w-5 sm:h-5', dir === 'rtl' && 'rotate-180')} />
+        </Button>
       </div>
-    </div>;
+    </div>
+  </div>;
 };
 export default ChatWrapper;

@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import MaterialSelector from '@/components/chat/MaterialSelector';
 import { Send, Paperclip, Bot, User, Sparkles, Upload, Loader2, FileText } from 'lucide-react';
+import { useUserProgress } from '@/hooks/useUserProgress';
+
 interface ChatInterfaceProps {
   profile: Profile;
   language: 'ar' | 'en';
@@ -27,10 +29,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const {
     materials
   } = useUploadedMaterials();
+  const { progress, saveProgress } = useUserProgress('teacher');
+
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
+
+  // Load progress
+  useEffect(() => {
+    if (progress && progress.selectedMaterials && selectedMaterials.length === 0) {
+      setSelectedMaterials(progress.selectedMaterials);
+    }
+  }, [progress]);
+
+  // Save selected materials progress
+  useEffect(() => {
+    if (selectedMaterials.length > 0) {
+      saveProgress({ selectedMaterials });
+    }
+  }, [selectedMaterials]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const dir = language === 'ar' ? 'rtl' : 'ltr';
   const t = (key: string) => {
@@ -98,6 +117,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       }
 
       // Use supabase.functions.invoke instead of direct fetch
+      const materialContext = materials
+        .filter(m => selectedMaterials.includes(m.id))
+        .map(m => `### Document: ${m.file_name}\n${(m.content || '').substring(0, 10000)}`)
+        .join('\n\n---\n\n');
+
       const {
         data,
         error
@@ -116,7 +140,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             weaknesses: profile.weaknesses
           },
           uploadedMaterials: selectedMaterialNames.length > 0 ? selectedMaterialNames : materials.map(m => m.file_name),
-          materialContent: materials.filter(m => selectedMaterialNames.length > 0 ? selectedMaterialNames.includes(m.file_name) : true).map(m => `[${m.file_name}]: ${m.content || 'No content available'}`).join('\n\n')
+          materialContent: materialContext
         }
       });
       if (error) {
@@ -208,112 +232,112 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
   if (messagesLoading) {
     return <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>;
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>;
   }
   return <div className="flex flex-col h-full gsap-theme-animate">
-      {/* Chat Header */}
-      <div className="p-3 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full gradient-primary flex items-center justify-center shrink-0">
-            <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="heading-4 text-foreground truncate">{t('sidebar.teacher')}</h2>
-            <p className="caption truncate">{t('app.tagline')}</p>
-          </div>
+    {/* Chat Header */}
+    <div className="p-3 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full gradient-primary flex items-center justify-center shrink-0">
+          <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
+        </div>
+        <div className="min-w-0">
+          <h2 className="heading-4 text-foreground truncate">{t('sidebar.teacher')}</h2>
+          <p className="caption truncate">{t('app.tagline')}</p>
         </div>
       </div>
+    </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 custom-scrollbar">
-        {messages.length === 0 && !streamingContent ? <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8">
-            <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-secondary flex items-center justify-center mb-4 sm:mb-6 animate-float">
-              <Sparkles className="w-7 h-7 sm:w-10 sm:h-10 text-primary" />
-            </div>
-            <h3 className="heading-3 text-foreground mb-2">
-              {t('app.welcome')}
-            </h3>
-            <p className="body-sm text-muted-foreground max-w-md mb-2">
-              {language === 'ar' ? `مرحباً ${profile.name}! أنا معلمك الذكي. يمكنني مساعدتك في فهم أي موضوع.` : `Hello ${profile.name}! I'm your intelligent teacher. I can help you understand any topic.`}
-            </p>
-            <p className="caption max-w-md">
-              {materials.length === 0 ? language === 'ar' ? 'ارفع مواد تعليمية للحصول على تجربة تعلم مخصصة أكثر.' : 'Upload learning materials for a more personalized learning experience.' : language === 'ar' ? `لديك ${materials.length} ملفات مرفوعة. اسألني عن أي شيء!` : `You have ${materials.length} files uploaded. Ask me anything!`}
-            </p>
-            {materials.length === 0 && <Button className="mt-4 sm:mt-6 gradient-accent" size="default" onClick={onNavigateToUpload}>
-                <Upload className="w-4 h-4 sm:w-5 sm:h-5 me-2" />
-                {t('sidebar.upload')}
-              </Button>}
-          </div> : <>
-            {messages.map(message => <div key={message.id} className={cn('flex gap-2 sm:gap-3 animate-slide-up', message.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
-                <div className={cn('w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0', message.role === 'user' ? 'gradient-accent' : 'gradient-primary')}>
-                  {message.role === 'user' ? <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" /> : <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />}
-                </div>
-                <div className={cn('max-w-[88%] sm:max-w-[75%] px-3 py-2 sm:px-4 sm:py-3', message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai')}>
-                  <p className="body-sm whitespace-pre-wrap break-words">{message.content}</p>
-                  <span className="caption opacity-60 mt-1 block">
-                    {new Date(message.created_at).toLocaleTimeString(dir === 'rtl' ? 'ar-SA' : 'en-US', {
+    {/* Messages Area */}
+    <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 custom-scrollbar">
+      {messages.length === 0 && !streamingContent ? <div className="flex flex-col items-center justify-center h-full text-center p-4 sm:p-8">
+        <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-secondary flex items-center justify-center mb-4 sm:mb-6 animate-float">
+          <Sparkles className="w-7 h-7 sm:w-10 sm:h-10 text-primary" />
+        </div>
+        <h3 className="heading-3 text-foreground mb-2">
+          {t('app.welcome')}
+        </h3>
+        <p className="body-sm text-muted-foreground max-w-md mb-2">
+          {language === 'ar' ? `مرحباً ${profile.name}! أنا معلمك الذكي. يمكنني مساعدتك في فهم أي موضوع.` : `Hello ${profile.name}! I'm your intelligent teacher. I can help you understand any topic.`}
+        </p>
+        <p className="caption max-w-md">
+          {materials.length === 0 ? language === 'ar' ? 'ارفع مواد تعليمية للحصول على تجربة تعلم مخصصة أكثر.' : 'Upload learning materials for a more personalized learning experience.' : language === 'ar' ? `لديك ${materials.length} ملفات مرفوعة. اسألني عن أي شيء!` : `You have ${materials.length} files uploaded. Ask me anything!`}
+        </p>
+        {materials.length === 0 && <Button className="mt-4 sm:mt-6 gradient-accent" size="default" onClick={onNavigateToUpload}>
+          <Upload className="w-4 h-4 sm:w-5 sm:h-5 me-2" />
+          {t('sidebar.upload')}
+        </Button>}
+      </div> : <>
+        {messages.map(message => <div key={message.id} className={cn('flex gap-2 sm:gap-3 animate-slide-up', message.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
+          <div className={cn('w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shrink-0', message.role === 'user' ? 'gradient-accent' : 'gradient-primary')}>
+            {message.role === 'user' ? <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent-foreground" /> : <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />}
+          </div>
+          <div className={cn('max-w-[88%] sm:max-w-[75%] px-3 py-2 sm:px-4 sm:py-3', message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai')}>
+            <p className="body-sm whitespace-pre-wrap break-words">{message.content}</p>
+            <span className="caption opacity-60 mt-1 block">
+              {new Date(message.created_at).toLocaleTimeString(dir === 'rtl' ? 'ar-SA' : 'en-US', {
                 hour: '2-digit',
                 minute: '2-digit'
               })}
-                  </span>
-                </div>
-              </div>)}
-            
-            {streamingContent && <div className="flex gap-2 sm:gap-3 animate-slide-up">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
-                  <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
-                </div>
-                <div className="chat-bubble-ai max-w-[88%] sm:max-w-[75%] px-3 py-2 sm:px-4 sm:py-3">
-                  <p className="body-sm whitespace-pre-wrap break-words">{streamingContent}</p>
-                </div>
-              </div>}
-          </>}
-        
-        {isLoading && !streamingContent && <div className="flex gap-2 sm:gap-3 animate-slide-up">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full gradient-primary flex items-center justify-center">
-              <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
-            </div>
-            <div className="chat-bubble-ai px-3 py-2 sm:px-4 sm:py-3">
-              <div className="flex items-center gap-2">
-                <span className="body-sm text-muted-foreground">{t('chat.thinking')}</span>
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary animate-pulse-soft" style={{
+            </span>
+          </div>
+        </div>)}
+
+        {streamingContent && <div className="flex gap-2 sm:gap-3 animate-slide-up">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
+            <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
+          </div>
+          <div className="chat-bubble-ai max-w-[88%] sm:max-w-[75%] px-3 py-2 sm:px-4 sm:py-3">
+            <p className="body-sm whitespace-pre-wrap break-words">{streamingContent}</p>
+          </div>
+        </div>}
+      </>}
+
+      {isLoading && !streamingContent && <div className="flex gap-2 sm:gap-3 animate-slide-up">
+        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full gradient-primary flex items-center justify-center">
+          <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
+        </div>
+        <div className="chat-bubble-ai px-3 py-2 sm:px-4 sm:py-3">
+          <div className="flex items-center gap-2">
+            <span className="body-sm text-muted-foreground">{t('chat.thinking')}</span>
+            <div className="flex gap-1">
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary animate-pulse-soft" style={{
                 animationDelay: '0ms'
               }} />
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary animate-pulse-soft" style={{
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary animate-pulse-soft" style={{
                 animationDelay: '150ms'
               }} />
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary animate-pulse-soft" style={{
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary animate-pulse-soft" style={{
                 animationDelay: '300ms'
               }} />
-                </div>
-              </div>
             </div>
-          </div>}
-        
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Area */}
-      <div className="p-3 sm:p-4 border-t border-border bg-card/50 backdrop-blur-sm space-y-2 sm:space-y-3">
-        {/* Material Selector Dropdown */}
-        {materials.length > 0 && <div data-helper-target="material-selector">
-            <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} maxSelection={5} />
-          </div>}
-        
-        <div className="flex items-end gap-1.5 sm:gap-3">
-          <Button variant="outline" size="icon" className="shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-xl" onClick={onNavigateToUpload}>
-            <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
-          </Button>
-          <div className="flex-1 relative" data-helper-target="chat-input">
-            <Textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={t('chat.placeholder')} className="min-h-[44px] sm:min-h-[48px] max-h-[100px] sm:max-h-[150px] resize-none pe-12 rounded-xl text-sm" rows={1} disabled={isLoading} />
           </div>
-          <Button onClick={handleSend} disabled={!input.trim() || isLoading} className="shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-xl gradient-primary hover:opacity-90 transition-opacity" size="icon">
-            <Send className={cn("w-4 h-4 sm:w-5 sm:h-5 my-px mx-[5px]", dir === 'rtl' && 'rotate-180')} />
-          </Button>
         </div>
+      </div>}
+
+      <div ref={messagesEndRef} />
+    </div>
+
+    {/* Input Area */}
+    <div className="p-3 sm:p-4 border-t border-border bg-card/50 backdrop-blur-sm space-y-2 sm:space-y-3">
+      {/* Material Selector Dropdown */}
+      {materials.length > 0 && <div data-helper-target="material-selector">
+        <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} maxSelection={5} />
+      </div>}
+
+      <div className="flex items-end gap-1.5 sm:gap-3">
+        <Button variant="outline" size="icon" className="shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-xl" onClick={onNavigateToUpload}>
+          <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
+        </Button>
+        <div className="flex-1 relative" data-helper-target="chat-input">
+          <Textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} placeholder={t('chat.placeholder')} className="min-h-[44px] sm:min-h-[48px] max-h-[100px] sm:max-h-[150px] resize-none pe-12 rounded-xl text-sm" rows={1} disabled={isLoading} />
+        </div>
+        <Button onClick={handleSend} disabled={!input.trim() || isLoading} className="shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-xl gradient-primary hover:opacity-90 transition-opacity" size="icon">
+          <Send className={cn("w-4 h-4 sm:w-5 sm:h-5 my-px mx-[5px]", dir === 'rtl' && 'rotate-180')} />
+        </Button>
       </div>
-    </div>;
+    </div>
+  </div>;
 };
 export default ChatInterface;

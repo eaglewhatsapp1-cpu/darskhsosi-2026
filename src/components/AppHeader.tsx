@@ -4,19 +4,22 @@ import { getSubjectTheme, getAllSubjects, Subject } from '@/utils/subjectColors'
 import { useProfile } from '@/hooks/useProfile';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GraduationCap, Sparkles, Languages } from 'lucide-react';
+import { GraduationCap, Sparkles, Languages, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AnimatedThemeToggle from '@/components/ui/AnimatedThemeToggle';
 import gsap from 'gsap';
+
 interface AppHeaderProps {
   profile: Profile;
   language: 'ar' | 'en';
   onSubjectChange: (subject: Subject) => void;
+  onMenuClick?: () => void;
 }
 const AppHeader: React.FC<AppHeaderProps> = ({
   profile,
   language,
-  onSubjectChange
+  onSubjectChange,
+  onMenuClick
 }) => {
   const {
     updateProfile
@@ -92,84 +95,92 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     };
     return levels[profile.education_level || 'high']?.[language] || '';
   };
-  return <header ref={headerRef} className="w-full border-b bg-card/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm gsap-theme-animate" style={{
+  return <header ref={headerRef} className="w-full border-b bg-card/95 backdrop-blur-sm shadow-sm gsap-theme-animate" style={{
     borderColor: subjectTheme.primary,
-    borderBottomWidth: '3px'
+    borderBottomWidth: '2px'
   }}>
-      <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 header-banner rounded-lg mx-2 sm:mx-4 my-2 sm:my-3">
-        {/* Logo & Platform Name */}
-        <div className="flex items-center gap-3">
-          <div ref={logoRef} className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-transform duration-300" style={{
+    <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 py-2 sm:py-3 header-banner rounded-lg mx-2 sm:mx-4 my-1 sm:my-2">
+      {/* Logo & Platform Name */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden text-header-foreground hover:bg-header-foreground/10"
+          onClick={onMenuClick}
+        >
+          <Menu className="w-6 h-6" />
+        </Button>
+        <div ref={logoRef} className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-lg cursor-pointer hover:scale-110 transition-transform duration-300" style={{
           background: subjectTheme.gradient
         }}>
-            <GraduationCap className="w-6 h-6 text-white" />
-          </div>
-          <div className="flex flex-col header-animate-item">
-            <h1 className="text-xl font-bold flex items-center gap-2 text-header-foreground">
-              {t('درس خصوصي', 'Private Tutor')}
-              <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-            </h1>
-            <span className="text-xs text-header-muted">
-              {t('مساعدك التعليمي الذكي', 'Your Smart Learning Assistant')}
-            </span>
-          </div>
+          <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
         </div>
+        <div className="flex flex-col header-animate-item">
+          <h1 className="text-lg sm:text-xl font-bold flex items-center gap-1 sm:gap-2 text-header-foreground">
+            {t('درس خصوصي', 'Private Tutor')}
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-primary animate-pulse" />
+          </h1>
+          <span className="text-[10px] sm:text-xs text-header-muted whitespace-nowrap">
+            {t('مساعدك التعليمي الذكي', 'Your Smart Learning Assistant')}
+          </span>
+        </div>
+      </div>
 
-        {/* Subject Selector */}
-        <div className="flex-1 max-w-xs header-animate-item">
-          <Select value={profile.subject || 'general'} onValueChange={value => onSubjectChange(value as Subject)}>
-            <SelectTrigger className="w-full border-2 font-medium transition-all duration-300 hover:scale-[1.02] hover:shadow-lg" style={{
+      {/* Subject Selector */}
+      <div className="flex-1 max-w-xs header-animate-item">
+        <Select value={profile.subject || 'general'} onValueChange={value => onSubjectChange(value as Subject)}>
+          <SelectTrigger className="w-full border-2 font-medium transition-all duration-300 hover:scale-[1.02] hover:shadow-lg" style={{
             borderColor: subjectTheme.primary,
             backgroundColor: subjectTheme.secondary
           }}>
-              <SelectValue>
-                <span className="flex items-center gap-2">
-                  <span>{subjectTheme.icon}</span>
-                  <span>{language === 'ar' ? subjectTheme.nameAr : subjectTheme.nameEn}</span>
-                </span>
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="gsap-theme-animate">
-              {subjects.map(subject => <SelectItem key={subject.id} value={subject.id}>
-                  <span className="flex items-center gap-2">
-                    <span>{subject.icon}</span>
-                    <span>{language === 'ar' ? subject.nameAr : subject.nameEn}</span>
-                  </span>
-                </SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+            <SelectValue>
+              <span className="flex items-center gap-2">
+                <span>{subjectTheme.icon}</span>
+                <span>{language === 'ar' ? subjectTheme.nameAr : subjectTheme.nameEn}</span>
+              </span>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="gsap-theme-animate">
+            {subjects.map(subject => <SelectItem key={subject.id} value={subject.id}>
+              <span className="flex items-center gap-2">
+                <span>{subject.icon}</span>
+                <span>{language === 'ar' ? subject.nameAr : subject.nameEn}</span>
+              </span>
+            </SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
 
-        {/* Actions & Student Info */}
-        <div className="flex items-center gap-3 text-header-foreground header-animate-item">
-          <AnimatedThemeToggle className="text-header-foreground hover:text-header-foreground/80" />
+      {/* Actions & Student Info */}
+      <div className="flex items-center gap-3 text-header-foreground header-animate-item">
+        <AnimatedThemeToggle className="text-header-foreground hover:text-header-foreground/80" />
 
-          <Button variant="ghost" size="icon" onClick={toggleLanguage} className="rounded-full flex items-center gap-1 px-2 w-auto transition-all duration-300 hover:scale-110 text-header-foreground hover:text-header-foreground/80 hover:bg-header-foreground/10">
-            <Languages className="w-5 h-5" />
-            <span className="text-xs font-bold">{language === 'ar' ? 'EN' : 'AR'}</span>
-          </Button>
+        <Button variant="ghost" size="icon" onClick={toggleLanguage} className="rounded-full flex items-center gap-1 px-2 w-auto transition-all duration-300 hover:scale-110 text-header-foreground hover:text-header-foreground/80 hover:bg-header-foreground/10">
+          <Languages className="w-5 h-5" />
+          <span className="text-xs font-bold">{language === 'ar' ? 'EN' : 'AR'}</span>
+        </Button>
 
-          <div className="text-end hidden sm:block">
-            <p className="font-semibold text-header-foreground">{profile.name}</p>
-            <p className="text-xs flex items-center gap-1 justify-end font-medium text-header-muted">
-              <span className="inline-block w-2 h-2 rounded-full" style={{
+        <div className="text-end hidden sm:block">
+          <p className="font-semibold text-header-foreground">{profile.name}</p>
+          <p className="text-xs flex items-center gap-1 justify-end font-medium text-header-muted">
+            <span className="inline-block w-2 h-2 rounded-full" style={{
               backgroundColor: subjectTheme.primary
             }} />
-              {getEducationLevelText()}
-            </p>
-          </div>
-          <Avatar className="w-10 h-10 border-2" style={{
+            {getEducationLevelText()}
+          </p>
+        </div>
+        <Avatar className="w-10 h-10 border-2" style={{
           borderColor: subjectTheme.primary
         }}>
-            <AvatarImage src={profile.avatar_url || ''} alt={profile.name} />
-            <AvatarFallback className="text-primary-foreground font-bold" style={{
+          <AvatarImage src={profile.avatar_url || ''} alt={profile.name} />
+          <AvatarFallback className="text-primary-foreground font-bold" style={{
             background: subjectTheme.gradient
           }}>
-              {profile.name?.charAt(0)?.toUpperCase() || 'م'}
-            </AvatarFallback>
-          </Avatar>
-        </div>
+            {profile.name?.charAt(0)?.toUpperCase() || 'م'}
+          </AvatarFallback>
+        </Avatar>
       </div>
-    </header>;
+    </div>
+  </header>;
 };
 export default AppHeader;

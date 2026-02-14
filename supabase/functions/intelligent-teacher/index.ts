@@ -45,80 +45,56 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      console.error('Auth error:', userError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const userId = claimsData.claims.sub;
-    console.log("Authenticated user:", userId);
-
     const { messages, learnerProfile, uploadedMaterials, materialContent } = await req.json() as RequestBody;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build system prompt based on learner profile
-    const lang = learnerProfile?.preferredLanguage === 'ar' ? 'Arabic' : 'English';
-    const levelMap: Record<string, string> = {
-      elementary: 'elementary school student (ages 6-11)',
-      middle: 'middle school student (ages 11-14)',
-      high: 'high school student (ages 14-18)',
-      university: 'university student',
-      professional: 'professional learner',
-    };
-    const styleMap: Record<string, string> = {
-      visual: 'visual learning with diagrams and images',
-      practical: 'practical examples and hands-on exercises',
-      illustrative: 'detailed explanations with analogies',
-    };
+    // Check if the first message is already a system prompt from the frontend
+    const hasFrontEndSystemPrompt = messages.length > 0 && messages[0].role === 'system';
 
-    const level = levelMap[learnerProfile?.educationLevel || 'university'] || 'university student';
-    const style = styleMap[learnerProfile?.learningStyle || 'illustrative'] || 'detailed explanations';
-    const name = learnerProfile?.name || 'Learner';
+    let finalMessages = [...messages];
 
-    let systemPrompt = `You are an intelligent, caring teacher named "Dars Khusoosi" (درس خصوصي). 
-You are teaching ${name}, who is a ${level}.
+    if (!hasFrontEndSystemPrompt) {
+      // Build a fallback system prompt if one wasn't provided
+      const lang = learnerProfile?.preferredLanguage === 'ar' ? 'Arabic' : 'English';
+      const level = learnerProfile?.educationLevel || 'university';
+      const style = learnerProfile?.learningStyle || 'visual';
+      const name = learnerProfile?.name || 'Learner';
 
-CRITICAL RULES:
-1. ALWAYS respond in ${lang}
-2. Adapt your explanations to be appropriate for a ${level}
-3. Use ${style} as your primary teaching method
-4. Be encouraging, patient, and supportive
-5. Break down complex concepts into simple, digestible parts
-6. Ask follow-up questions to ensure understanding
-7. Use examples relevant to the learner's level and interests
+      let systemPrompt = `You are "Dars Khusoosi" (درس خصوصي), an intelligent educational assistant.
+You are teaching ${name}, who is at ${level} level with a ${style} learning style.
+- ALWAYS respond in ${lang}
+- Use Markdown for structured formatting.
+- Be encouraging and supportive.`;
 
-TEACHING APPROACH:
-- Start with what the learner already knows
-- Build concepts step by step
-- Use analogies and real-world examples
-- Encourage questions and curiosity
-- Celebrate progress and effort
-- Provide constructive feedback`;
-
-    if (uploadedMaterials && uploadedMaterials.length > 0) {
-      systemPrompt += `\n\nThe learner has selected the following materials from their Knowledge Base: ${uploadedMaterials.join(', ')}.`;
-      
-      if (materialContent) {
-        systemPrompt += `\n\nHere is the content of the selected materials for your reference:\n${materialContent}\n\nCRITICAL: Base your teaching and answers ONLY on this content. If the answer is not in the provided content, explain that you can only answer based on the uploaded materials.`;
-      } else {
-        systemPrompt += `\n\nBase your teaching on these materials when relevant. If asked about topics not covered in these materials, politely explain that you can only teach based on the uploaded content.`;
+      if (uploadedMaterials && uploadedMaterials.length > 0) {
+        systemPrompt += `\n- Knowledge Base: ${uploadedMaterials.join(', ')}`;
+        if (materialContent) {
+          systemPrompt += `\n- Reference Content: ${materialContent.substring(0, 30000)}`;
+        }
       }
+
+      finalMessages = [{ role: "system", content: systemPrompt }, ...messages];
     } else {
-      systemPrompt += `\n\nNote: No learning materials have been uploaded yet. Encourage the learner to upload 
-study materials (PDFs, documents, images) for more focused and effective learning. You can still have 
-general educational conversations and answer questions.`;
+      // If we have a system prompt, just ensure it includes the material content if available and not already there
+      if (materialContent && !messages[0].content.includes('Reference Content')) {
+        finalMessages[0].content += `\n\n--- Reference Content from Knowledge Base (TRUNCATED):\n${materialContent.substring(0, 30000)}`;
+      }
     }
 
-    console.log("Sending request to Lovable AI with profile:", learnerProfile);
+    console.log("Sending request to Lovable AI for user:", user.id);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -127,11 +103,8 @@ general educational conversations and answer questions.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
+        model: "google/gemini-1.5-flash",
+        messages: finalMessages,
         stream: true,
       }),
     });
@@ -139,7 +112,7 @@ general educational conversations and answer questions.`;
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      
+
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
@@ -152,7 +125,7 @@ general educational conversations and answer questions.`;
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
+
       return new Response(
         JSON.stringify({ error: "AI service temporarily unavailable" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

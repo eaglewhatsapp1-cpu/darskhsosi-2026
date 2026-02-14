@@ -21,7 +21,7 @@ const SimplifyFeature: React.FC<SimplifyFeatureProps> = ({ language }) => {
   return (
     <div className="h-full flex flex-col">
       <ChatWrapper
-        personaId="teacher"
+        personaId="simplify"
         profile={profile}
         language={language}
         showMaterialSelector={true}

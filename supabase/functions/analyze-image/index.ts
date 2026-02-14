@@ -35,23 +35,23 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      console.error('Auth error:', userError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
     console.log("Authenticated user:", userId);
 
-    const { 
-      imageBase64, 
-      prompt, 
-      language = 'ar', 
-      educationLevel = 'high', 
+    const {
+      imageBase64,
+      prompt,
+      language = 'ar',
+      educationLevel = 'high',
       subject = 'general',
       mode = 'analyze'
     }: RequestBody = await req.json();
@@ -103,7 +103,7 @@ Return ONLY the extracted text without any commentary.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-pro',
+          model: 'google/gemini-1.5-pro',
           messages: [
             { role: 'system', content: extractionPrompt },
             {
@@ -156,7 +156,7 @@ Return ONLY the extracted text without any commentary.`;
 
     const levelPrompt = levelPrompts[educationLevel]?.[language] || levelPrompts.high[language];
 
-    const systemPrompt = language === 'ar' 
+    const systemPrompt = language === 'ar'
       ? `أنت معلم ذكي متخصص في تحليل الصور التعليمية والمسائل العلمية.
 ${levelPrompt}
 
@@ -184,7 +184,7 @@ When analyzing an image:
 
 Use mathematical symbols correctly (LaTeX when applicable) and make the explanation clear and organized.`;
 
-    const userPrompt = prompt || (language === 'ar' 
+    const userPrompt = prompt || (language === 'ar'
       ? 'حلل هذه الصورة واشرح محتواها بالتفصيل. اقرأ كل النص المكتوب بدقة. إذا كانت تحتوي على مسألة، قم بحلها خطوة بخطوة.'
       : 'Analyze this image and explain its content in detail. Read all written text accurately. If it contains a problem, solve it step by step.');
 
@@ -195,7 +195,7 @@ Use mathematical symbols correctly (LaTeX when applicable) and make the explanat
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-pro',
+        model: 'google/gemini-1.5-pro',
         messages: [
           { role: 'system', content: systemPrompt },
           {

@@ -21,7 +21,7 @@ const ProjectSuggestions: React.FC<ProjectSuggestionsProps> = ({ language }) => 
   return (
     <div className="h-full flex flex-col">
       <ChatWrapper
-        personaId="scientist"
+        personaId="projects"
         profile={profile}
         language={language}
         showMaterialSelector={true}

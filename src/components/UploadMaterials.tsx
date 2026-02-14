@@ -4,53 +4,37 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Upload, FileText, Image, File, X, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
+import { ALLOWED_MATERIAL_TYPES, MAX_FILE_SIZE } from '@/utils/uploadConstants';
 
 interface UploadMaterialsProps {
   language: 'ar' | 'en';
 }
 
-// MIME type validation for security
-const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-const ALLOWED_MATERIAL_TYPES = [
-  'text/plain',
-  'text/markdown',
-  'text/csv',
-  'text/x-markdown',
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp'
-];
 
-// Maximum file size (10MB)
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 const validateFile = (file: File, allowedTypes: string[], language: 'ar' | 'en'): { valid: boolean; error?: string } => {
   // Check file size
   if (file.size > MAX_FILE_SIZE) {
-    return { 
-      valid: false, 
-      error: language === 'ar' ? 'حجم الملف كبير جداً (الحد الأقصى 10 ميجابايت)' : 'File too large (max 10MB)' 
+    return {
+      valid: false,
+      error: language === 'ar' ? 'حجم الملف كبير جداً (الحد الأقصى 10 ميجابايت)' : 'File too large (max 10MB)'
     };
   }
-  
+
   // Check MIME type
   if (file.type && !allowedTypes.includes(file.type)) {
     // For files without MIME type, check extension as fallback
     const ext = file.name.split('.').pop()?.toLowerCase();
     const validExtensions = ['txt', 'md', 'csv', 'pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
-    
+
     if (!ext || !validExtensions.includes(ext)) {
-      return { 
-        valid: false, 
-        error: language === 'ar' ? 'نوع الملف غير مدعوم' : 'File type not supported' 
+      return {
+        valid: false,
+        error: language === 'ar' ? 'نوع الملف غير مدعوم' : 'File type not supported'
       };
     }
   }
-  
+
   return { valid: true };
 };
 
@@ -114,7 +98,7 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
     let successCount = 0;
     let errorCount = 0;
     const documentsToExtract: { id: string; storagePath: string; fileType: string }[] = [];
-    
+
     for (const file of files) {
       // Validate file before uploading
       const validation = validateFile(file, ALLOWED_MATERIAL_TYPES, language);
@@ -123,15 +107,15 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
         errorCount++;
         continue;
       }
-      
+
       const result = await uploadFile(file);
-      
+
       if (!result) {
         toast.error(language === 'ar' ? `فشل رفع ${file.name}` : `Failed to upload ${file.name}`);
         errorCount++;
         continue;
       }
-      
+
       // Use original filename for display, but sanitized filename was used for storage
       const { data, error } = await addMaterial({
         file_name: result.originalFilename || file.name,
@@ -140,7 +124,7 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
         storage_path: result.storagePath,
         content: result.content,
       });
-      
+
       if (error) {
         toast.error(language === 'ar' ? `فشل رفع ${file.name}` : `Failed to upload ${file.name}`);
         errorCount++;
@@ -148,42 +132,42 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
         successCount++;
         // Queue documents that need extraction (PDF, DOCX, etc.)
         if (result.needsExtraction && data?.id && result.storagePath) {
-          documentsToExtract.push({ 
-            id: data.id, 
+          documentsToExtract.push({
+            id: data.id,
             storagePath: result.storagePath,
             fileType: result.fileType
           });
         }
       }
     }
-    
+
     if (successCount > 0) {
-      toast.success(language === 'ar' 
-        ? `تم رفع ${successCount} ملف بنجاح` 
+      toast.success(language === 'ar'
+        ? `تم رفع ${successCount} ملف بنجاح`
         : `${successCount} file(s) uploaded successfully`
       );
     }
-    
+
     setUploading(false);
 
     // Extract document content in background
     if (documentsToExtract.length > 0) {
-      toast.info(language === 'ar' 
+      toast.info(language === 'ar'
         ? 'جاري استخراج محتوى الملفات...'
         : 'Extracting document content...'
       );
-      
+
       for (const doc of documentsToExtract) {
-        const success = await extractDocumentContent(doc.id, doc.storagePath, doc.fileType);
-        if (success) {
-          toast.success(language === 'ar' 
+        const result = await extractDocumentContent(doc.id, doc.storagePath, doc.fileType);
+        if (result.success) {
+          toast.success(language === 'ar'
             ? 'تم استخراج المحتوى بنجاح'
             : 'Document content extracted successfully'
           );
         } else {
           toast.error(language === 'ar'
-            ? 'فشل استخراج المحتوى'
-            : 'Failed to extract document content'
+            ? `فشل استخراج المحتوى: ${result.error || 'خطأ غير معروف'}`
+            : `Failed to extract content: ${result.error || 'Unknown error'}`
           );
         }
       }
@@ -197,18 +181,20 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
       toast.error(language === 'ar' ? 'لا يوجد مسار للملف' : 'No file path available');
       return;
     }
-    
+
     setExtractingId(material.id);
     toast.info(language === 'ar' ? 'جاري استخراج المحتوى...' : 'Extracting content...');
-    
-    const success = await extractDocumentContent(material.id, material.storage_path, material.file_type || '');
-    
+
+    const result = await extractDocumentContent(material.id, material.storage_path, material.file_type || '');
+
     setExtractingId(null);
-    
-    if (success) {
+
+    if (result.success) {
       toast.success(language === 'ar' ? 'تم استخراج المحتوى بنجاح' : 'Content extracted successfully');
     } else {
-      toast.error(language === 'ar' ? 'فشل استخراج المحتوى' : 'Failed to extract content');
+      toast.error(language === 'ar'
+        ? `فشل استخراج المحتوى: ${result.error || 'خطأ غير معروف'}`
+        : `Failed to extract content: ${result.error || 'Unknown error'}`);
     }
   };
 
@@ -293,10 +279,10 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
           <div data-helper-target="uploaded-files" className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar">
             {materials.map((file) => {
               const Icon = getFileIcon(file.file_name);
-              const canExtract = file.storage_path && ['pdf', 'docx', 'doc', 'pptx'].some(ext => 
+              const canExtract = file.storage_path && ['pdf', 'docx', 'doc', 'pptx', 'png', 'jpg', 'jpeg', 'webp'].some(ext =>
                 file.file_name.toLowerCase().endsWith(`.${ext}`)
               );
-              
+
               return (
                 <div key={file.id} className="flex items-center gap-3 p-3 bg-secondary/50 rounded-xl animate-slide-up">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -308,9 +294,9 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
                       ✓ {language === 'ar' ? 'جاهز' : 'Ready'}
                     </span>
                   ) : canExtract ? (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="shrink-0 h-8 text-xs"
                       onClick={() => handleReExtract(file)}
                       disabled={extractingId === file.id}
@@ -341,4 +327,4 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
 export default UploadMaterials;
 
 // Export validation function for use in ProfilePage
-export { validateFile, ALLOWED_AVATAR_TYPES, ALLOWED_MATERIAL_TYPES, MAX_FILE_SIZE };
+export { validateFile };

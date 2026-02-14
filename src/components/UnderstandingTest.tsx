@@ -34,13 +34,14 @@ interface TestSettings {
 
 const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
   const { profile } = useProfile();
-  const { materials } = useUploadedMaterials();
+  const { materials, uploadFile, addMaterial, extractDocumentContent, loading: materialsLoading } = useUploadedMaterials();
   const [input, setInput] = useState('');
   const [selectedMaterial, setSelectedMaterial] = useState<string>('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<number, any>>({});
   const [showResults, setShowResults] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [settings, setSettings] = useState<TestSettings>({
     questionType: 'mcq',
@@ -50,14 +51,17 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
   });
 
   const materialsWithContent = materials.filter((m: any) => m.content);
+  const materialsWithoutContent = materials.filter((m: any) => !m.content && m.storage_path);
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
       title: { ar: 'اختبار الفهم المطور', en: 'Enhanced Understanding Test' },
-      subtitle: { ar: 'اختبر فهمك للمادة بذكاء', en: 'Test your understanding intelligently' },
+      subtitle: { ar: 'اختبر فهمك للمادة بذكاء من خلال نصوصك أو ملفاتك', en: 'Test your understanding intelligently from text or files' },
       placeholder: { ar: 'الصق النص الذي تريد إنشاء اختبار له...', en: 'Paste the text you want to create a test for...' },
       generate: { ar: 'بدء الاختبار', en: 'Start Test' },
       selectMaterial: { ar: 'اختر من موادك المرفوعة', en: 'Select from your uploaded materials' },
+      uploadDocument: { ar: 'رفع مستند جديد', en: 'Upload New Document' },
+      uploadPrompt: { ar: 'اسحب وأفلت الملف هنا للبدء فوراً', en: 'Drag & drop file here to start immediately' },
       settings: { ar: 'إعدادات الاختبار', en: 'Test Settings' },
       qType: { ar: 'نوع الأسئلة', en: 'Question Type' },
       mcq: { ar: 'اختيار من متعدد', en: 'Multiple Choice' },
@@ -70,6 +74,7 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
       tryAgain: { ar: 'اختبار جديد', en: 'New Test' },
       score: { ar: 'النتيجة', en: 'Score' },
       timeLeft: { ar: 'الوقت المتبقي', en: 'Time Left' },
+      extracting: { ar: 'جاري استخراج المحتوى...', en: 'Extracting content...' },
     };
     return translations[key]?.[language] || key;
   };
@@ -84,12 +89,60 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
     return () => clearInterval(timer);
   }, [timeLeft, showResults]);
 
-  const handleGenerate = async () => {
-    const contentToTest = selectedMaterial 
-      ? materialsWithContent.find((m: any) => m.id === selectedMaterial)?.content 
-      : input;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (!contentToTest?.trim() || isLoading) return;
+    setIsUploading(true);
+    try {
+      const result = await uploadFile(file);
+      if (result) {
+        const { data, error } = await addMaterial({
+          file_name: result.originalFilename || file.name,
+          file_type: file.type,
+          file_size: file.size,
+          storage_path: result.storagePath,
+          content: result.content,
+        });
+
+        if (data?.id) {
+          setSelectedMaterial(data.id);
+          toast.success(language === 'ar' ? 'تم الرفع بنجاح، جاري معالجة الملف...' : 'Upload successful, processing file...');
+
+          if (result.needsExtraction && result.storagePath) {
+            const extractionResult = await extractDocumentContent(data.id, result.storagePath, result.fileType);
+            if (extractionResult.success) {
+              toast.success(language === 'ar' ? 'الملف جاهز الآن للاختبار' : 'File is now ready for testing');
+            } else {
+              toast.error(language === 'ar'
+                ? `فشل استخراج محتوى الملف: ${extractionResult.error || ''}`
+                : `Failed to extract file content: ${extractionResult.error || ''}`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error(language === 'ar' ? 'فشل رفع الملف' : 'File upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    const material = materials.find((m: any) => m.id === selectedMaterial);
+    const contentToTest = selectedMaterial ? material?.content : input;
+
+    if (!contentToTest?.trim()) {
+      if (selectedMaterial && !material?.content) {
+        toast.info(t('extracting'));
+        return;
+      }
+      toast.error(language === 'ar' ? 'يرجى إدخال نص أو اختيار ملف' : 'Please enters text or select a file');
+      return;
+    }
+
+    if (isLoading) return;
 
     setIsLoading(true);
     setQuestions([]);
@@ -98,7 +151,7 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session?.access_token) {
         toast.error(language === 'ar' ? 'يرجى تسجيل الدخول أولاً' : 'Please login first');
         setIsLoading(false);
@@ -115,22 +168,21 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
         body: JSON.stringify({
           messages: [
             {
+              role: 'system',
+              content: `أنت "${language === 'ar' ? 'مُقيّم الفهم والذكاء' : 'Understanding Evaluator'}".
+مهمتك هي إنشاء اختبار دقيق ومتنوع يقيس مدى استيعاب الطالب للمحتوى.
+- التزم بنوع الأسئلة المطلوبة: ${settings.questionType}.
+- اجعل الأسئلة متدرجة الصعوبة.
+- أضف شرحاً تعليمياً (explanation) لكل سؤال يوضح لماذا هذه الإجابة هي الصحيحة.
+- إذا طلبت "أسئلة ذكاء"، ركز على المنطق والاستدلال المرتبط بالموضوع.
+- رد بصيغة JSON فقط كقائمة (Array).`
+            },
+            {
               role: 'user',
-              content: `أنشئ اختباراً من نوع ${settings.questionType === 'mcq' ? 'اختيار من متعدد' : settings.questionType === 'text' ? 'أسئلة مقالية' : 'مختلط'} بناءً على المحتوى التالي. ${settings.includeIntelligenceQuestions ? 'أضف سؤالين ذكاء ومنطق.' : ''} 
-
-يجب أن ترد بـ JSON فقط بهذا الشكل بدون أي نص إضافي:
-[
-  {
-    "question": "نص السؤال؟",
-    "type": "mcq",
-    "options": ["أ", "ب", "ج", "د"],
-    "correctAnswer": 0,
-    "explanation": "شرح الإجابة"
-  }
-]
-
+              content: `أنشئ اختباراً من نوع ${settings.questionType} بناءً على المحتوى التالي. ${settings.includeIntelligenceQuestions ? 'أضف سؤالين ذكاء ومنطق.' : ''}
+ 
 المحتوى:
-${contentToTest.substring(0, 8000)}`,
+${contentToTest.substring(0, 15000)}`,
             },
           ],
           learnerProfile: profile,
@@ -146,14 +198,14 @@ ${contentToTest.substring(0, 8000)}`,
 
       const decoder = new TextDecoder();
       let fullContent = '';
-      
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split('\n');
-        
+
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6).trim();
@@ -175,7 +227,7 @@ ${contentToTest.substring(0, 8000)}`,
       let jsonStr = '';
       let bracketCount = 0;
       let startIdx = -1;
-      
+
       for (let i = 0; i < fullContent.length; i++) {
         if (fullContent[i] === '[') {
           if (startIdx === -1) startIdx = i;
@@ -237,65 +289,119 @@ ${contentToTest.substring(0, 8000)}`,
       </div>
 
       {questions.length === 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="p-6 space-y-4" data-helper-target="test-settings">
-            <h3 className="font-semibold flex items-center gap-2"><BookOpen className="w-5 h-5" /> {t('selectMaterial')}</h3>
-            {materialsWithContent.length > 0 && (
-              <Select value={selectedMaterial} onValueChange={(v) => { setSelectedMaterial(v); setInput(''); }}>
-                <SelectTrigger><SelectValue placeholder={t('selectMaterial')} /></SelectTrigger>
-                <SelectContent>
-                  {materialsWithContent.map((m: any) => (
-                    <SelectItem key={m.id} value={m.id}>{m.file_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <Textarea
-              value={input}
-              onChange={(e) => { setInput(e.target.value); setSelectedMaterial(''); }}
-              placeholder={t('placeholder')}
-              className="min-h-[200px] resize-none"
-              dir={language === 'ar' ? 'rtl' : 'ltr'}
-            />
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto w-full">
+          <div className="space-y-6">
+            <Card className="p-6 space-y-4 shadow-lg border-primary/10" data-helper-target="test-settings">
+              <h3 className="font-semibold flex items-center gap-2 text-primary">
+                <BookOpen className="w-5 h-5" /> {t('selectMaterial')}
+              </h3>
 
-          <Card className="p-6 space-y-6">
-            <h3 className="font-semibold flex items-center gap-2"><Settings2 className="w-5 h-5" /> {t('settings')}</h3>
-            
-            <div className="space-y-2">
-              <Label>{t('qType')}</Label>
-              <Select value={settings.questionType} onValueChange={(v: any) => setSettings({...settings, questionType: v})}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mcq">{t('mcq')}</SelectItem>
-                  <SelectItem value="text">{t('text')}</SelectItem>
-                  <SelectItem value="mixed">{t('mixed')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="grid gap-4">
+                {materials.length > 0 && (
+                  <Select value={selectedMaterial} onValueChange={(v) => { setSelectedMaterial(v); setInput(''); }}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder={t('selectMaterial')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none" className="text-muted-foreground italic">{t('placeholder')}</SelectItem>
+                      {[...materialsWithContent, ...materialsWithoutContent].map((m: any) => (
+                        <SelectItem key={m.id} value={m.id} disabled={!m.content && m.storage_path}>
+                          <div className="flex items-center gap-2">
+                            {m.file_name}
+                            {!m.content && m.storage_path && (
+                              <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded animate-pulse">
+                                {t('extracting')}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
-            <div className="flex items-center justify-between">
-              <Label>{t('timed')}</Label>
-              <Switch checked={settings.timedTest} onCheckedChange={(v) => setSettings({...settings, timedTest: v})} />
-            </div>
-
-            {settings.timedTest && (
-              <div className="space-y-2">
-                <Label>{t('duration')}</Label>
-                <Input type="number" value={settings.duration} onChange={(e) => setSettings({...settings, duration: parseInt(e.target.value)})} />
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-accent/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/20 rounded-xl cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      {isUploading ? (
+                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                      ) : (
+                        <>
+                          <Sparkles className="w-8 h-8 text-primary mb-2 opacity-50" />
+                          <p className="text-sm font-medium">{t('uploadDocument')}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{t('uploadPrompt')}</p>
+                        </>
+                      )}
+                    </div>
+                    <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} accept=".pdf,.docx,.doc,.txt,.md" />
+                  </label>
+                </div>
               </div>
-            )}
 
-            <div className="flex items-center justify-between">
-              <Label>{t('intel')}</Label>
-              <Switch checked={settings.includeIntelligenceQuestions} onCheckedChange={(v) => setSettings({...settings, includeIntelligenceQuestions: v})} />
-            </div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">{language === 'ar' ? 'أو' : 'OR'}</span></div>
+              </div>
 
-            <Button data-helper-target="start-test" onClick={handleGenerate} disabled={(!input.trim() && !selectedMaterial) || isLoading} className="w-full h-12 gradient-primary">
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : <Sparkles className="w-4 h-4 me-2" />}
-              {t('generate')}
-            </Button>
-          </Card>
+              <Textarea
+                value={input}
+                onChange={(e) => { setInput(e.target.value); setSelectedMaterial(''); }}
+                placeholder={t('placeholder')}
+                className="min-h-[180px] resize-none bg-muted/30 focus:bg-background transition-colors"
+                dir={language === 'ar' ? 'rtl' : 'ltr'}
+              />
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="p-6 space-y-6 shadow-lg border-primary/10">
+              <h3 className="font-semibold flex items-center gap-2 text-primary"><Settings2 className="w-5 h-5" /> {t('settings')}</h3>
+
+              <div className="space-y-4">
+                <div className="grid gap-2">
+                  <Label className="text-sm font-medium">{t('qType')}</Label>
+                  <Select value={settings.questionType} onValueChange={(v: any) => setSettings({ ...settings, questionType: v })}>
+                    <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mcq">{t('mcq')}</SelectItem>
+                      <SelectItem value="text">{t('text')}</SelectItem>
+                      <SelectItem value="mixed">{t('mixed')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                  <Label htmlFor="timed-switch" className="flex-1 cursor-pointer">{t('timed')}</Label>
+                  <Switch id="timed-switch" checked={settings.timedTest} onCheckedChange={(v) => setSettings({ ...settings, timedTest: v })} />
+                </div>
+
+                {settings.timedTest && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                    <Label className="text-sm">{t('duration')}</Label>
+                    <div className="flex items-center gap-3">
+                      <Input type="number" min="1" max="120" value={settings.duration} onChange={(e) => setSettings({ ...settings, duration: parseInt(e.target.value) })} className="h-11" />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                  <Label htmlFor="intel-switch" className="flex-1 cursor-pointer">{t('intel')}</Label>
+                  <Switch id="intel-switch" checked={settings.includeIntelligenceQuestions} onCheckedChange={(v) => setSettings({ ...settings, includeIntelligenceQuestions: v })} />
+                </div>
+              </div>
+
+              <Button
+                data-helper-target="start-test"
+                onClick={handleGenerate}
+                disabled={(!input.trim() && !selectedMaterial) || isLoading || isUploading}
+                className="w-full h-12 text-lg font-bold shadow-lg hover:shadow-xl transition-all gradient-primary"
+              >
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin me-2" /> : <Sparkles className="w-5 h-5 me-2" />}
+                {t('generate')}
+              </Button>
+            </Card>
+          </div>
         </div>
       ) : (
         <div className="max-w-3xl mx-auto w-full space-y-6">
@@ -312,15 +418,14 @@ ${contentToTest.substring(0, 8000)}`,
             <Card key={idx} className="p-6 space-y-4">
               <h3 className="font-semibold text-lg">{idx + 1}. {q.question}</h3>
               {q.type === 'mcq' && q.options && q.options.length > 0 ? (
-                <RadioGroup 
-                  value={answers[idx] !== undefined ? answers[idx].toString() : ''} 
-                  onValueChange={(v) => setAnswers(prev => ({ ...prev, [idx]: parseInt(v) }))} 
+                <RadioGroup
+                  value={answers[idx] !== undefined ? answers[idx].toString() : ''}
+                  onValueChange={(v) => setAnswers(prev => ({ ...prev, [idx]: parseInt(v) }))}
                   disabled={showResults}
                 >
                   {q.options.map((opt, oIdx) => (
-                    <div key={`q${idx}-opt${oIdx}`} className={`flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-lg border ${
-                      showResults ? (oIdx === q.correctAnswer ? 'bg-green-100 border-green-500' : answers[idx] === oIdx ? 'bg-red-100 border-red-500' : '') : 'hover:bg-accent'
-                    }`}>
+                    <div key={`q${idx}-opt${oIdx}`} className={`flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-lg border ${showResults ? (oIdx === q.correctAnswer ? 'bg-green-100 border-green-500' : answers[idx] === oIdx ? 'bg-red-100 border-red-500' : '') : 'hover:bg-accent'
+                      }`}>
                       <RadioGroupItem value={oIdx.toString()} id={`q${idx}-o${oIdx}`} />
                       <Label htmlFor={`q${idx}-o${oIdx}`} className="flex-1 cursor-pointer">{opt}</Label>
                     </div>

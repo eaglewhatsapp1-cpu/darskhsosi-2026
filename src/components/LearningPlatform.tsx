@@ -10,6 +10,8 @@ import MainContent from './MainContent';
 import FloatingHelper from './floatingHelper';
 import { Loader2 } from 'lucide-react';
 import { Subject } from '@/utils/subjectColors';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 export type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress' | 'weblink' | 'studyplan' | 'projects' | 'profile';
 const LearningPlatform: React.FC = () => {
   const navigate = useNavigate();
@@ -26,9 +28,11 @@ const LearningPlatform: React.FC = () => {
     updateProfile
   } = useProfile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeFeature, setActiveFeature] = useState<SidebarFeature>('teacher');
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
   const hasInitializedLanguage = useRef(false);
+  const isMobile = useIsMobile();
 
   // Apply dynamic subject theming ONLY when profile is complete
   // This prevents CSS variable changes from interfering with ProfileSetup's Radix components
@@ -68,8 +72,8 @@ const LearningPlatform: React.FC = () => {
   };
   if (authLoading || profileLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>;
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>;
   }
   if (!user) {
     return null;
@@ -78,12 +82,48 @@ const LearningPlatform: React.FC = () => {
     return <ProfileSetup onComplete={handleProfileComplete} currentLanguage={language} setLanguage={handleLanguageChange} />;
   }
   return <div className="flex flex-col h-screen w-full overflow-hidden">
-      <AppHeader profile={profile!} language={language} onSubjectChange={handleSubjectChange} />
-      <div className="flex flex-1 overflow-hidden">
-        <AppSidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} activeFeature={activeFeature} setActiveFeature={setActiveFeature} profile={profile!} language={language} onSignOut={signOut} />
-        <MainContent activeFeature={activeFeature} profile={profile!} language={language} setActiveFeature={setActiveFeature} />
-        <FloatingHelper language={language} currentFeature={activeFeature} onNavigate={feature => setActiveFeature(feature as SidebarFeature)} />
+    <AppHeader
+      profile={profile!}
+      language={language}
+      onSubjectChange={handleSubjectChange}
+      onMenuClick={() => setMobileMenuOpen(true)}
+    />
+    <div className="flex flex-1 overflow-hidden">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block h-full">
+        <AppSidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          activeFeature={activeFeature}
+          setActiveFeature={setActiveFeature}
+          profile={profile!}
+          language={language}
+          onSignOut={signOut}
+        />
       </div>
-    </div>;
+
+      {/* Mobile Sidebar (Sheet) */}
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent side={language === 'ar' ? 'right' : 'left'} className="p-0 w-64 border-none">
+          <AppSidebar
+            collapsed={false}
+            onToggle={() => setMobileMenuOpen(false)}
+            activeFeature={activeFeature}
+            setActiveFeature={(f) => {
+              setActiveFeature(f);
+              setMobileMenuOpen(false);
+            }}
+            profile={profile!}
+            language={language}
+            onSignOut={signOut}
+            className="w-full"
+          />
+        </SheetContent>
+      </Sheet>
+
+      <MainContent activeFeature={activeFeature} profile={profile!} language={language} setActiveFeature={setActiveFeature} />
+      <FloatingHelper language={language} currentFeature={activeFeature} onNavigate={feature => setActiveFeature(feature as SidebarFeature)} />
+    </div>
+  </div>;
 };
 export default LearningPlatform;

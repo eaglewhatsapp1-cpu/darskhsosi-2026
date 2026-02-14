@@ -52,7 +52,7 @@ export const useUploadedMaterials = () => {
     const lastDotIndex = filename.lastIndexOf('.');
     const ext = lastDotIndex > -1 ? filename.slice(lastDotIndex) : '';
     const nameWithoutExt = lastDotIndex > -1 ? filename.slice(0, lastDotIndex) : filename;
-    
+
     // Replace non-ASCII characters with transliteration or underscores
     const sanitized = nameWithoutExt
       .replace(/[^\x00-\x7F]/g, '_') // Replace non-ASCII with underscore
@@ -60,7 +60,7 @@ export const useUploadedMaterials = () => {
       .replace(/_+/g, '_') // Replace multiple underscores with single
       .replace(/^_|_$/g, '') // Remove leading/trailing underscores
       || 'file'; // Fallback if empty
-    
+
     return sanitized + ext;
   };
 
@@ -81,16 +81,16 @@ export const useUploadedMaterials = () => {
       let needsExtraction = false;
       const fileExt = file.name.split('.').pop()?.toLowerCase();
       const textExtensions = ['txt', 'md', 'csv', 'json', 'xml', 'html', 'css', 'js', 'ts', 'py'];
-      
+
       // For text files, extract content directly
       if (fileExt && textExtensions.includes(fileExt)) {
         content = await file.text();
         if (content.length > 50000) {
           content = content.substring(0, 50000) + '\n\n[Content truncated...]';
         }
-      } 
-      // For PDF, DOCX, DOC, PPTX - need AI extraction
-      else if (fileExt && ['pdf', 'docx', 'doc', 'pptx'].includes(fileExt)) {
+      }
+      // For PDF, DOCX, DOC, PPTX and Images - need AI extraction
+      else if (fileExt && ['pdf', 'docx', 'doc', 'pptx', 'png', 'jpg', 'jpeg', 'webp'].includes(fileExt)) {
         needsExtraction = true;
       }
 
@@ -101,27 +101,31 @@ export const useUploadedMaterials = () => {
     }
   };
 
-  const extractDocumentContent = async (materialId: string, storagePath: string, fileType: string): Promise<boolean> => {
+  const extractDocumentContent = async (materialId: string, storagePath: string, fileType: string): Promise<{ success: boolean; error?: string }> => {
     try {
       console.log('Extracting document content:', { materialId, storagePath, fileType });
-      
-      const { data, error } = await supabase.functions.invoke('extract-document-text', {
+
+      const { data, error: invokeError } = await supabase.functions.invoke('extract-document-text', {
         body: { materialId, storagePath, fileType }
       });
 
-      if (error) {
-        console.error('Document extraction error:', error);
-        return false;
+      if (invokeError) {
+        console.error('Document extraction error:', invokeError);
+        return { success: false, error: invokeError.message || 'Function invocation failed' };
+      }
+
+      if (data?.error) {
+        return { success: false, error: data.error };
       }
 
       console.log('Extraction result:', data);
 
       // Refresh materials to get the updated content
       await fetchMaterials();
-      return true;
-    } catch (error) {
+      return { success: true };
+    } catch (error: any) {
       console.error('Error extracting document:', error);
-      return false;
+      return { success: false, error: error.message || 'Unknown error' };
     }
   };
 
@@ -162,7 +166,7 @@ export const useUploadedMaterials = () => {
 
     try {
       const material = materials.find(m => m.id === id);
-      
+
       if (material?.storage_path) {
         await supabase.storage
           .from('learning-materials')

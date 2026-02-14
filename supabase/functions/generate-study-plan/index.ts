@@ -41,25 +41,25 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      console.error('Auth error:', userError);
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
     console.log("Authenticated user:", userId);
 
-    const { 
-      materials, 
-      subject = 'general', 
-      educationLevel = 'high', 
+    const {
+      materials,
+      subject = 'general',
+      educationLevel = 'high',
       learningStyle = 'visual',
       durationWeeks = 2,
-      language = 'ar' 
+      language = 'ar'
     }: RequestBody = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -85,51 +85,61 @@ serve(async (req) => {
       .join('\n\n');
 
     const systemPrompt = language === 'ar'
-      ? `أنت مخطط تعليمي ذكي متخصص في إنشاء خطط دراسية مخصصة.
-مهمتك إنشاء خطة دراسية مفصلة ومنظمة.
+      ? `أنت خبير في التخطيط التربوي وتصميم المناهج الرقمية.
+مهمتك هي تحويل المحتوى التعليمي إلى خطة دراسية استراتيجية، جذابة، وعملية.
+
+يجب أن تتبع الخطة المنهجية التالية:
+1. التدرج من السهل إلى الصعب.
+2. مراعاة أسلوب التعلم المفضل للمتعلم (${learningStyle}).
+3. تقسيم المحتوى إلى وحدات زمنية منطقية.
 
 يجب أن ترد بتنسيق JSON فقط بالشكل التالي:
 {
-  "title": "عنوان الخطة",
-  "overview": "نظرة عامة على الخطة",
+  "title": "عنوان جذاب للخطة",
+  "overview": "ملخص شامل للأهداف التعليمية",
   "weeks": [
     {
       "weekNumber": 1,
-      "focus": "تركيز الأسبوع",
+      "focus": "الهدف الرئيسي لهذا الأسبوع",
       "days": [
         {
-          "day": "السبت",
-          "topics": ["موضوع 1", "موضوع 2"],
-          "duration": "ساعة واحدة",
-          "activities": ["نشاط 1", "نشاط 2"]
+          "day": "اليوم",
+          "topics": ["موضوعات فرعية محددة"],
+          "duration": "الوقت الموصى به (مثلاً: 45 دقيقة)",
+          "activities": ["أنشطة عملية تطبيقية"]
         }
       ]
     }
   ],
-  "tips": ["نصيحة 1", "نصيحة 2"]
+  "tips": ["نصائح ذهبية لتسريع التعلم والاستيعاب"]
 }`
-      : `You are an intelligent educational planner specialized in creating personalized study plans.
-Your task is to create a detailed and organized study plan.
+      : `You are an expert in educational planning and digital curriculum design.
+Your task is to transform educational content into a strategic, engaging, and practical study plan.
+
+The plan must follow this methodology:
+1. Progressive difficulty (simple to complex).
+2. Alignment with the learner's preferred style (${learningStyle}).
+3. Logical content breakdown into time units.
 
 You must respond in JSON format only as follows:
 {
-  "title": "Plan Title",
-  "overview": "Overview of the plan",
+  "title": "Engaging Plan Title",
+  "overview": "Comprehensive summary of learning goals",
   "weeks": [
     {
       "weekNumber": 1,
-      "focus": "Week focus",
+      "focus": "Main objective for this week",
       "days": [
         {
-          "day": "Saturday",
-          "topics": ["Topic 1", "Topic 2"],
-          "duration": "1 hour",
-          "activities": ["Activity 1", "Activity 2"]
+          "day": "Day",
+          "topics": ["Specific sub-topics"],
+          "duration": "Recommended time (e.g., 45 mins)",
+          "activities": ["Practical application activities"]
         }
       ]
     }
   ],
-  "tips": ["Tip 1", "Tip 2"]
+  "tips": ["Pro-tips for faster learning and retention"]
 }`;
 
     const userPrompt = language === 'ar'
@@ -169,7 +179,7 @@ Create a study plan that includes:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-1.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }

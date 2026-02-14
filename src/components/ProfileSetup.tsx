@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import { GraduationCap, Sparkles, BookOpen, Calendar, Heart, Languages, Loader2, Target } from 'lucide-react';
 
@@ -19,7 +20,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
   const { profile, updateProfile } = useProfile();
   const [loading, setLoading] = useState(false);
   const hasInitialized = useRef(false);
-  
+
   // Initialize form data with profile data or empty defaults
   // Use lazy initializer + ref to prevent loops
   const [formData, setFormData] = useState(() => {
@@ -29,7 +30,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
         name: profile.name || '',
         birthDate: profile.birth_date || '',
         educationLevel: profile.education_level || '',
-        learningStyles: profile.learning_styles || (profile.learning_style ? [profile.learning_style] : []),
+        learningStyle: profile.learning_style || 'visual',
         learningLanguages: profile.learning_languages || ['ar'],
         interests: profile.interests?.join(', ') || '',
         bio: profile.bio || '',
@@ -41,7 +42,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
       name: '',
       birthDate: '',
       educationLevel: '',
-      learningStyles: [] as string[],
+      learningStyle: 'visual',
       learningLanguages: ['ar'],
       interests: '',
       bio: '',
@@ -108,12 +109,10 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
     return translations[currentLanguage][key] || key;
   };
 
-  const handleLearningStyleToggle = (style: string) => {
+  const handleLearningStyleChange = (style: string) => {
     setFormData(prev => ({
       ...prev,
-      learningStyles: prev.learningStyles.includes(style)
-        ? prev.learningStyles.filter(s => s !== style)
-        : [...prev.learningStyles, style]
+      learningStyle: style
     }));
   };
 
@@ -128,24 +127,23 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name || !formData.educationLevel || formData.learningStyles.length === 0) {
+
+    if (!formData.name || !formData.educationLevel || !formData.learningStyle) {
       toast.error(currentLanguage === 'ar' ? 'الرجاء ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
       return;
     }
 
     setLoading(true);
 
-    const preferredLang = formData.preferredLanguage === 'ar' || formData.preferredLanguage === 'en' 
-      ? formData.preferredLanguage 
+    const preferredLang = formData.preferredLanguage === 'ar' || formData.preferredLanguage === 'en'
+      ? formData.preferredLanguage
       : 'ar';
 
     const { error } = await updateProfile({
       name: formData.name,
       birth_date: formData.birthDate || null,
       education_level: formData.educationLevel as 'elementary' | 'middle' | 'high' | 'university' | 'professional',
-      learning_style: formData.learningStyles[0] as 'visual' | 'practical' | 'illustrative',
-      learning_styles: formData.learningStyles,
+      learning_style: formData.learningStyle as 'visual' | 'practical' | 'illustrative',
       learning_languages: formData.learningLanguages,
       interests: formData.interests.split(',').map(i => i.trim()).filter(Boolean),
       bio: formData.bio || null,
@@ -236,27 +234,27 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
               </Select>
             </div>
 
-            {/* Learning Style - Multi-select */}
+            {/* Learning Style - Single-select Radio Buttons */}
             <div className="space-y-3">
               <Label className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-primary" />
                 {t('profile.learningStyle')} *
               </Label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <RadioGroup
+                value={formData.learningStyle}
+                onValueChange={handleLearningStyleChange}
+                className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+              >
                 {['visual', 'practical', 'illustrative'].map((style) => (
-                  <div 
-                    key={style} 
-                    className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors" 
-                    onClick={() => handleLearningStyleToggle(style)}
+                  <div
+                    key={style}
+                    className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent transition-colors"
                   >
-                    <Checkbox 
-                      checked={formData.learningStyles.includes(style)} 
-                      onCheckedChange={() => handleLearningStyleToggle(style)} 
-                    />
-                    <Label className="cursor-pointer flex-1">{t(`style.${style}`)}</Label>
+                    <RadioGroupItem value={style} id={`style-${style}`} />
+                    <Label htmlFor={`style-${style}`} className="cursor-pointer flex-1 py-1">{t(`style.${style}`)}</Label>
                   </div>
                 ))}
-              </div>
+              </RadioGroup>
             </div>
 
             {/* Learning Languages - Multi-select */}
@@ -270,16 +268,16 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
                   { value: 'ar', label: t('lang.ar') },
                   { value: 'en', label: t('lang.en') },
                 ].map((lang) => (
-                  <div 
-                    key={lang.value} 
-                    className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors" 
-                    onClick={() => handleLearningLanguageToggle(lang.value)}
+                  <div
+                    key={lang.value}
+                    className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent transition-colors"
                   >
-                    <Checkbox 
-                      checked={formData.learningLanguages.includes(lang.value)} 
-                      onCheckedChange={() => handleLearningLanguageToggle(lang.value)} 
+                    <Checkbox
+                      id={`lang-${lang.value}`}
+                      checked={formData.learningLanguages.includes(lang.value)}
+                      onCheckedChange={() => handleLearningLanguageToggle(lang.value)}
                     />
-                    <Label className="cursor-pointer flex-1">{lang.label}</Label>
+                    <Label htmlFor={`lang-${lang.value}`} className="cursor-pointer flex-1 py-1">{lang.label}</Label>
                   </div>
                 ))}
               </div>

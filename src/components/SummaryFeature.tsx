@@ -21,7 +21,7 @@ const SummaryFeature: React.FC<SummaryFeatureProps> = ({ language }) => {
   return (
     <div className="h-full flex flex-col">
       <ChatWrapper
-        personaId="teacher"
+        personaId="summary"
         profile={profile}
         language={language}
         showMaterialSelector={true}

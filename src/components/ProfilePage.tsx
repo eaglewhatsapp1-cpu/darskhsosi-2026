@@ -349,6 +349,62 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
             </div>
           </Card>
 
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
+              <Bot className="w-5 h-5 text-primary" />
+              {t('section.ai')}
+            </h2>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label>{t('field.persona')}</Label>
+                <Select value={formData.aiPersona} onValueChange={(value) => setFormData({ ...formData, aiPersona: value })}>
+                  <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="teacher">{language === 'ar' ? '👨‍🏫 معلم صبور' : '👨‍🏫 Patient Teacher'}</SelectItem>
+                    <SelectItem value="scientist">{language === 'ar' ? '🧪 عالم عبقري' : '🧪 Genius Scientist'}</SelectItem>
+                    <SelectItem value="examiner">{language === 'ar' ? '📝 ممتحن دقيق' : '📝 Strict Examiner'}</SelectItem>
+                    <SelectItem value="analyzer">{language === 'ar' ? '🔍 محلل ذكي' : '🔍 Smart Analyzer'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t('field.speaking')}</Label>
+                <Select value={formData.speakingStyle} onValueChange={(value) => setFormData({ ...formData, speakingStyle: value })}>
+                  <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="formal_ar">{language === 'ar' ? 'لغة عربية فصحى' : 'Formal Arabic'}</SelectItem>
+                    <SelectItem value="egyptian">{language === 'ar' ? 'عامية مصرية' : 'Egyptian Slang'}</SelectItem>
+                    <SelectItem value="friendly_en">{language === 'ar' ? 'إنجليزية ودودة' : 'Friendly English'}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <Label>{t('field.knowledge')}</Label>
+                  <span className="text-xs font-bold text-primary">
+                    {formData.knowledgeRatio === 0 ? t('knowledge.materials') :
+                      formData.knowledgeRatio === 100 ? t('knowledge.internet') :
+                        `${formData.knowledgeRatio}%`}
+                  </span>
+                </div>
+                <Slider
+                  value={[formData.knowledgeRatio]}
+                  onValueChange={(val) => setFormData({ ...formData, knowledgeRatio: val[0] })}
+                  max={100}
+                  step={10}
+                  className="py-4"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>{t('knowledge.materials')}</span>
+                  <span>{t('knowledge.internet')}</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+
           <Card className="p-6 border-amber-200 bg-amber-50/30">
             <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <ShieldAlert className="w-5 h-5 text-amber-500" />

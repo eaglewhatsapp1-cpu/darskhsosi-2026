@@ -2,11 +2,12 @@ import React, { useLayoutEffect, useRef } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { SidebarFeature } from './LearningPlatform';
 import { cn } from '@/lib/utils';
-import { GraduationCap, Upload, Network, Lightbulb, FileText, Users, Video, ClipboardCheck, TrendingUp, ChevronLeft, ChevronRight, LogOut, Link, Calendar, Rocket, Heart } from 'lucide-react';
+import { GraduationCap, Upload, Network, Lightbulb, FileText, Users, Video, ClipboardCheck, TrendingUp, ChevronLeft, ChevronRight, LogOut, Link, Calendar, Rocket, Heart, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import gsap from 'gsap';
+
 interface AppSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
@@ -15,7 +16,9 @@ interface AppSidebarProps {
   profile: Profile;
   language: 'ar' | 'en';
   onSignOut: () => void;
+  className?: string;
 }
+
 export const features: {
   id: SidebarFeature;
   icon: React.ElementType;
@@ -56,20 +59,12 @@ export const features: {
   id: 'projects',
   icon: Rocket
 }, {
+  id: 'profile',
+  icon: User
+}, {
   id: 'about',
   icon: Heart
 }];
-
-interface AppSidebarProps {
-  collapsed: boolean;
-  onToggle: () => void;
-  activeFeature: SidebarFeature;
-  setActiveFeature: (feature: SidebarFeature) => void;
-  profile: Profile;
-  language: 'ar' | 'en';
-  onSignOut: () => void;
-  className?: string;
-}
 
 const AppSidebar: React.FC<AppSidebarProps> = ({
   collapsed,
@@ -118,6 +113,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
 
     return () => ctx.revert();
   }, [dir]);
+
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
       ar: {
@@ -134,6 +130,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         'sidebar.weblink': 'شرح الروابط',
         'sidebar.studyplan': 'خطة دراسية',
         'sidebar.projects': 'مشاريع عملية',
+        'sidebar.profile': 'الملف الشخصي',
         'sidebar.about': 'عن التطبيق',
         'action.signout': 'تسجيل الخروج'
       },
@@ -151,15 +148,18 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         'sidebar.weblink': 'Explain Links',
         'sidebar.studyplan': 'Study Plan',
         'sidebar.projects': 'Projects',
+        'sidebar.profile': 'Profile',
         'sidebar.about': 'About',
         'action.signout': 'Sign Out'
       }
     };
     return translations[language][key] || key;
   };
+
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
+
   const educationLabels: Record<string, Record<string, string>> = {
     ar: {
       elementary: 'ابتدائي',
@@ -176,84 +176,110 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
       professional: 'Professional'
     }
   };
-  return <aside ref={sidebarRef} className={cn('h-full bg-sidebar flex flex-col transition-all duration-300 border-e border-sidebar-border gsap-theme-animate', collapsed ? 'w-16' : 'w-64')}>
-    {/* Header */}
-    <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
-      {!collapsed && <div className="flex items-center gap-3 animate-fade-in">
-        <div className="w-10 h-10 rounded-xl gradient-accent flex items-center justify-center shadow-accent">
-          <GraduationCap className="w-5 h-5 text-accent-foreground" />
-        </div>
-        <div>
-          <h1 className="heading-4 text-sidebar-foreground leading-tight">
-            {t('app.name')}
-          </h1>
-        </div>
-      </div>}
-      <Button variant="ghost" size="icon" onClick={onToggle} className="text-sidebar-foreground hover:bg-sidebar-accent shrink-0">
-        {dir === 'rtl' ? collapsed ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" /> : collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-      </Button>
-    </div>
 
-    {/* Navigation */}
-    <nav className="flex-1 py-4 overflow-y-auto custom-scrollbar">
-      <ul ref={navItemsRef} className="space-y-1 px-2">
-        {features.map(feature => {
-          const Icon = feature.icon;
-          const isActive = activeFeature === feature.id;
-          const button = <button data-helper-target={`sidebar-${feature.id}`} onClick={() => setActiveFeature(feature.id)} className={cn('w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200', isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-accent' : 'text-sidebar-foreground hover:bg-sidebar-accent')}>
-            <Icon className="w-5 h-5 shrink-0" />
-            {!collapsed && <span className="body-sm font-medium truncate">
-              {t(`sidebar.${feature.id}`)}
-            </span>}
-          </button>;
-          return <li key={feature.id}>
-            {collapsed ? <Tooltip>
-              <TooltipTrigger asChild>{button}</TooltipTrigger>
-              <TooltipContent side={dir === 'rtl' ? 'left' : 'right'}>
-                {t(`sidebar.${feature.id}`)}
-              </TooltipContent>
-            </Tooltip> : button}
-          </li>;
-        })}
-      </ul>
-    </nav>
-
-    {/* Profile Section */}
-    <div className="p-4 border-t border-sidebar-border">
-      <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
-        <Avatar className="w-10 h-10 border-2 border-sidebar-primary">
-          <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground font-semibold">
-            {getInitials(profile.name)}
-          </AvatarFallback>
-        </Avatar>
-        {!collapsed && <div className="flex-1 min-w-0">
-          <p className="body-sm font-medium text-sidebar-foreground truncate">
-            {profile.name}
-          </p>
-          <p className="caption truncate">
-            {profile.education_level && educationLabels[language][profile.education_level]}
-          </p>
+  return (
+    <aside
+      ref={sidebarRef}
+      className={cn(
+        'h-full bg-sidebar flex flex-col transition-all duration-300 border-e border-sidebar-border gsap-theme-animate',
+        collapsed ? 'w-16' : 'w-64',
+        className
+      )}
+    >
+      {/* Header */}
+      <div className="p-4 flex items-center justify-between border-b border-sidebar-border">
+        {!collapsed && <div className="flex items-center gap-3 animate-fade-in">
+          <div className="w-10 h-10 rounded-xl gradient-accent flex items-center justify-center shadow-accent">
+            <GraduationCap className="w-5 h-5 text-accent-foreground" />
+          </div>
+          <div>
+            <h1 className="heading-4 text-sidebar-foreground leading-tight">
+              {t('app.name')}
+            </h1>
+          </div>
         </div>}
-        {!collapsed && <Tooltip>
+        <Button variant="ghost" size="icon" onClick={onToggle} className="text-sidebar-foreground hover:bg-sidebar-accent shrink-0">
+          {dir === 'rtl' ? collapsed ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" /> : collapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+        </Button>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 py-4 overflow-y-auto custom-scrollbar">
+        <ul ref={navItemsRef} className="space-y-1 px-2">
+          {features.map(feature => {
+            const Icon = feature.icon;
+            const isActive = activeFeature === feature.id;
+            const button = <button data-helper-target={`sidebar-${feature.id}`} onClick={() => setActiveFeature(feature.id)} className={cn('w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200', isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-accent' : 'text-sidebar-foreground hover:bg-sidebar-accent')}>
+              <Icon className="w-5 h-5 shrink-0" />
+              {!collapsed && <span className="body-sm font-medium truncate">
+                {t(`sidebar.${feature.id}`)}
+              </span>}
+            </button>;
+            return <li key={feature.id}>
+              {collapsed ? <Tooltip>
+                <TooltipTrigger asChild>{button}</TooltipTrigger>
+                <TooltipContent side={dir === 'rtl' ? 'left' : 'right'}>
+                  {t(`sidebar.${feature.id}`)}
+                </TooltipContent>
+              </Tooltip> : button}
+            </li>;
+          })}
+        </ul>
+      </nav>
+
+      {/* Profile Section */}
+      <div className="p-4 border-t border-sidebar-border">
+        <div
+          className={cn(
+            'flex items-center gap-3 p-2 rounded-xl transition-all duration-200 cursor-pointer hover:bg-sidebar-accent',
+            activeFeature === 'profile' && 'bg-sidebar-primary text-sidebar-primary-foreground shadow-accent',
+            collapsed && 'justify-center'
+          )}
+          onClick={() => setActiveFeature('profile')}
+        >
+          <Avatar className={cn('w-10 h-10 border-2', activeFeature === 'profile' ? 'border-white' : 'border-sidebar-primary')}>
+            <AvatarFallback className={cn(activeFeature === 'profile' ? 'bg-primary-foreground text-primary' : 'bg-sidebar-accent text-sidebar-foreground', 'font-semibold')}>
+              {getInitials(profile.name)}
+            </AvatarFallback>
+          </Avatar>
+          {!collapsed && <div className="flex-1 min-w-0">
+            <p className={cn('body-sm font-medium truncate', activeFeature === 'profile' ? 'text-white' : 'text-sidebar-foreground')}>
+              {profile.name}
+            </p>
+            <p className={cn('caption truncate opacity-80', activeFeature === 'profile' ? 'text-white' : 'text-muted-foreground')}>
+              {profile.education_level && educationLabels[language][profile.education_level]}
+            </p>
+          </div>}
+          {!collapsed && <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn('shrink-0', activeFeature === 'profile' ? 'text-white hover:bg-white/20' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSignOut();
+                }}
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t('action.signout')}</TooltipContent>
+          </Tooltip>}
+        </div>
+        {collapsed && <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-sidebar-foreground hover:bg-sidebar-accent shrink-0" onClick={onSignOut}>
+            <Button variant="ghost" size="icon" className="w-full mt-2 text-sidebar-foreground hover:bg-sidebar-accent" onClick={onSignOut}>
               <LogOut className="w-4 h-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>{t('action.signout')}</TooltipContent>
+          <TooltipContent side={dir === 'rtl' ? 'left' : 'right'}>
+            {t('action.signout')}
+          </TooltipContent>
         </Tooltip>}
       </div>
-      {collapsed && <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="w-full mt-2 text-sidebar-foreground hover:bg-sidebar-accent" onClick={onSignOut}>
-            <LogOut className="w-4 h-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side={dir === 'rtl' ? 'left' : 'right'}>
-          {t('action.signout')}
-        </TooltipContent>
-      </Tooltip>}
-    </div>
-  </aside>;
+    </aside>
+  );
 };
+
 export default AppSidebar;

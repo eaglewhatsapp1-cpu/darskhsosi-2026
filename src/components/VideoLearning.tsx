@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,23 +8,33 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useChatMessages } from '@/hooks/useChatMessages';
+import { useUserProgress } from '@/hooks/useUserProgress';
+import ExportButtons from './chat/ExportButtons';
 
 interface VideoLearningProps {
   language: 'ar' | 'en';
-}
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
 }
 
 const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
   const { profile } = useProfile();
   const [videoUrl, setVideoUrl] = useState('');
   const [videoId, setVideoId] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
+
+  const subjectId = videoId ? `video_${videoId}` : null;
+  const { messages, addMessage, loading: messagesLoading } = useChatMessages(subjectId);
+  const { progress, saveProgress } = useUserProgress('video' as any);
+
+  // Load progress
+  useEffect(() => {
+    if (progress?.videoUrl && progress?.videoId) {
+      setVideoUrl(progress.videoUrl);
+      setVideoId(progress.videoId);
+    }
+  }, [progress]);
 
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
@@ -56,7 +66,7 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
     const id = extractVideoId(videoUrl);
     if (id) {
       setVideoId(id);
-      setMessages([]);
+      saveProgress({ videoUrl, videoId: id });
     }
   };
 
@@ -65,12 +75,27 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
 
     const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
+    setStreamingContent('');
+
+    // Save user message
+    await addMessage({
+      role: 'user',
+      content: userMessage,
+      subject_id: subjectId
+    });
 
     try {
-      const response = await supabase.functions.invoke('intelligent-teacher', {
-        body: {
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intelligent-teacher`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionData.session?.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+        },
+        body: JSON.stringify({
           messages: [
             {
               role: 'system',
@@ -86,57 +111,74 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
             interests: profile.interests,
             preferredLanguage: profile.preferred_language,
           } : null,
-        },
+        }),
       });
 
-      if (response.error) throw response.error;
+      if (!response.ok) throw new Error('Failed to fetch');
 
-      const reader = response.data.getReader();
+      const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
 
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content || '';
-              fullContent += content;
-              setMessages(prev => {
-                const newMessages = [...prev];
-                newMessages[newMessages.length - 1] = { role: 'assistant', content: fullContent };
-                return newMessages;
-              });
-            } catch {}
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content || '';
+                fullContent += content;
+                setStreamingContent(fullContent);
+              } catch { }
+            }
           }
         }
       }
+
+      // Save assistant message
+      if (fullContent) {
+        await addMessage({
+          role: 'assistant',
+          content: fullContent,
+          subject_id: subjectId
+        });
+      }
     } catch (error) {
       console.error('Error sending message:', error);
-      setMessages(prev => [...prev, { role: 'assistant', content: language === 'ar' ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Please try again.' }]);
     } finally {
       setIsLoading(false);
+      setStreamingContent('');
     }
   };
 
   return (
     <div className="h-full flex flex-col p-3 sm:p-4 md:p-6 gsap-theme-animate">
-      <div className="text-center mb-4 sm:mb-6">
-        <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-          <Video className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <div className="flex-1 text-center">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+            <Video className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">{t('title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">{t('title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+
+        {messages.length > 0 && (
+          <div className="shrink-0 absolute top-4 end-4">
+            <ExportButtons
+              language={language}
+              messages={messages.map(m => ({ role: m.role, content: m.content }))}
+              title={`${t('title')} - ${videoId}`}
+            />
+          </div>
+        )}
       </div>
 
       {!videoId ? (
@@ -173,7 +215,7 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
 
           <Card className="flex-1 flex flex-col overflow-hidden min-h-[200px]">
             <ScrollArea className="flex-1 p-3 sm:p-4">
-              {messages.length === 0 && (
+              {messages.length === 0 && !streamingContent && (
                 <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
                   <Avatar className="w-7 h-7 sm:w-8 sm:h-8 shrink-0">
                     <AvatarFallback><MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></AvatarFallback>
@@ -184,7 +226,7 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
                 </div>
               )}
               {messages.map((message, index) => (
-                <div key={index} className={`flex gap-2 sm:gap-3 mb-3 sm:mb-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                <div key={message.id || index} className={`flex gap-2 sm:gap-3 mb-3 sm:mb-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
                   <Avatar className="w-7 h-7 sm:w-8 sm:h-8 shrink-0">
                     <AvatarFallback>
                       {message.role === 'user' ? '👤' : <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
@@ -195,6 +237,16 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
                   </div>
                 </div>
               ))}
+              {streamingContent && (
+                <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <Avatar className="w-7 h-7 sm:w-8 sm:h-8 shrink-0">
+                    <AvatarFallback><MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></AvatarFallback>
+                  </Avatar>
+                  <div className="bg-muted rounded-lg p-2.5 sm:p-3 max-w-[85%] sm:max-w-[80%]">
+                    <p className="text-sm whitespace-pre-wrap break-words">{streamingContent}</p>
+                  </div>
+                </div>
+              )}
             </ScrollArea>
 
             <div className="p-2 sm:p-4 border-t">
@@ -219,7 +271,10 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
             </div>
           </Card>
 
-          <Button variant="outline" onClick={() => setVideoId('')} className="shrink-0">
+          <Button variant="outline" onClick={() => {
+            setVideoId('');
+            saveProgress({ videoUrl: '', videoId: '' });
+          }} className="shrink-0">
             {language === 'ar' ? 'تغيير الفيديو' : 'Change Video'}
           </Button>
         </div>
@@ -229,3 +284,4 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
 };
 
 export default VideoLearning;
+

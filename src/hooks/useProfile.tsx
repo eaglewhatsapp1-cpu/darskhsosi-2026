@@ -24,6 +24,8 @@ export interface Profile {
   knowledge_ratio: number | null;
   speaking_style: 'formal_ar' | 'colloquial_ar' | 'en' | 'mixed' | null;
   ai_persona: 'teacher' | 'scientist' | 'examiner' | 'analyzer' | null;
+  openai_api_key: string | null;
+  gemini_api_key: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -59,20 +61,20 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
         if (error.code === 'PGRST303' || error.message?.includes('JWT expired')) {
           console.log('JWT expired, attempting refresh...');
           const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          
+
           if (refreshError || !refreshData.session) {
             console.error('Could not refresh session, signing out');
             await supabase.auth.signOut();
             return;
           }
-          
+
           // Retry fetch after refresh
           const { data: retryData, error: retryError } = await supabase
             .from('profiles')
             .select('*')
             .eq('user_id', user.id)
             .maybeSingle();
-            
+
           if (retryError) throw retryError;
           if (retryData) {
             setProfile(retryData as Profile);
@@ -82,7 +84,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
           throw error;
         }
       }
-      
+
       if (data) {
         setProfile(data as Profile);
       } else {
@@ -96,7 +98,7 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
           })
           .select()
           .single();
-        
+
         if (insertError) {
           console.error('Error creating profile:', insertError);
         } else {
@@ -140,8 +142,8 @@ export const ProfileProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
-  const isProfileComplete = profile && 
-    profile.education_level && 
+  const isProfileComplete = profile &&
+    profile.education_level &&
     profile.learning_style;
 
   return (

@@ -55,10 +55,35 @@ serve(async (req) => {
     }
 
     const { messages, learnerProfile, uploadedMaterials, materialContent } = await req.json() as RequestBody;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    // Fetch user's personal API keys if they exist
+    const { data: profileData } = await supabaseClient
+      .from('profiles')
+      .select('openai_api_key, gemini_api_key')
+      .eq('user_id', user.id)
+      .single();
+
+    let apiBaseUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
+    let apiKey = Deno.env.get("LOVABLE_API_KEY");
+    let model = "google/gemini-1.5-flash";
+
+    // Priority 1: User's Gemini Key (cheapest/most flexible for this app)
+    if (profileData?.gemini_api_key) {
+      apiKey = profileData.gemini_api_key;
+      apiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/chat/completions";
+      model = "gemini-1.5-flash";
+      console.log(`Using user's personal Gemini key for ${user.id}`);
+    }
+    // Priority 2: User's OpenAI Key
+    else if (profileData?.openai_api_key) {
+      apiKey = profileData.openai_api_key;
+      apiBaseUrl = "https://api.openai.com/v1/chat/completions";
+      model = "gpt-4o-mini";
+      console.log(`Using user's personal OpenAI key for ${user.id}`);
+    }
+
+    if (!apiKey) {
+      throw new Error("AI API Key is not configured. Please add one in your profile or contact administrator.");
     }
 
     // Check if the first message is already a system prompt from the frontend
@@ -119,32 +144,32 @@ KNOWLEDGE BASE USAGE:`;
       finalMessages[0].content = enhancedPrompt;
     }
 
-    console.log(`Sending request to Lovable AI for user ${user.id} using Gemini-1.5-Flash`);
+    console.log(`Sending request to AI at ${apiBaseUrl} for user ${user.id} using model ${model}`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch(apiBaseUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-1.5-flash",
+        model: model,
         messages: finalMessages,
         stream: true,
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error("AI service error:", aiResponse.status, errorText);
 
-      if (response.status === 429) {
+      if (aiResponse.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
+      if (aiResponse.status === 402) {
         return new Response(
           JSON.stringify({ error: "Usage limit reached. Please check your account." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -159,7 +184,7 @@ KNOWLEDGE BASE USAGE:`;
 
     console.log("AI response received, streaming back to client");
 
-    return new Response(response.body, {
+    return new Response(aiResponse.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (error) {

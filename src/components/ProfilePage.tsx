@@ -12,13 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  User, 
-  Camera, 
-  GraduationCap, 
-  BookOpen, 
-  Languages, 
-  Bot, 
+import {
+  User,
+  Camera,
+  GraduationCap,
+  BookOpen,
+  Languages,
+  Bot,
   MessageSquare,
   Sliders,
   Save,
@@ -43,7 +43,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasInitialized = useRef(false);
-  
+
   // Initialize form data from profile using lazy initializer to prevent loops
   const [formData, setFormData] = useState(() => {
     if (profile && !hasInitialized.current) {
@@ -65,6 +65,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
         aiPersona: profile.ai_persona || 'teacher',
         speakingStyle: profile.speaking_style || 'formal_ar',
         knowledgeRatio: profile.knowledge_ratio ?? 50,
+        openaiApiKey: profile.openai_api_key || '',
+        geminiApiKey: profile.gemini_api_key || '',
       };
     }
     return {
@@ -84,6 +86,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
       aiPersona: 'teacher' as string,
       speakingStyle: 'formal_ar' as string,
       knowledgeRatio: 50,
+      openaiApiKey: '',
+      geminiApiKey: '',
     };
   });
 
@@ -93,6 +97,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
       'section.personal': { ar: 'المعلومات الشخصية', en: 'Personal Information' },
       'section.learning': { ar: 'إعدادات التعلم', en: 'Learning Settings' },
       'section.ai': { ar: 'إعدادات الذكاء الاصطناعي', en: 'AI Settings' },
+      'section.backup_keys': { ar: 'مفاتيح API البديلة (اختياري)', en: 'Backup API Keys (Optional)' },
+      'usage.guide_title': { ar: 'دليل استخدام المفاتيح الشخصية', en: 'Personal API usage guide' },
+      'usage.guide_desc': { ar: 'هذا التطبيق مجاني ويستخدم مفتاحاً مشتركاً. إذا واجهت رسالة "تجاوز الحد المسموح"، يمكنك إضافة مفاتيحك الخاصة هنا لضمان استمرارية الخدمة لك حصرياً.', en: 'This app is free and uses a shared key. If you see "Usage limit exceeded", you can add your own keys here to ensure uninterrupted service just for you.' },
+      'field.openai_key': { ar: 'OpenAI API Key (نسخة 4-o أو 3.5)', en: 'OpenAI API Key (4-o or 3.5)' },
+      'field.gemini_key': { ar: 'Google Gemini API Key', en: 'Google Gemini API Key' },
       'field.name': { ar: 'الاسم الكامل', en: 'Full Name' },
       'field.birthDate': { ar: 'تاريخ الميلاد', en: 'Birth Date' },
       'field.bio': { ar: 'نبذة مختصرة', en: 'Short Bio' },
@@ -172,6 +181,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
       ai_persona: formData.aiPersona as Profile['ai_persona'],
       speaking_style: formData.speakingStyle as Profile['speaking_style'],
       knowledge_ratio: formData.knowledgeRatio,
+      openai_api_key: formData.openaiApiKey || null,
+      gemini_api_key: formData.geminiApiKey || null,
     });
 
     setLoading(false);
@@ -243,12 +254,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
                 <Target className="w-4 h-4 text-primary" />
                 {t('field.studyTarget')}
               </Label>
-              <Textarea 
-                id="studyTarget" 
-                value={formData.studyTarget} 
-                onChange={(e) => setFormData({ ...formData, studyTarget: e.target.value })} 
+              <Textarea
+                id="studyTarget"
+                value={formData.studyTarget}
+                onChange={(e) => setFormData({ ...formData, studyTarget: e.target.value })}
                 placeholder={t('field.studyTargetPlaceholder')}
-                className="min-h-[80px] resize-none" 
+                className="min-h-[80px] resize-none"
               />
             </div>
           </Card>
@@ -282,14 +293,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
                 </Label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {['visual', 'practical', 'illustrative'].map((style) => (
-                    <div 
-                      key={style} 
-                      className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors" 
+                    <div
+                      key={style}
+                      className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
                       onClick={() => handleLearningStyleToggle(style)}
                     >
-                      <Checkbox 
-                        checked={formData.learningStyles.includes(style)} 
-                        onCheckedChange={() => handleLearningStyleToggle(style)} 
+                      <Checkbox
+                        checked={formData.learningStyles.includes(style)}
+                        onCheckedChange={() => handleLearningStyleToggle(style)}
                       />
                       <Label className="cursor-pointer flex-1">{t(`style.${style}`)}</Label>
                     </div>
@@ -308,14 +319,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
                     { value: 'ar', label: t('lang.ar') },
                     { value: 'en', label: t('lang.en') },
                   ].map((lang) => (
-                    <div 
-                      key={lang.value} 
-                      className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors" 
+                    <div
+                      key={lang.value}
+                      className="flex items-center space-x-2 rtl:space-x-reverse border border-border bg-background p-3 rounded-lg hover:bg-accent cursor-pointer transition-colors"
                       onClick={() => handleLearningLanguageToggle(lang.value)}
                     >
-                      <Checkbox 
-                        checked={formData.learningLanguages.includes(lang.value)} 
-                        onCheckedChange={() => handleLearningLanguageToggle(lang.value)} 
+                      <Checkbox
+                        checked={formData.learningLanguages.includes(lang.value)}
+                        onCheckedChange={() => handleLearningLanguageToggle(lang.value)}
                       />
                       <Label className="cursor-pointer flex-1">{lang.label}</Label>
                     </div>
@@ -336,6 +347,52 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
                 </Select>
               </div>
             </div>
+          </Card>
+
+          <Card className="p-6 border-amber-200 bg-amber-50/30">
+            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-amber-500" />
+              {t('section.backup_keys')}
+            </h2>
+
+            <div className="bg-white/50 p-4 rounded-xl border border-amber-100 mb-6">
+              <h3 className="text-sm font-bold text-amber-700 mb-1 flex items-center gap-2">
+                <Target className="w-4 h-4" />
+                {t('usage.guide_title')}
+              </h3>
+              <p className="text-xs text-amber-600 leading-relaxed">
+                {t('usage.guide_desc')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="openaiApiKey">{t('field.openai_key')}</Label>
+                <Input
+                  id="openaiApiKey"
+                  type="password"
+                  placeholder="sk-..."
+                  value={formData.openaiApiKey}
+                  onChange={(e) => setFormData({ ...formData, openaiApiKey: e.target.value })}
+                  className="h-12 bg-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="geminiApiKey">{t('field.gemini_key')}</Label>
+                <Input
+                  id="geminiApiKey"
+                  type="password"
+                  placeholder="AIza..."
+                  value={formData.geminiApiKey}
+                  onChange={(e) => setFormData({ ...formData, geminiApiKey: e.target.value })}
+                  className="h-12 bg-white"
+                />
+              </div>
+            </div>
+
+            <p className="mt-4 text-[10px] text-muted-foreground italic">
+              * {language === 'ar' ? 'يتم تشفير المفاتيح وحفظها في قاعدة بيانات آمنة خاصة بك.' : 'Keys are encrypted and saved in your private secure database.'}
+            </p>
           </Card>
 
           <div className="flex flex-col sm:flex-row gap-4">

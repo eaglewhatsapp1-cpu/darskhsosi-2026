@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import MaterialSelector from '@/components/chat/MaterialSelector';
 import { Send, Paperclip, Bot, User, Sparkles, Upload, Loader2, FileText } from 'lucide-react';
 import { useUserProgress } from '@/hooks/useUserProgress';
+import ExportButtons from '@/components/chat/ExportButtons';
 
 interface ChatInterfaceProps {
   profile: Profile;
@@ -97,6 +98,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       // Get selected material names for context
       const selectedMaterialNames = materials.filter(m => selectedMaterials.includes(m.id)).map(m => m.file_name);
 
+      const materialContext = materials
+        .filter(m => selectedMaterials.includes(m.id))
+        .map(m => `### Document: ${m.file_name}\n${(m.content || '').substring(0, 10000)}`)
+        .join('\n\n---\n\n');
+
       // Build message history for context
       const messageHistory = [...messages.map(m => ({
         role: m.role,
@@ -110,23 +116,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const {
         data: sessionData
       } = await supabase.auth.getSession();
+
       if (!sessionData.session) {
         toast.error(language === 'ar' ? 'انتهت الجلسة. يرجى تسجيل الدخول مرة أخرى.' : 'Session expired. Please log in again.');
         setIsLoading(false);
         return;
       }
 
-      // Use supabase.functions.invoke instead of direct fetch
-      const materialContext = materials
-        .filter(m => selectedMaterials.includes(m.id))
-        .map(m => `### Document: ${m.file_name}\n${(m.content || '').substring(0, 10000)}`)
-        .join('\n\n---\n\n');
-
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('intelligent-teacher', {
-        body: {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intelligent-teacher`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionData.session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+        },
+        body: JSON.stringify({
           messages: messageHistory,
           learnerProfile: {
             name: profile.name,
@@ -141,79 +145,75 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           },
           uploadedMaterials: selectedMaterialNames.length > 0 ? selectedMaterialNames : materials.map(m => m.file_name),
           materialContent: materialContext
-        }
+        })
       });
-      if (error) {
-        console.error('Edge function error:', error);
-        toast.error(language === 'ar' ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Please try again.');
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Edge function error:', response.status, errorText);
+
+        if (response.status === 429 || response.status === 402) {
+          toast.error(
+            language === 'ar'
+              ? 'تم تجاوز حد الاستخدام المجاني. يمكنك إضافة مفتاح API الخاص بك في صفحة الملف الشخصي للمتابعة.'
+              : 'Free usage limit exceeded. You can add your own API key in the Profile page to continue.',
+            { duration: 6000 }
+          );
+        } else {
+          toast.error(language === 'ar' ? 'حدث خطأ في الخدمة. حاول مرة أخرى.' : 'Service error. Please try again.');
+        }
+
         setIsLoading(false);
         return;
       }
 
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
       // Handle streaming response
-      if (data instanceof ReadableStream) {
-        const reader = data.getReader();
-        const decoder = new TextDecoder();
-        let fullContent = '';
-        let textBuffer = '';
-        while (true) {
-          const {
-            done,
-            value
-          } = await reader.read();
-          if (done) break;
-          textBuffer += decoder.decode(value, {
-            stream: true
-          });
-          let newlineIndex: number;
-          while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
-            let line = textBuffer.slice(0, newlineIndex);
-            textBuffer = textBuffer.slice(newlineIndex + 1);
-            if (line.endsWith('\r')) line = line.slice(0, -1);
-            if (line.startsWith(':') || line.trim() === '') continue;
-            if (!line.startsWith('data: ')) continue;
-            const jsonStr = line.slice(6).trim();
-            if (jsonStr === '[DONE]') break;
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-              if (content) {
-                fullContent += content;
-                setStreamingContent(fullContent);
-              }
-            } catch {
-              textBuffer = line + '\n' + textBuffer;
-              break;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+      let textBuffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullContent += content;
+              setStreamingContent(fullContent);
             }
+          } catch {
+            // Keep the incomplete line in buffer
+            textBuffer = line + '\n' + textBuffer;
+            break;
           }
         }
+      }
 
-        // Save AI response to database
-        if (fullContent) {
-          await addMessage({
-            role: 'assistant',
-            content: fullContent
-          });
-        }
-      } else if (data && typeof data === 'object') {
-        // Handle non-streaming JSON response
-        let content = '';
-        if (data.choices?.[0]?.message?.content) {
-          content = data.choices[0].message.content;
-        } else if (typeof data === 'string') {
-          content = data;
-        }
-        if (content) {
-          await addMessage({
-            role: 'assistant',
-            content: content
-          });
-        }
-      } else if (typeof data === 'string') {
-        // Non-streaming response
+      // Save assistant response
+      if (fullContent) {
         await addMessage({
           role: 'assistant',
-          content: data
+          content: fullContent
         });
       }
       setStreamingContent('');
@@ -238,16 +238,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   return <div className="flex flex-col h-full gsap-theme-animate">
     {/* Chat Header */}
     <div className="p-3 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full gradient-primary flex items-center justify-center shrink-0">
-          <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full gradient-primary flex items-center justify-center shrink-0">
+            <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="heading-4 text-foreground truncate">{t('sidebar.teacher')}</h2>
+            <p className="caption truncate">{t('app.tagline')}</p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <h2 className="heading-4 text-foreground truncate">{t('sidebar.teacher')}</h2>
-          <p className="caption truncate">{t('app.tagline')}</p>
-        </div>
+
+        {messages.length > 0 && (
+          <div className="shrink-0">
+            <ExportButtons
+              language={language}
+              messages={messages.map(m => ({ role: m.role, content: m.content }))}
+              title={t('sidebar.teacher')}
+            />
+          </div>
+        )}
       </div>
     </div>
+
 
     {/* Messages Area */}
     <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 custom-scrollbar">
@@ -322,11 +335,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     {/* Input Area */}
     <div className="p-3 sm:p-4 border-t border-border bg-card/50 backdrop-blur-sm space-y-2 sm:space-y-3">
       {/* Material Selector Dropdown */}
-      {materials.length > 0 && <div data-helper-target="material-selector">
+      <div data-helper-target="material-selector">
         <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} maxSelection={5} />
-      </div>}
+      </div>
 
       <div className="flex items-end gap-1.5 sm:gap-3">
+
         <Button variant="outline" size="icon" className="shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-xl" onClick={onNavigateToUpload}>
           <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
         </Button>

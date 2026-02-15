@@ -129,7 +129,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       {/* Subject Selector */}
       <div className="flex-1 max-w-xs header-animate-item">
         <Select value={profile.subject || 'general'} onValueChange={value => onSubjectChange(value as Subject)}>
-          <SelectTrigger className="w-full border-2 font-medium transition-all duration-300 hover:scale-[1.02] hover:shadow-lg" style={{
+          <SelectTrigger className="w-full border-2 font-medium transition-all duration-300 hover:scale-[1.02] hover:shadow-lg text-black" style={{
             borderColor: subjectTheme.primary,
             backgroundColor: subjectTheme.secondary
           }}>
@@ -140,6 +140,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               </span>
             </SelectValue>
           </SelectTrigger>
+
           <SelectContent className="gsap-theme-animate">
             {subjects.map(subject => <SelectItem key={subject.id} value={subject.id}>
               <span className="flex items-center gap-2">

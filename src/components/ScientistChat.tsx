@@ -1,21 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { FlaskConical, Send, Loader2, User } from 'lucide-react';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useChatMessages } from '@/hooks/useChatMessages';
+import { useUserProgress } from '@/hooks/useUserProgress';
+import ExportButtons from './chat/ExportButtons';
 
 interface ScientistChatProps {
   language: 'ar' | 'en';
-}
-
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
 }
 
 const scientists = [
@@ -30,9 +29,26 @@ const scientists = [
 const ScientistChat: React.FC<ScientistChatProps> = ({ language }) => {
   const { profile } = useProfile();
   const [selectedScientist, setSelectedScientist] = useState('einstein');
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
+
+  const subjectId = `scientist_${selectedScientist}`;
+  const { messages, addMessage, loading: messagesLoading } = useChatMessages(subjectId);
+  const { progress, saveProgress } = useUserProgress('scientist' as any);
+
+  // Load last selected scientist
+  useEffect(() => {
+    if (progress?.lastSelectedScientist) {
+      setSelectedScientist(progress.lastSelectedScientist);
+    }
+  }, [progress]);
+
+  // Save selected scientist
+  const handleScientistChange = (value: string) => {
+    setSelectedScientist(value);
+    saveProgress({ lastSelectedScientist: value });
+  };
 
   const currentScientist = scientists.find(s => s.id === selectedScientist)!;
 
@@ -53,12 +69,27 @@ const ScientistChat: React.FC<ScientistChatProps> = ({ language }) => {
 
     const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
+    setStreamingContent('');
+
+    // Save user message
+    await addMessage({
+      role: 'user',
+      content: userMessage,
+      subject_id: subjectId
+    });
 
     try {
-      const response = await supabase.functions.invoke('intelligent-teacher', {
-        body: {
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intelligent-teacher`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionData.session?.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+        },
+        body: JSON.stringify({
           messages: [
             {
               role: 'system',
@@ -74,65 +105,88 @@ const ScientistChat: React.FC<ScientistChatProps> = ({ language }) => {
             interests: profile.interests,
             preferredLanguage: profile.preferred_language,
           } : null,
-        },
+        }),
       });
 
-      if (response.error) throw response.error;
+      if (!response.ok) {
+        if (response.status === 429 || response.status === 402) {
+          toast.error(
+            language === 'ar'
+              ? 'تم تجاوز حد الاستخدام المجاني. يمكنك إضافة مفتاح API الخاص بك في صفحة الملف الشخصي للمتابعة.'
+              : 'Free usage limit exceeded. You can add your own API key in the Profile page to continue.',
+            { duration: 6000 }
+          );
+        }
+        throw new Error('Failed to fetch');
+      }
 
-      const reader = response.data.getReader();
+      const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let fullContent = '';
 
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content || '';
-              fullContent += content;
-              setMessages(prev => {
-                const newMessages = [...prev];
-                newMessages[newMessages.length - 1] = { role: 'assistant', content: fullContent };
-                return newMessages;
-              });
-            } catch {}
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content || '';
+                fullContent += content;
+                setStreamingContent(fullContent);
+              } catch { }
+            }
           }
         }
       }
+
+      // Save assistant message
+      if (fullContent) {
+        await addMessage({
+          role: 'assistant',
+          content: fullContent,
+          subject_id: subjectId
+        });
+      }
     } catch (error) {
       console.error('Error sending message:', error);
-      setMessages(prev => [...prev, { role: 'assistant', content: language === 'ar' ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Please try again.' }]);
     } finally {
       setIsLoading(false);
+      setStreamingContent('');
     }
   };
 
   return (
     <div className="h-full flex flex-col p-3 sm:p-4 md:p-6 gsap-theme-animate">
-      <div className="text-center mb-4 sm:mb-6">
-        <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-primary/10 flex items-center justify-center text-2xl sm:text-3xl">
-          {currentScientist.emoji}
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <div className="flex-1 text-center">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-primary/10 flex items-center justify-center text-2xl sm:text-3xl">
+            {currentScientist.emoji}
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">{t('title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-1 sm:mb-2">{t('title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+        {messages.length > 0 && (
+          <div className="shrink-0 absolute top-4 end-4">
+            <ExportButtons
+              language={language}
+              messages={messages.map(m => ({ role: m.role, content: m.content }))}
+              title={`${t('title')} - ${currentScientist.name[language]}`}
+            />
+          </div>
+        )}
       </div>
 
-      <Card className="p-3 sm:p-4 mb-3 sm:mb-4">
+      <Card className="p-3 sm:p-4 mb-3 sm:mb-4 relative">
         <label className="text-sm font-medium mb-2 block">{t('selectScientist')}</label>
-        <Select value={selectedScientist} onValueChange={(value) => {
-          setSelectedScientist(value);
-          setMessages([]);
-        }}>
+        <Select value={selectedScientist} onValueChange={handleScientistChange}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -152,7 +206,7 @@ const ScientistChat: React.FC<ScientistChatProps> = ({ language }) => {
 
       <Card className="flex-1 flex flex-col overflow-hidden">
         <ScrollArea className="flex-1 p-3 sm:p-4">
-          {messages.length === 0 && (
+          {messages.length === 0 && !streamingContent && (
             <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
               <Avatar className="w-7 h-7 sm:w-8 sm:h-8 shrink-0">
                 <AvatarFallback className="text-base sm:text-lg">{currentScientist.emoji}</AvatarFallback>
@@ -163,7 +217,7 @@ const ScientistChat: React.FC<ScientistChatProps> = ({ language }) => {
             </div>
           )}
           {messages.map((message, index) => (
-            <div key={index} className={`flex gap-2 sm:gap-3 mb-3 sm:mb-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+            <div key={message.id || index} className={`flex gap-2 sm:gap-3 mb-3 sm:mb-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
               <Avatar className="w-7 h-7 sm:w-8 sm:h-8 shrink-0">
                 <AvatarFallback className="text-base sm:text-lg">
                   {message.role === 'user' ? <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : currentScientist.emoji}
@@ -174,7 +228,17 @@ const ScientistChat: React.FC<ScientistChatProps> = ({ language }) => {
               </div>
             </div>
           ))}
-          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+          {streamingContent && (
+            <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <Avatar className="w-7 h-7 sm:w-8 sm:h-8 shrink-0">
+                <AvatarFallback className="text-base sm:text-lg">{currentScientist.emoji}</AvatarFallback>
+              </Avatar>
+              <div className="bg-muted rounded-lg p-2.5 sm:p-3 max-w-[85%] sm:max-w-[80%]">
+                <p className="text-sm whitespace-pre-wrap break-words">{streamingContent}</p>
+              </div>
+            </div>
+          )}
+          {isLoading && !streamingContent && (
             <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
               <Avatar className="w-7 h-7 sm:w-8 sm:h-8 shrink-0">
                 <AvatarFallback className="text-base sm:text-lg">{currentScientist.emoji}</AvatarFallback>
@@ -212,3 +276,4 @@ const ScientistChat: React.FC<ScientistChatProps> = ({ language }) => {
 };
 
 export default ScientistChat;
+

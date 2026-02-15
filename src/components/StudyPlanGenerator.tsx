@@ -10,6 +10,7 @@ import { Profile } from '@/hooks/useProfile';
 import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
 import { getSubjectTheme } from '@/utils/subjectColors';
 import { useUserProgress } from '@/hooks/useUserProgress';
+import ExportButtons from './chat/ExportButtons';
 
 interface StudyPlanGeneratorProps {
   language: 'ar' | 'en';
@@ -105,17 +106,31 @@ const StudyPlanGenerator: React.FC<StudyPlanGeneratorProps> = ({ language, profi
     <div className="flex flex-col h-full p-3 sm:p-4 md:p-6 gsap-theme-animate">
       <Card className="flex-1 flex flex-col">
         <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-6 h-6" style={{ color: subjectTheme.primary }} />
-            {t('توليد خطة دراسية مخصصة', 'Generate Personalized Study Plan')}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {t(
-              'أنشئ جدولاً دراسياً مخصصاً بناءً على موادك التعليمية ومستواك',
-              'Create a custom study schedule based on your materials and level'
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-6 h-6" style={{ color: subjectTheme.primary }} />
+                {t('توليد خطة دراسية مخصصة', 'Generate Personalized Study Plan')}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'أنشئ جدولاً دراسياً مخصصاً بناءً على موادك التعليمية ومستواك',
+                  'Create a custom study schedule based on your materials and level'
+                )}
+              </p>
+            </div>
+            {plan && (
+              <div className="shrink-0">
+                <ExportButtons
+                  language={language}
+                  content={plan.overview + '\n\n' + plan.weeks.map(w => `Week ${w.weekNumber}: ${w.focus}`).join('\n')}
+                  title={plan.title}
+                />
+              </div>
             )}
-          </p>
+          </div>
         </CardHeader>
+
 
         <CardContent className="flex-1 flex flex-col gap-4 pt-4">
           {/* Controls */}

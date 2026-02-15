@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileText, Image, Download, Loader2 } from 'lucide-react';
+import { FileText, Image, Download, Loader2, FileJson, FileType } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,15 +8,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { exportToWord, exportToPDF } from '@/utils/exportUtils';
 
 interface ExportButtonsProps {
   language: 'ar' | 'en';
-  content: string;
+  messages?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  content?: string; // Fallback for single message export
   title?: string;
 }
 
 const ExportButtons: React.FC<ExportButtonsProps> = ({
   language,
+  messages,
   content,
   title = 'Export'
 }) => {
@@ -24,9 +27,13 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
 
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
+  // Prepare messages array if not provided
+  const exportMessages = messages || (content ? [{ role: 'assistant' as const, content }] : []);
+
   const exportAsTxt = () => {
     try {
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const text = exportMessages.map(m => `${m.role === 'user' ? 'You' : 'AI'}: ${m.content}`).join('\n\n');
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -39,6 +46,32 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
     } catch (error) {
       console.error('Export error:', error);
       toast.error(t('حدث خطأ في التصدير', 'Export error occurred'));
+    }
+  };
+
+  const handleExportWord = async () => {
+    setIsExporting('word');
+    try {
+      await exportToWord({ title, language, messages: exportMessages });
+      toast.success(t('تم التصدير كـ Word', 'Exported as Word'));
+    } catch (error) {
+      console.error('Word export error:', error);
+      toast.error(t('فشل تصدير Word', 'Word export failed'));
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    setIsExporting('pdf');
+    try {
+      await exportToPDF({ title, language, messages: exportMessages });
+      toast.success(t('تم التصدير كـ PDF', 'Exported as PDF'));
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast.error(t('فشل تصدير PDF', 'PDF export failed'));
+    } finally {
+      setIsExporting(null);
     }
   };
 
@@ -67,25 +100,35 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
       border-bottom: 2px solid #6366f1;
       padding-bottom: 10px;
     }
-    pre {
-      background: #f1f5f9;
-      padding: 15px;
-      border-radius: 8px;
-      overflow-x: auto;
-    }
-    .content {
+    .message {
       background: white;
-      padding: 30px;
+      padding: 20px;
       border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+    }
+    .role {
+      font-weight: bold;
+      color: #6366f1;
+      margin-bottom: 5px;
+      display: block;
+    }
+    .assistant {
+      border-right: 4px solid #10b981;
+    }
+    .user {
+      border-right: 4px solid #6366f1;
     }
   </style>
 </head>
 <body>
-  <div class="content">
-    <h1>${title}</h1>
-    <div>${content.replace(/\n/g, '<br>')}</div>
-  </div>
+  <h1>${title}</h1>
+  ${exportMessages.map(m => `
+    <div class="message ${m.role}">
+      <span class="role">${m.role === 'user' ? (language === 'ar' ? 'أنت' : 'You') : (language === 'ar' ? 'المعلم الذكي' : 'Assistant')}</span>
+      <div>${m.content.replace(/\n/g, '<br>')}</div>
+    </div>
+  `).join('')}
 </body>
 </html>`;
 
@@ -109,7 +152,8 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(content);
+      const text = exportMessages.map(m => `${m.role === 'user' ? 'You' : 'AI'}: ${m.content}`).join('\n\n');
+      await navigator.clipboard.writeText(text);
       toast.success(t('تم النسخ للحافظة', 'Copied to clipboard'));
     } catch (error) {
       console.error('Copy error:', error);
@@ -117,31 +161,35 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
     }
   };
 
-  if (!content) return null;
+  if (exportMessages.length === 0) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="outline" size="sm" className="gap-2 bg-background/50 backdrop-blur-sm border-primary/20 hover:border-primary/50 transition-all">
           <Download className="w-4 h-4" />
-          {t('تصدير', 'Export')}
+          {t('تصدير المحادثة', 'Export Chat')}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={exportAsTxt}>
-          <FileText className="w-4 h-4 me-2" />
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem onClick={handleExportPDF} disabled={isExporting !== null}>
+          {isExporting === 'pdf' ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <FileType className="w-4 h-4 me-2 text-red-500" />}
+          {t('تصدير كـ PDF', 'Export as PDF')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleExportWord} disabled={isExporting !== null}>
+          {isExporting === 'word' ? <Loader2 className="w-4 h-4 me-2 animate-spin" /> : <FileText className="w-4 h-4 me-2 text-blue-500" />}
+          {t('تصدير كـ Word', 'Export as Word')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={exportAsTxt} disabled={isExporting !== null}>
+          <FileJson className="w-4 h-4 me-2 text-gray-500" />
           {t('نص عادي (.txt)', 'Plain Text (.txt)')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={exportAsHTML} disabled={isExporting === 'html'}>
-          {isExporting === 'html' ? (
-            <Loader2 className="w-4 h-4 me-2 animate-spin" />
-          ) : (
-            <FileText className="w-4 h-4 me-2" />
-          )}
+        <DropdownMenuItem onClick={exportAsHTML} disabled={isExporting !== null}>
+          <div className="w-4 h-4 me-2 flex items-center justify-center font-bold text-[10px] bg-orange-500 text-white rounded-sm">H</div>
           {t('صفحة ويب (.html)', 'Web Page (.html)')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={copyToClipboard}>
-          <Image className="w-4 h-4 me-2" />
+          <Image className="w-4 h-4 me-2 text-purple-500" />
           {t('نسخ للحافظة', 'Copy to Clipboard')}
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -150,3 +198,4 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
 };
 
 export default ExportButtons;
+

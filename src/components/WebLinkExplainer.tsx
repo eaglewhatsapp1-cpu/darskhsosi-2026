@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Link2, Loader2, Send, Globe, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Profile } from '@/hooks/useProfile';
+import { useUserProgress } from '@/hooks/useUserProgress';
+import ExportButtons from './chat/ExportButtons';
 
 interface WebLinkExplainerProps {
   language: 'ar' | 'en';
@@ -17,6 +19,16 @@ const WebLinkExplainer: React.FC<WebLinkExplainerProps> = ({ language, profile }
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [explanation, setExplanation] = useState<string | null>(null);
+
+  const { progress, saveProgress } = useUserProgress('weblink' as any);
+
+  // Load progress
+  useEffect(() => {
+    if (progress?.url && progress?.explanation) {
+      setUrl(progress.url);
+      setExplanation(progress.explanation);
+    }
+  }, [progress]);
 
   const t = (ar: string, en: string) => (language === 'ar' ? ar : en);
 
@@ -39,7 +51,7 @@ const WebLinkExplainer: React.FC<WebLinkExplainerProps> = ({ language, profile }
 
     try {
       const { data, error } = await supabase.functions.invoke('explain-link', {
-        body: { 
+        body: {
           url,
           language,
           educationLevel: profile?.education_level || 'high',
@@ -51,6 +63,7 @@ const WebLinkExplainer: React.FC<WebLinkExplainerProps> = ({ language, profile }
 
       if (data?.explanation) {
         setExplanation(data.explanation);
+        saveProgress({ url, explanation: data.explanation });
       } else {
         throw new Error('No explanation received');
       }
@@ -66,16 +79,29 @@ const WebLinkExplainer: React.FC<WebLinkExplainerProps> = ({ language, profile }
     <div className="flex flex-col h-full p-3 sm:p-4 md:p-6 gsap-theme-animate">
       <Card className="flex-1 flex flex-col">
         <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="w-6 h-6 text-primary" />
-            {t('شرح الروابط والمواقع', 'Web Link Explainer')}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {t(
-              'أدخل أي رابط لموقع أو مقال وسيقوم الذكاء الاصطناعي بتحليله وشرحه لك',
-              'Enter any website or article link and AI will analyze and explain it for you'
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="w-6 h-6 text-primary" />
+                {t('شرح الروابط والمواقع', 'Web Link Explainer')}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'أدخل أي رابط لموقع أو مقال وسيقوم الذكاء الاصطناعي بتحليله وشرحه لك',
+                  'Enter any website or article link and AI will analyze and explain it for you'
+                )}
+              </p>
+            </div>
+            {explanation && (
+              <div className="shrink-0">
+                <ExportButtons
+                  language={language}
+                  content={explanation}
+                  title={t('شرح الرابط', 'Link Explanation')}
+                />
+              </div>
             )}
-          </p>
+          </div>
         </CardHeader>
 
         <CardContent className="flex-1 flex flex-col gap-4 pt-4">
@@ -107,16 +133,25 @@ const WebLinkExplainer: React.FC<WebLinkExplainerProps> = ({ language, profile }
           {/* Explanation Result */}
           {explanation && (
             <ScrollArea className="flex-1 border rounded-lg p-4 bg-muted/30">
-              <div className="flex items-center gap-2 mb-4 pb-2 border-b">
-                <ExternalLink className="w-4 h-4 text-primary" />
-                <a 
-                  href={url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline truncate"
-                >
-                  {url}
-                </a>
+              <div className="flex items-center justify-between gap-2 mb-4 pb-2 border-b">
+                <div className="flex items-center gap-2 min-w-0">
+                  <ExternalLink className="w-4 h-4 text-primary shrink-0" />
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline truncate"
+                  >
+                    {url}
+                  </a>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => {
+                  setExplanation(null);
+                  setUrl('');
+                  saveProgress({ url: '', explanation: '' });
+                }}>
+                  {t('مسح', 'Clear')}
+                </Button>
               </div>
               <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
                 {explanation}
@@ -153,3 +188,4 @@ const WebLinkExplainer: React.FC<WebLinkExplainerProps> = ({ language, profile }
 };
 
 export default WebLinkExplainer;
+

@@ -12,6 +12,8 @@ import VideoLearning from './VideoLearning';
 import WebLinkExplainer from './WebLinkExplainer';
 import StudyPlanGenerator from './StudyPlanGenerator';
 import ProjectSuggestions from './ProjectSuggestions';
+import AboutPage from './AboutPage';
+import ProfilePage from './ProfilePage';
 import gsap from 'gsap';
 
 import { SidebarFeature } from './LearningPlatform';
@@ -69,7 +71,9 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
     { id: 'test', component: <UnderstandingTest language={language} /> },
     { id: 'weblink', component: <WebLinkExplainer language={language} profile={profile} /> },
     { id: 'studyplan', component: <StudyPlanGenerator language={language} profile={profile} /> },
-    { id: 'projects', component: <ProjectSuggestions language={language} /> }
+    { id: 'projects', component: <ProjectSuggestions language={language} /> },
+    { id: 'about', component: <AboutPage language={language} /> },
+    { id: 'profile', component: <ProfilePage profile={profile} language={language} /> }
   ];
 
   return (

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 import { useUserProgress } from '@/hooks/useUserProgress';
+import ExportButtons from './chat/ExportButtons';
 
 interface UnderstandingTestProps {
   language: 'ar' | 'en';
@@ -311,13 +312,28 @@ ${contentToTest.substring(0, 15000)}`,
 
   return (
     <div className="h-full flex flex-col p-3 sm:p-4 md:p-6 overflow-auto gsap-theme-animate">
-      <div className="text-center mb-6 sm:mb-8">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-          <ClipboardCheck className="w-8 h-8 text-primary" />
+      <div className="flex items-center justify-between mb-6 sm:mb-8">
+        <div className="flex-1 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+            <ClipboardCheck className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-2">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
-        <h1 className="text-2xl font-bold text-foreground mb-2">{t('title')}</h1>
-        <p className="text-muted-foreground">{t('subtitle')}</p>
+        {questions.length > 0 && (
+          <div className="shrink-0 absolute top-4 end-4">
+            <ExportButtons
+              language={language}
+              messages={questions.map((q, i) => ([
+                { role: 'assistant' as const, content: `Question ${i + 1}: ${q.question}` },
+                answers[i] !== undefined ? { role: 'user' as const, content: `Answer ${i + 1}: ${q.type === 'mcq' ? (q.options ? q.options[answers[i]] : answers[i]) : answers[i]}` } : null
+              ].filter(Boolean) as any)).flat()}
+              title={t('title')}
+            />
+          </div>
+        )}
       </div>
+
 
       {questions.length === 0 ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto w-full">

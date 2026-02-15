@@ -295,11 +295,16 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
             </p>
           </div>
         </div>
-        {showExport && lastAiMessage && <div className="shrink-0">
-          <ExportButtons language={language} content={lastAiMessage} title={language === 'ar' ? persona.nameAr : persona.nameEn} />
+        {showExport && messages.length > 0 && <div className="shrink-0">
+          <ExportButtons
+            language={language}
+            messages={messages.map(m => ({ role: m.role, content: m.content }))}
+            title={language === 'ar' ? persona.nameAr : persona.nameEn}
+          />
         </div>}
       </div>}
     </div>
+
 
     {/* Material Selector */}
     {showMaterialSelector && <div className="px-3 py-2 border-b border-border" data-helper-target="material-selector">

@@ -12,6 +12,7 @@ import VideoLearning from './VideoLearning';
 import WebLinkExplainer from './WebLinkExplainer';
 import StudyPlanGenerator from './StudyPlanGenerator';
 import ProjectSuggestions from './ProjectSuggestions';
+import VirtualClassroom from './VirtualClassroom';
 import AboutPage from './AboutPage';
 import ProfilePage from './ProfilePage';
 import gsap from 'gsap';
@@ -72,6 +73,7 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
     { id: 'weblink', component: <WebLinkExplainer language={language} profile={profile} /> },
     { id: 'studyplan', component: <StudyPlanGenerator language={language} profile={profile} /> },
     { id: 'projects', component: <ProjectSuggestions language={language} /> },
+    { id: 'classroom', component: <VirtualClassroom language={language} /> },
     { id: 'about', component: <AboutPage language={language} /> },
     { id: 'profile', component: <ProfilePage profile={profile} language={language} /> }
   ];

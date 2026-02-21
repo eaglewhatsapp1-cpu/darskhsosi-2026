@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { SidebarFeature } from './LearningPlatform';
 import { cn } from '@/lib/utils';
-import { GraduationCap, Upload, Network, Lightbulb, FileText, Users, Video, ClipboardCheck, TrendingUp, ChevronLeft, ChevronRight, LogOut, Link, Calendar, Rocket, Heart, User } from 'lucide-react';
+import { GraduationCap, Upload, Network, Lightbulb, FileText, Users, Video, ClipboardCheck, TrendingUp, ChevronLeft, ChevronRight, LogOut, Link, Calendar, Rocket, Heart, User, Presentation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -58,6 +58,9 @@ export const features: {
 }, {
   id: 'projects',
   icon: Rocket
+}, {
+  id: 'classroom',
+  icon: Presentation
 }, {
   id: 'profile',
   icon: User
@@ -130,6 +133,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         'sidebar.weblink': 'شرح الروابط',
         'sidebar.studyplan': 'خطة دراسية',
         'sidebar.projects': 'مشاريع عملية',
+        'sidebar.classroom': 'القاعة الافتراضية',
         'sidebar.profile': 'الملف الشخصي',
         'sidebar.about': 'عن التطبيق',
         'action.signout': 'تسجيل الخروج'
@@ -148,6 +152,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         'sidebar.weblink': 'Explain Links',
         'sidebar.studyplan': 'Study Plan',
         'sidebar.projects': 'Projects',
+        'sidebar.classroom': 'Virtual Classroom',
         'sidebar.profile': 'Profile',
         'sidebar.about': 'About',
         'action.signout': 'Sign Out'

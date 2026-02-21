@@ -168,6 +168,10 @@ serve(async (req) => {
     }
 
     const userId = user.id;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const { storagePath, materialId, fileType } = await req.json();
     console.log(`Processing document extraction for material ${materialId}, type: ${fileType}, path: ${storagePath}`);
@@ -252,13 +256,46 @@ serve(async (req) => {
       console.log(`Extracted ${extractedText.length} characters from DOCX`);
     } else if (isPdf || isImage) {
       // Use AI to extract text from PDF or Image
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (!LOVABLE_API_KEY) {
-        throw new Error('LOVABLE_API_KEY is not configured');
+      // 1. Try to get user's personal API key first as a priority
+      const { data: profile } = await serviceClient
+        .from('profiles')
+        .select('gemini_api_key, openai_api_key')
+        .eq('user_id', userId)
+        .single();
+
+      let apiKey = Deno.env.get('LOVABLE_API_KEY');
+
+      // Override with user's key if available
+      if (profile?.gemini_api_key) {
+        apiKey = profile.gemini_api_key;
+        console.log('Using user provided Gemini API key for extraction');
       }
+
+      if (!apiKey) {
+        console.error('No API key found (LOVABLE_API_KEY or user key)');
+        return new Response(
+          JSON.stringify({
+            error: 'AI Extraction not configured. Please add your Gemini API key in your Profile to enable this feature.'
+          }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       console.log(`Extracting ${isPdf ? 'PDF' : 'Image'} content using AI...`);
-      extractedText = await extractTextWithAI(arrayBuffer, LOVABLE_API_KEY, detectedMimeType || 'application/pdf');
-      console.log(`Extracted ${extractedText.length} characters using AI`);
+      try {
+        extractedText = await extractTextWithAI(arrayBuffer, apiKey, detectedMimeType || 'application/pdf');
+        console.log(`Extracted ${extractedText.length} characters using AI`);
+      } catch (aiError) {
+        console.error('AI Extraction failed:', aiError);
+        // If it failed and we were using a user key, maybe try the system key if it's different
+        if (profile?.gemini_api_key && Deno.env.get('LOVABLE_API_KEY') && apiKey !== Deno.env.get('LOVABLE_API_KEY')) {
+          console.log('User key failed, trying system key...');
+          apiKey = Deno.env.get('LOVABLE_API_KEY')!;
+          extractedText = await extractTextWithAI(arrayBuffer, apiKey, detectedMimeType || 'application/pdf');
+        } else {
+          throw aiError;
+        }
+      }
     } else if (isDoc) {
       // Old .doc format - we can't easily parse this without complex libraries
       // Return a message asking user to convert to DOCX
@@ -287,10 +324,7 @@ serve(async (req) => {
     }
 
     // Update the material with extracted content using service role
-    const serviceClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    // serviceClient is already initialized above
 
     // Truncate if too long (max 100KB)
     const truncatedText = extractedText.length > 100000

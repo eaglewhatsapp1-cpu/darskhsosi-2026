@@ -19,7 +19,7 @@ If you want to work locally using your own IDE, you can clone this repo and push
    ```
 3. Start the development server:
    ```sh
-   npm run dev
+   ى
    ```
 
 ## Technologies Used
@@ -41,3 +41,4 @@ To connect a custom domain, navigate to **Project > Settings > Domains** in your
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
 
+have an access to supbase , im using lovable backend 

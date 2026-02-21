@@ -39,7 +39,7 @@ const Auth: React.FC = () => {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast.error('الرجاء إدخال البريد الإلكتروني وكلمة المرور');
       return;
@@ -61,8 +61,10 @@ const Auth: React.FC = () => {
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
             toast.error('بيانات الدخول غير صحيحة');
+          } else if (error.message.includes('Email not confirmed')) {
+            toast.error('الرجاء تأكيد البريد الإلكتروني أولاً');
           } else {
-            toast.error(error.message);
+            toast.error('حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى.');
           }
         }
       } else {
@@ -76,15 +78,17 @@ const Auth: React.FC = () => {
         if (error) {
           if (error.message.includes('already registered')) {
             toast.error('هذا البريد الإلكتروني مسجل بالفعل');
+          } else if (error.message.includes('Password should be')) {
+            toast.error('كلمة المرور ضعيفة جداً');
           } else {
-            toast.error(error.message);
+            toast.error('حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.');
           }
         } else {
           toast.success('تم إنشاء الحساب بنجاح!');
         }
       }
     } catch (error) {
-      toast.error('حدث خطأ. حاول مرة أخرى.');
+      toast.error('حدث خطأ غير متوقع. حاول مرة أخرى.');
     } finally {
       setLoading(false);
     }

@@ -324,8 +324,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        error: `Extraction failed: ${errorMessage}`,
-        details: error instanceof Error ? error.stack : undefined
+        error: `Extraction failed: ${errorMessage}`
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

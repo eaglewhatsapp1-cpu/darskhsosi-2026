@@ -7,7 +7,8 @@ import {
   Brain,
   FileText,
   Lightbulb,
-  GraduationCap
+  GraduationCap,
+  Video
 } from 'lucide-react';
 import { HelpStep } from './types';
 

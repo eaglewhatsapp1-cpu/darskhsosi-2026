@@ -13,17 +13,40 @@ import {
     MessageSquare,
     Shield,
     Presentation,
-    CheckCircle2
+    CheckCircle2,
+    Loader2,
+    PlusCircle,
+    Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useVirtualMeetings, VirtualMeeting } from '@/hooks/useVirtualMeetings';
+import { useProfile } from '@/hooks/useProfile';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter
+} from '@/components/ui/dialog';
 
 interface VirtualClassroomProps {
     language: 'ar' | 'en';
 }
 
 const VirtualClassroom: React.FC<VirtualClassroomProps> = ({ language }) => {
+    const { profile } = useProfile();
+    const { meetings, loading, createMeeting, deleteMeeting } = useVirtualMeetings();
     const [meetingLink, setMeetingLink] = useState('');
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [newMeeting, setNewMeeting] = useState({
+        title: '',
+        meeting_link: '',
+        start_time: '',
+        duration: '45m'
+    });
+    const [creating, setCreating] = useState(false);
 
     const t = (key: string) => {
         const translations: Record<string, Record<string, string>> = {
@@ -43,6 +66,14 @@ const VirtualClassroom: React.FC<VirtualClassroomProps> = ({ language }) => {
                 'meetDesc': 'سهل وسريع للمراجعة',
                 'invalidLink': 'الرجاء إدخال رابط صحيح',
                 'copied': 'تم النسخ!',
+                'meetingTitle': 'عنوان الجلسة',
+                'startTime': 'وقت البدء',
+                'duration': 'المدة',
+                'cancel': 'إلغاء',
+                'save': 'حفظ الجلسة',
+                'successCreate': 'تم إنشاء الجلسة بنجاح',
+                'errorCreate': 'حدث خطأ أثناء إنشاء الجلسة',
+                'deleteConfirm': 'حذف الجلسة',
             },
             en: {
                 'title': 'Virtual Classroom',
@@ -60,6 +91,14 @@ const VirtualClassroom: React.FC<VirtualClassroomProps> = ({ language }) => {
                 'meetDesc': 'Quick and easy review',
                 'invalidLink': 'Please enter a valid link',
                 'copied': 'Copied!',
+                'meetingTitle': 'Session Title',
+                'startTime': 'Start Time',
+                'duration': 'Duration',
+                'cancel': 'Cancel',
+                'save': 'Save Session',
+                'successCreate': 'Session created successfully',
+                'errorCreate': 'Error creating session',
+                'deleteConfirm': 'Delete Session',
             }
         };
         return translations[language][key] || key;
@@ -71,18 +110,42 @@ const VirtualClassroom: React.FC<VirtualClassroomProps> = ({ language }) => {
         { name: 'MS Teams', icon: Shield, color: 'bg-indigo-500', desc: t('teamsDesc') },
     ];
 
-    const handleJoin = () => {
-        if (!meetingLink.trim() || !meetingLink.startsWith('http')) {
+    const handleJoin = (linkToJoin?: string) => {
+        const link = linkToJoin || meetingLink;
+        if (!link.trim() || !link.startsWith('http')) {
             toast.error(t('invalidLink'));
             return;
         }
-        window.open(meetingLink, '_blank');
+        window.open(link, '_blank');
     };
 
-    const upcomingSessions = [
-        { id: 1, title: language === 'ar' ? 'مراجعة الرياضيات - الدوال' : 'Math Review - Functions', teacher: language === 'ar' ? 'أ. أحمد علي' : 'Mr. Ahmed Ali', time: '18:00', duration: '45m' },
-        { id: 2, title: language === 'ar' ? 'محاضرة الفيزياء النووية' : 'Nuclear Physics Lecture', teacher: language === 'ar' ? 'د. سارة' : 'Dr. Sarah', time: '20:30', duration: '60m' },
-    ];
+    const handleCreateMeeting = async () => {
+        if (!newMeeting.title || !newMeeting.meeting_link || !newMeeting.start_time) {
+            toast.error(t('invalidLink'));
+            return;
+        }
+
+        setCreating(true);
+        const { error } = await createMeeting({
+            ...newMeeting,
+            teacher_name: profile?.name || 'Teacher'
+        });
+
+        setCreating(false);
+        if (error) {
+            toast.error(t('errorCreate'));
+        } else {
+            toast.success(t('successCreate'));
+            setIsCreateOpen(false);
+            setNewMeeting({ title: '', meeting_link: '', start_time: '', duration: '45m' });
+        }
+    };
+
+    const handleDelete = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const { error } = await deleteMeeting(id);
+        if (!error) toast.success(language === 'ar' ? 'تم حذف الجلسة' : 'Session deleted');
+    };
 
     return (
         <div className="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar gsap-theme-animate">
@@ -96,10 +159,68 @@ const VirtualClassroom: React.FC<VirtualClassroomProps> = ({ language }) => {
                         </h1>
                         <p className="text-muted-foreground">{t('subtitle')}</p>
                     </div>
-                    <Button className="gradient-primary shadow-glow h-12 px-6 rounded-xl">
-                        <Plus className="w-5 h-5 me-2" />
-                        {t('createMeeting')}
-                    </Button>
+
+                    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                        <DialogTrigger asChild>
+                            <Button className="gradient-primary shadow-glow h-12 px-6 rounded-xl">
+                                <Plus className="w-5 h-5 me-2" />
+                                {t('createMeeting')}
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>{t('createMeeting')}</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="title">{t('meetingTitle')}</Label>
+                                    <Input
+                                        id="title"
+                                        value={newMeeting.title}
+                                        onChange={e => setNewMeeting({ ...newMeeting, title: e.target.value })}
+                                        placeholder={language === 'ar' ? 'مثلاً: مراجعة العلوم' : 'e.g. Science Review'}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="link">{t('enterLink')}</Label>
+                                    <Input
+                                        id="link"
+                                        value={newMeeting.meeting_link}
+                                        onChange={e => setNewMeeting({ ...newMeeting, meeting_link: e.target.value })}
+                                        placeholder="https://zoom.us/..."
+                                        dir="ltr"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="start">{t('startTime')}</Label>
+                                        <Input
+                                            id="start"
+                                            type="datetime-local"
+                                            value={newMeeting.start_time}
+                                            onChange={e => setNewMeeting({ ...newMeeting, start_time: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="duration">{t('duration')}</Label>
+                                        <Input
+                                            id="duration"
+                                            value={newMeeting.duration}
+                                            onChange={e => setNewMeeting({ ...newMeeting, duration: e.target.value })}
+                                            placeholder="45m"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>{t('cancel')}</Button>
+                                <Button onClick={handleCreateMeeting} disabled={creating} className="gradient-primary">
+                                    {creating ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : <PlusCircle className="w-4 h-4 me-2" />}
+                                    {t('save')}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -120,7 +241,7 @@ const VirtualClassroom: React.FC<VirtualClassroomProps> = ({ language }) => {
                                         dir="ltr"
                                     />
                                     <Button
-                                        onClick={handleJoin}
+                                        onClick={() => handleJoin()}
                                         className="h-14 px-8 gradient-primary shadow-lg hover:shadow-primary/20 transition-all duration-300"
                                     >
                                         <ExternalLink className="w-5 h-5 me-2" />
@@ -153,22 +274,39 @@ const VirtualClassroom: React.FC<VirtualClassroomProps> = ({ language }) => {
                             {t('scheduleTitle')}
                         </h2>
                         <div className="space-y-4">
-                            {upcomingSessions.map((session) => (
-                                <div key={session.id} className="p-4 rounded-xl border border-border hover:bg-accent/50 transition-colors cursor-pointer group">
-                                    <h3 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors">{session.title}</h3>
-                                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                        <span className="flex items-center gap-1">
-                                            <Users className="w-3 h-3" />
-                                            {session.teacher}
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            {session.time}
-                                        </span>
-                                    </div>
+                            {loading ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
                                 </div>
-                            ))}
-                            {upcomingSessions.length === 0 && (
+                            ) : meetings.length > 0 ? (
+                                meetings.map((session) => (
+                                    <div
+                                        key={session.id}
+                                        onClick={() => handleJoin(session.meeting_link)}
+                                        className="p-4 rounded-xl border border-border hover:bg-accent/50 transition-colors cursor-pointer group relative"
+                                    >
+                                        <h3 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors pr-6">{session.title}</h3>
+                                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                            <span className="flex items-center gap-1">
+                                                <Users className="w-3 h-3" />
+                                                {session.teacher_name}
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                {new Date(session.start_time).toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        {profile?.id === session.user_id && (
+                                            <button
+                                                onClick={(e) => handleDelete(session.id, e)}
+                                                className="absolute top-4 right-4 text-muted-foreground hover:text-destructive transition-colors"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
                                 <div className="text-center py-8 text-muted-foreground">
                                     <Calendar className="w-10 h-10 mx-auto mb-2 opacity-20" />
                                     <p className="text-sm">{t('noMeetings')}</p>
@@ -178,7 +316,7 @@ const VirtualClassroom: React.FC<VirtualClassroomProps> = ({ language }) => {
                     </Card>
                 </div>
 
-                {/* Community/Teachers Grid */}
+                {/* Teachers List (Placeholder linked to data if needed, but currently keeping UI logic) */}
                 <div className="space-y-4">
                     <h2 className="text-xl font-bold flex items-center gap-2">
                         <MessageSquare className="w-5 h-5 text-primary" />

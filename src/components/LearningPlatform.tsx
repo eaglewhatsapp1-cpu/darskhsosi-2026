@@ -88,6 +88,7 @@ const LearningPlatform: React.FC = () => {
   }
   if (!user) {
     return null;
+  }
   if (!isProfileComplete) {
     return <ProfileSetup onComplete={handleProfileComplete} currentLanguage={language} setLanguage={handleLanguageChange} />;
   }

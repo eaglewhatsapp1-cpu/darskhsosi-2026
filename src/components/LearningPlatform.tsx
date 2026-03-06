@@ -8,11 +8,12 @@ import AppSidebar from './AppSidebar';
 import AppHeader from './AppHeader';
 import MainContent from './MainContent';
 import FloatingHelper from './floatingHelper';
+import OnboardingTour from './OnboardingTour';
 import { Loader2 } from 'lucide-react';
 import { Subject } from '@/utils/subjectColors';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-export type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress' | 'weblink' | 'studyplan' | 'projects' | 'classroom' | 'profile' | 'about';
+export type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress' | 'weblink' | 'studyplan' | 'projects' | 'classroom' | 'flashcards' | 'profile' | 'about';
 const LearningPlatform: React.FC = () => {
   const navigate = useNavigate();
   const {
@@ -34,6 +35,9 @@ const LearningPlatform: React.FC = () => {
   });
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
   const hasInitializedLanguage = useRef(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('onboarding_completed');
+  });
   const isMobile = useIsMobile();
 
   // Save active feature when it changes
@@ -89,6 +93,9 @@ const LearningPlatform: React.FC = () => {
     return <ProfileSetup onComplete={handleProfileComplete} currentLanguage={language} setLanguage={handleLanguageChange} />;
   }
   return <div className="flex flex-col h-screen w-full overflow-hidden">
+    {showOnboarding && isProfileComplete && (
+      <OnboardingTour language={language} onComplete={() => setShowOnboarding(false)} />
+    )}
     <AppHeader
       profile={profile!}
       language={language}

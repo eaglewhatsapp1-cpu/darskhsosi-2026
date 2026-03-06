@@ -88,6 +88,8 @@ const LearningPlatform: React.FC = () => {
   }
   if (!user) {
     return null;
+  if (!isProfileComplete) {
+    return <ProfileSetup onComplete={handleProfileComplete} currentLanguage={language} setLanguage={handleLanguageChange} />;
   }
   return <div className="flex flex-col h-screen w-full overflow-hidden">
     {showOnboarding && isProfileComplete && (

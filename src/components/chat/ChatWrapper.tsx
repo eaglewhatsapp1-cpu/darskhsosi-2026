@@ -83,19 +83,18 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
     }
   }, [progress]);
 
-  // Save progress
+  // Save selected materials to progress
   useEffect(() => {
-    if (messages.length > 0) {
+    if (selectedMaterials.length > 0) {
       const timer = setTimeout(() => {
         saveProgress({
-          messages,
           selectedMaterials,
           lastUpdated: new Date().toISOString()
         });
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [messages, selectedMaterials]);
+  }, [selectedMaterials]);
 
   const persona = getPersona(personaId);
   const subjectTheme = getSubjectTheme(profile.subject || 'general');

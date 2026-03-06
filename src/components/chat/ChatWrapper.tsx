@@ -127,6 +127,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
       timestamp: new Date()
     };
     setMessages(prev => [...prev, userMessage]);
+    addMessage(userMessage);
     setInput('');
     setIsLoading(true);
     setStreamingContent('');

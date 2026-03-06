@@ -263,6 +263,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
           timestamp: new Date()
         };
         setMessages(prev => [...prev, aiMessage]);
+        addMessage(aiMessage);
         onOutputGenerated?.(fullContent);
       }
       setStreamingContent('');

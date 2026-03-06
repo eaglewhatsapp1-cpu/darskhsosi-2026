@@ -35,6 +35,9 @@ const LearningPlatform: React.FC = () => {
   });
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
   const hasInitializedLanguage = useRef(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    return !localStorage.getItem('onboarding_completed');
+  });
   const isMobile = useIsMobile();
 
   // Save active feature when it changes

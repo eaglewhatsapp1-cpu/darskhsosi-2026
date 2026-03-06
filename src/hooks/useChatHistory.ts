@@ -23,7 +23,6 @@ export const useChatHistory = (featureId: string) => {
         .from('chat_messages')
         .select('*')
         .eq('user_id', user.id)
-        .eq('subject_id', featureId)
         .order('created_at', { ascending: true })
         .limit(100);
 
@@ -56,11 +55,9 @@ export const useChatHistory = (featureId: string) => {
     if (!user) return;
     try {
       await supabase.from('chat_messages').insert({
-        id: message.id,
         user_id: user.id,
         role: message.role,
         content: message.content,
-        subject_id: featureId,
       });
     } catch (err) {
       console.error('Failed to save message:', err);

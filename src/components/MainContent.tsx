@@ -13,6 +13,7 @@ import WebLinkExplainer from './WebLinkExplainer';
 import StudyPlanGenerator from './StudyPlanGenerator';
 import ProjectSuggestions from './ProjectSuggestions';
 import VirtualClassroom from './VirtualClassroom';
+import FlashcardFeature from './FlashcardFeature';
 import AboutPage from './AboutPage';
 import ProfilePage from './ProfilePage';
 import gsap from 'gsap';
@@ -30,8 +31,6 @@ interface MainContentProps {
 const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, language, setActiveFeature }) => {
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Keep track of which features have been visited to avoid rendering everything at once
-  // but keep them in DOM once visited to persist their state.
   const [visitedFeatures, setVisitedFeatures] = React.useState<Set<SidebarFeature>>(new Set([activeFeature]));
 
   React.useEffect(() => {
@@ -47,7 +46,6 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
     setActiveFeature('upload');
   };
 
-  // GSAP page transition animation
   useLayoutEffect(() => {
     const element = contentRef.current;
     if (!element) return;
@@ -74,6 +72,7 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
     { id: 'studyplan', component: <StudyPlanGenerator language={language} profile={profile} /> },
     { id: 'projects', component: <ProjectSuggestions language={language} /> },
     { id: 'classroom', component: <VirtualClassroom language={language} /> },
+    { id: 'flashcards', component: <FlashcardFeature language={language} /> },
     { id: 'about', component: <AboutPage language={language} /> },
     { id: 'profile', component: <ProfilePage profile={profile} language={language} /> }
   ];

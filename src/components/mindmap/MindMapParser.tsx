@@ -105,6 +105,8 @@ const MindMapParser: React.FC<MindMapParserProps> = ({ content, language }) => {
   const [viewMode, setViewMode] = useState<'visual' | 'text'>('visual');
   const [mindMapData, setMindMapData] = useState<MindMapNode | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isExportingImage, setIsExportingImage] = useState(false);
+  const mindMapRef = useRef<HTMLDivElement>(null);
 
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import InteractiveMindMap from './InteractiveMindMap';
 import { Button } from '@/components/ui/button';
-import { Network, FileText, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Network, FileText, Maximize2, ImageDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface MindMapNode {
   id: string;

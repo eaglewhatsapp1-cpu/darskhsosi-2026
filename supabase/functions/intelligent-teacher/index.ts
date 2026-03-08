@@ -65,7 +65,7 @@ serve(async (req) => {
 
     let apiBaseUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
     let apiKey = Deno.env.get("LOVABLE_API_KEY");
-    let model = "google/gemini-1.5-flash";
+    let model = "google/gemini-2.5-flash";
 
     // Priority 1: User's Gemini Key (cheapest/most flexible for this app)
     if (profileData?.gemini_api_key) {

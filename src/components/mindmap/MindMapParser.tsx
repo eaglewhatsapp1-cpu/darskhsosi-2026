@@ -115,6 +115,29 @@ const MindMapParser: React.FC<MindMapParserProps> = ({ content, language }) => {
     setMindMapData(parsed);
   }, [content]);
 
+  const handleExportAsImage = async () => {
+    if (!mindMapRef.current) return;
+    setIsExportingImage(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(mindMapRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+      });
+      const link = document.createElement('a');
+      link.download = `mindmap_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      toast.success(t('تم تصدير الخريطة كصورة', 'Mind map exported as image'));
+    } catch (error) {
+      console.error('Image export error:', error);
+      toast.error(t('فشل تصدير الصورة', 'Image export failed'));
+    } finally {
+      setIsExportingImage(false);
+    }
+  };
+
   if (!mindMapData) {
     return null;
   }

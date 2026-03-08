@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import InteractiveMindMap from './InteractiveMindMap';
 import { Button } from '@/components/ui/button';
-import { Network, FileText, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Network, FileText, Maximize2, ImageDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface MindMapNode {
   id: string;
@@ -104,6 +105,8 @@ const MindMapParser: React.FC<MindMapParserProps> = ({ content, language }) => {
   const [viewMode, setViewMode] = useState<'visual' | 'text'>('visual');
   const [mindMapData, setMindMapData] = useState<MindMapNode | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isExportingImage, setIsExportingImage] = useState(false);
+  const mindMapRef = useRef<HTMLDivElement>(null);
 
   const t = (ar: string, en: string) => language === 'ar' ? ar : en;
 
@@ -111,6 +114,29 @@ const MindMapParser: React.FC<MindMapParserProps> = ({ content, language }) => {
     const parsed = parseMindMapFromText(content);
     setMindMapData(parsed);
   }, [content]);
+
+  const handleExportAsImage = async () => {
+    if (!mindMapRef.current) return;
+    setIsExportingImage(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(mindMapRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+      });
+      const link = document.createElement('a');
+      link.download = `mindmap_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      toast.success(t('تم تصدير الخريطة كصورة', 'Mind map exported as image'));
+    } catch (error) {
+      console.error('Image export error:', error);
+      toast.error(t('فشل تصدير الصورة', 'Image export failed'));
+    } finally {
+      setIsExportingImage(false);
+    }
+  };
 
   if (!mindMapData) {
     return null;
@@ -151,6 +177,16 @@ const MindMapParser: React.FC<MindMapParserProps> = ({ content, language }) => {
           <Button
             variant="ghost"
             size="sm"
+            onClick={handleExportAsImage}
+            disabled={isExportingImage || viewMode !== 'visual'}
+            className="h-8"
+            title={t('تصدير كصورة', 'Export as Image')}
+          >
+            {isExportingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageDown className="w-4 h-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="h-8"
           >
@@ -165,11 +201,13 @@ const MindMapParser: React.FC<MindMapParserProps> = ({ content, language }) => {
         isFullscreen ? 'h-[calc(100%-56px)]' : ''
       )}>
         {viewMode === 'visual' ? (
-          <InteractiveMindMap 
-            data={mindMapData} 
-            language={language}
-            className={isFullscreen ? 'h-full' : 'h-[500px]'}
-          />
+          <div ref={mindMapRef}>
+            <InteractiveMindMap 
+              data={mindMapData} 
+              language={language}
+              className={isFullscreen ? 'h-full' : 'h-[500px]'}
+            />
+          </div>
         ) : (
           <div className="p-4 max-h-[500px] overflow-y-auto">
             <pre className="text-sm whitespace-pre-wrap font-mono text-muted-foreground">

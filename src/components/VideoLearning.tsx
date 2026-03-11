@@ -74,6 +74,12 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
     if (!input.trim() || isLoading || !videoId) return;
 
     const userMessage = input.trim();
+    const { validateMessage } = await import('@/utils/inputValidation');
+    const validation = validateMessage(userMessage, language);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
     setInput('');
     setIsLoading(true);
     setStreamingContent('');

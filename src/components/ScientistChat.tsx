@@ -68,6 +68,12 @@ const ScientistChat: React.FC<ScientistChatProps> = ({ language }) => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
+    const { validateMessage } = await import('@/utils/inputValidation');
+    const validation = validateMessage(userMessage, language);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
     setInput('');
     setIsLoading(true);
     setStreamingContent('');

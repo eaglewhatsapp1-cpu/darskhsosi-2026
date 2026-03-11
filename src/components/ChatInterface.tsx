@@ -86,6 +86,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
     const userInput = input.trim();
+    const validation = validateMessage(userInput, language);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
     setInput('');
     setIsLoading(true);
     setStreamingContent('');

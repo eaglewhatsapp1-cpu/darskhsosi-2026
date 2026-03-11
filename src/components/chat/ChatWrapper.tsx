@@ -120,6 +120,12 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
   const handleSend = async (customMessage?: string) => {
     const messageToSend = customMessage || input.trim();
     if (!messageToSend || isLoading) return;
+    const { validateMessage } = await import('@/utils/inputValidation');
+    const validation = validateMessage(messageToSend, language);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',

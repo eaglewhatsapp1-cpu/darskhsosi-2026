@@ -54,7 +54,41 @@ serve(async (req) => {
       );
     }
 
-    const { messages, learnerProfile, uploadedMaterials, materialContent } = await req.json() as RequestBody;
+    const body = await req.json() as RequestBody;
+    const { messages, learnerProfile, uploadedMaterials, materialContent } = body;
+
+    // Server-side input validation
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request: messages required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const MAX_MESSAGE_LENGTH = 15000;
+    const MAX_MESSAGES = 100;
+
+    if (messages.length > MAX_MESSAGES) {
+      return new Response(
+        JSON.stringify({ error: 'Too many messages in conversation' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    for (const msg of messages) {
+      if (!msg.role || !msg.content || typeof msg.content !== 'string') {
+        return new Response(
+          JSON.stringify({ error: 'Invalid message format' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (msg.role !== 'system' && msg.content.length > MAX_MESSAGE_LENGTH) {
+        return new Response(
+          JSON.stringify({ error: 'Message content too long' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Fetch user's personal API keys if they exist
     const { data: profileData } = await supabaseClient

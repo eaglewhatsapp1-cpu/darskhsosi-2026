@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { HelpCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FloatingHelperProps, SpotlightPosition, HelpStep } from './types';
-import { gettingStartedSteps, getContextualTips } from './helpSteps';
+import { getContextualTips } from './helpSteps';
 import Spotlight from './Spotlight';
 import HelperCard from './HelperCard';
 
@@ -14,21 +14,10 @@ const FloatingHelper: React.FC<FloatingHelperProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [hasSeenHelper, setHasSeenHelper] = useState(false);
   const [targetPosition, setTargetPosition] = useState<SpotlightPosition | null>(null);
 
-  // Check if user has seen the helper before
-  useEffect(() => {
-    const seen = localStorage.getItem('floatingHelperSeen');
-    if (!seen) {
-      const timer = setTimeout(() => setIsOpen(true), 2000);
-      return () => clearTimeout(timer);
-    }
-    setHasSeenHelper(true);
-  }, []);
-
-  // Get current steps based on whether user has seen helper
-  const steps: HelpStep[] = hasSeenHelper ? getContextualTips(currentFeature) : gettingStartedSteps;
+  // Only show contextual tips (getting started is now handled by OnboardingTour)
+  const steps: HelpStep[] = getContextualTips(currentFeature);
 
   // Reset step when feature changes
   useEffect(() => {
@@ -74,8 +63,6 @@ const FloatingHelper: React.FC<FloatingHelperProps> = ({
   const handleClose = () => {
     setIsOpen(false);
     setTargetPosition(null);
-    localStorage.setItem('floatingHelperSeen', 'true');
-    setHasSeenHelper(true);
   };
 
   const handleNext = () => {
@@ -116,7 +103,7 @@ const FloatingHelper: React.FC<FloatingHelperProps> = ({
         {isOpen ? (
           <X className="w-6 h-6 text-primary-foreground" />
         ) : (
-          <HelpCircle className="w-6 h-6 text-primary-foreground animate-pulse" />
+          <HelpCircle className="w-6 h-6 text-primary-foreground" />
         )}
       </Button>
 

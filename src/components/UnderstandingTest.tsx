@@ -325,9 +325,9 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
           const parsedQuestions = JSON.parse(jsonStr);
           if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
             // Validate and fix questions
-            const validQuestions = parsedQuestions.map((q: any, i: number) => ({
+            const validQuestions: Question[] = parsedQuestions.map((q: any, i: number) => ({
               question: q.question || `${language === 'ar' ? 'سؤال' : 'Question'} ${i + 1}`,
-              type: q.type === 'text' ? 'text' : 'mcq',
+              type: (q.type === 'text' ? 'text' : 'mcq') as 'mcq' | 'text',
               options: q.type === 'mcq' ? (q.options || []) : undefined,
               correctAnswer: q.correctAnswer ?? (q.type === 'mcq' ? 0 : ''),
               explanation: q.explanation || '',

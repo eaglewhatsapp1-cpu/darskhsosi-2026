@@ -65,7 +65,7 @@ serve(async (req) => {
       );
     }
 
-    const MAX_MESSAGE_LENGTH = 15000;
+    const MAX_MESSAGE_LENGTH = 50000;
     const MAX_MESSAGES = 100;
 
     if (messages.length > MAX_MESSAGES) {

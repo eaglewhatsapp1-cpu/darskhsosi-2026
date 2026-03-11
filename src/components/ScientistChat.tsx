@@ -18,12 +18,22 @@ interface ScientistChatProps {
 }
 
 const scientists = [
-  { id: 'einstein', name: { ar: 'ألبرت أينشتاين', en: 'Albert Einstein' }, field: { ar: 'الفيزياء', en: 'Physics' }, emoji: '🧪' },
+  { id: 'einstein', name: { ar: 'ألبرت أينشتاين', en: 'Albert Einstein' }, field: { ar: 'الفيزياء النظرية', en: 'Theoretical Physics' }, emoji: '🧪' },
   { id: 'newton', name: { ar: 'إسحاق نيوتن', en: 'Isaac Newton' }, field: { ar: 'الفيزياء والرياضيات', en: 'Physics & Math' }, emoji: '🍎' },
   { id: 'curie', name: { ar: 'ماري كوري', en: 'Marie Curie' }, field: { ar: 'الكيمياء والفيزياء', en: 'Chemistry & Physics' }, emoji: '⚗️' },
   { id: 'darwin', name: { ar: 'تشارلز داروين', en: 'Charles Darwin' }, field: { ar: 'علم الأحياء', en: 'Biology' }, emoji: '🦎' },
   { id: 'hawking', name: { ar: 'ستيفن هوكينغ', en: 'Stephen Hawking' }, field: { ar: 'الفيزياء الفلكية', en: 'Astrophysics' }, emoji: '🌌' },
-  { id: 'alkhwarizmi', name: { ar: 'الخوارزمي', en: 'Al-Khwarizmi' }, field: { ar: 'الرياضيات', en: 'Mathematics' }, emoji: '🔢' },
+  { id: 'alkhwarizmi', name: { ar: 'الخوارزمي', en: 'Al-Khwarizmi' }, field: { ar: 'الرياضيات والجبر', en: 'Mathematics & Algebra' }, emoji: '🔢' },
+  { id: 'ibnSina', name: { ar: 'ابن سينا', en: 'Ibn Sina (Avicenna)' }, field: { ar: 'الطب والفلسفة', en: 'Medicine & Philosophy' }, emoji: '🏥' },
+  { id: 'ibnAlHaytham', name: { ar: 'ابن الهيثم', en: 'Ibn Al-Haytham' }, field: { ar: 'البصريات والفيزياء', en: 'Optics & Physics' }, emoji: '🔭' },
+  { id: 'tesla', name: { ar: 'نيكولا تسلا', en: 'Nikola Tesla' }, field: { ar: 'الهندسة الكهربائية', en: 'Electrical Engineering' }, emoji: '⚡' },
+  { id: 'davinci', name: { ar: 'ليوناردو دا فينشي', en: 'Leonardo da Vinci' }, field: { ar: 'الفن والهندسة والعلوم', en: 'Art, Engineering & Science' }, emoji: '🎨' },
+  { id: 'turing', name: { ar: 'آلان تورينغ', en: 'Alan Turing' }, field: { ar: 'علوم الحاسوب', en: 'Computer Science' }, emoji: '💻' },
+  { id: 'archimedes', name: { ar: 'أرخميدس', en: 'Archimedes' }, field: { ar: 'الرياضيات والفيزياء', en: 'Mathematics & Physics' }, emoji: '🛁' },
+  { id: 'jabir', name: { ar: 'جابر بن حيان', en: 'Jabir ibn Hayyan' }, field: { ar: 'الكيمياء', en: 'Chemistry' }, emoji: '🧬' },
+  { id: 'galileo', name: { ar: 'جاليليو جاليلي', en: 'Galileo Galilei' }, field: { ar: 'الفلك والفيزياء', en: 'Astronomy & Physics' }, emoji: '🔭' },
+  { id: 'razi', name: { ar: 'الرازي', en: 'Al-Razi (Rhazes)' }, field: { ar: 'الطب والكيمياء', en: 'Medicine & Chemistry' }, emoji: '💊' },
+  { id: 'noether', name: { ar: 'إيمي نويثر', en: 'Emmy Noether' }, field: { ar: 'الرياضيات والفيزياء', en: 'Mathematics & Physics' }, emoji: '📐' },
 ];
 
 const ScientistChat: React.FC<ScientistChatProps> = ({ language }) => {

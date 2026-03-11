@@ -94,7 +94,7 @@ const LearningPlatform: React.FC = () => {
   }
   return <div className="flex flex-col h-screen w-full overflow-hidden">
     {showOnboarding && isProfileComplete && (
-      <OnboardingTour language={language} onComplete={() => setShowOnboarding(false)} />
+      <OnboardingTour language={language} onComplete={() => setShowOnboarding(false)} onNavigate={feature => setActiveFeature(feature as SidebarFeature)} />
     )}
     <AppHeader
       profile={profile!}

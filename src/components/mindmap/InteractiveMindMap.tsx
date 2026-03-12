@@ -167,6 +167,7 @@ const MindMapNodeComponent: React.FC<{ data: { label: string; level: number; dir
       )}
 
       <div
+        dir="auto"
         className={cn(
           "px-4 py-3 rounded-2xl shadow-lg border-2 border-white/20 backdrop-blur-sm flex items-center gap-3 min-w-[140px] max-w-[220px]",
           isRoot ? "bg-gradient-to-br from-cyan-400 to-cyan-600 ring-4 ring-cyan-100 dark:ring-cyan-900/30" :
@@ -180,7 +181,7 @@ const MindMapNodeComponent: React.FC<{ data: { label: string; level: number; dir
           </div>
         )}
 
-        <span className={cn(
+        <span dir="auto" className={cn(
           "text-sm font-semibold tracking-tight",
           isRoot ? "text-white text-base" :
             isBranch ? "text-slate-800 dark:text-slate-100" :

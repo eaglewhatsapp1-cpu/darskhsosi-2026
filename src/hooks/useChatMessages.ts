@@ -12,10 +12,15 @@ export interface ChatMessage {
   created_at: string;
 }
 
+const isValidUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
 export const useChatMessages = (subjectId?: string | null) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // If subjectId is provided but not a valid UUID, skip DB operations (local-only mode)
+  const isLocalOnly = !!subjectId && !isValidUUID(subjectId);
 
   useEffect(() => {
     if (user) {

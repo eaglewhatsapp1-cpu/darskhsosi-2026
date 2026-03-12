@@ -79,10 +79,7 @@ const VirtualClassroom: React.FC<VirtualClassroomProps> = ({ language }) => {
         window.open(meetingLink, '_blank');
     };
 
-    const upcomingSessions = [
-        { id: 1, title: language === 'ar' ? 'مراجعة الرياضيات - الدوال' : 'Math Review - Functions', teacher: language === 'ar' ? 'أ. أحمد علي' : 'Mr. Ahmed Ali', time: '18:00', duration: '45m' },
-        { id: 2, title: language === 'ar' ? 'محاضرة الفيزياء النووية' : 'Nuclear Physics Lecture', teacher: language === 'ar' ? 'د. سارة' : 'Dr. Sarah', time: '20:30', duration: '60m' },
-    ];
+    const upcomingSessions: { id: number; title: string; teacher: string; time: string; duration: string }[] = [];
 
     return (
         <div className="h-full overflow-y-auto p-4 md:p-6 custom-scrollbar gsap-theme-animate">

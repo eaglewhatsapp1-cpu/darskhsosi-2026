@@ -104,6 +104,21 @@ export const useChatMessages = (subjectId?: string | null) => {
   }) => {
     if (!user) return { error: new Error('Not authenticated') };
 
+    // For local-only mode, just add to local state without DB
+    if (isLocalOnly) {
+      const localMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        role: message.role,
+        content: message.content,
+        subject_id: message.subject_id || null,
+        attachments: message.attachments || null,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, localMessage]);
+      return { data: localMessage, error: null };
+    }
+
     try {
       const { data, error } = await supabase
         .from('chat_messages')

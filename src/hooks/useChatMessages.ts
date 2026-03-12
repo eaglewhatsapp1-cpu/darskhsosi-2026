@@ -16,17 +16,15 @@ const isValidUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 
 export const useChatMessages = (subjectId?: string | null) => {
   const { user } = useAuth();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(true);
   
   // If subjectId is provided but not a valid UUID, skip DB operations (local-only mode)
   const isLocalOnly = !!subjectId && !isValidUUID(subjectId);
+  
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState(!isLocalOnly);
 
   useEffect(() => {
-    if (isLocalOnly) {
-      setLoading(false);
-      return;
-    }
+    if (isLocalOnly) return;
     if (user) {
       fetchMessages();
       const unsubscribe = subscribeToMessages();

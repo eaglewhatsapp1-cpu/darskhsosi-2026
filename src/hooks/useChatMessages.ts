@@ -23,6 +23,10 @@ export const useChatMessages = (subjectId?: string | null) => {
   const isLocalOnly = !!subjectId && !isValidUUID(subjectId);
 
   useEffect(() => {
+    if (isLocalOnly) {
+      setLoading(false);
+      return;
+    }
     if (user) {
       fetchMessages();
       const unsubscribe = subscribeToMessages();

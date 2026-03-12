@@ -302,49 +302,75 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
 
       console.log('Full AI response:', fullContent);
 
-      // Extract JSON array
-      let jsonStr = '';
-      let bracketCount = 0;
-      let startIdx = -1;
-
-      for (let i = 0; i < fullContent.length; i++) {
-        if (fullContent[i] === '[') {
-          if (startIdx === -1) startIdx = i;
-          bracketCount++;
-        } else if (fullContent[i] === ']') {
-          bracketCount--;
-          if (bracketCount === 0 && startIdx !== -1) {
-            jsonStr = fullContent.substring(startIdx, i + 1);
-            break;
-          }
-        }
-      }
-
-      if (jsonStr) {
+      // Extract individual question objects using regex for robustness
+      const parseQuestionsFromResponse = (text: string): Question[] => {
+        const questions: Question[] = [];
+        
+        // First try: standard JSON array parse
         try {
-          const parsedQuestions = JSON.parse(jsonStr);
-          if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
-            // Validate and fix questions
-            const validQuestions: Question[] = parsedQuestions.map((q: any, i: number) => ({
-              question: q.question || `${language === 'ar' ? 'سؤال' : 'Question'} ${i + 1}`,
-              type: (q.type === 'text' ? 'text' : 'mcq') as 'mcq' | 'text',
-              options: q.type === 'mcq' ? (q.options || []) : undefined,
-              correctAnswer: q.correctAnswer ?? (q.type === 'mcq' ? 0 : ''),
-              explanation: q.explanation || '',
-            }));
-            setQuestions(validQuestions);
-            if (settings.timedTest) setTimeLeft(settings.duration * 60);
-            toast.success(language === 'ar' ? 'تم إنشاء الاختبار بنجاح!' : 'Test generated successfully!');
-          } else {
-            throw new Error('Empty questions array');
+          let bracketCount = 0;
+          let startIdx = -1;
+          for (let i = 0; i < text.length; i++) {
+            if (text[i] === '[') { if (startIdx === -1) startIdx = i; bracketCount++; }
+            else if (text[i] === ']') { bracketCount--; if (bracketCount === 0 && startIdx !== -1) {
+              const parsed = JSON.parse(text.substring(startIdx, i + 1));
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                const valid = parsed.filter((q: any) => q.question && typeof q.question === 'string' && q.question.length > 10);
+                if (valid.length > 0) return valid.map((q: any) => ({
+                  question: q.question,
+                  type: (q.type === 'text' ? 'text' : 'mcq') as 'mcq' | 'text',
+                  options: q.type === 'mcq' || (q.options && q.options.length > 0) ? (q.options || []) : undefined,
+                  correctAnswer: q.correctAnswer ?? (q.type === 'mcq' ? 0 : ''),
+                  explanation: q.explanation || '',
+                }));
+              }
+              break;
+            }}
           }
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError);
-          toast.error(language === 'ar' ? 'فشل في تحليل الأسئلة. حاول مرة أخرى.' : 'Failed to parse questions. Try again.');
+        } catch (e) {
+          console.warn('Standard JSON parse failed, trying individual extraction:', e);
+        }
+
+        // Fallback: extract individual {...} objects
+        const objectPattern = /\{[^{}]*"question"\s*:\s*"[^"]{10,}"[^{}]*\}/g;
+        let match;
+        while ((match = objectPattern.exec(text)) !== null) {
+          try {
+            const obj = JSON.parse(match[0]);
+            if (obj.question && obj.question.length > 10) {
+              questions.push({
+                question: obj.question,
+                type: (obj.type === 'text' ? 'text' : 'mcq') as 'mcq' | 'text',
+                options: obj.type === 'mcq' || (obj.options && obj.options.length > 0) ? (obj.options || []) : undefined,
+                correctAnswer: obj.correctAnswer ?? (obj.type === 'mcq' ? 0 : ''),
+                explanation: obj.explanation || '',
+              });
+            }
+          } catch (e) { /* skip malformed objects */ }
+        }
+        
+        return questions;
+      };
+
+      const parsedQuestions = parseQuestionsFromResponse(fullContent);
+      
+      if (parsedQuestions.length > 0) {
+        // Filter out any questions with obviously truncated text (ending mid-word without punctuation)
+        const validQuestions = parsedQuestions.filter(q => 
+          q.question.length > 10 && 
+          (q.type !== 'mcq' || (q.options && q.options.length >= 2))
+        );
+        
+        if (validQuestions.length > 0) {
+          setQuestions(validQuestions);
+          if (settings.timedTest) setTimeLeft(settings.duration * 60);
+          toast.success(language === 'ar' ? `تم إنشاء ${validQuestions.length} أسئلة بنجاح!` : `${validQuestions.length} questions generated successfully!`);
+        } else {
+          toast.error(language === 'ar' ? 'الأسئلة المولدة غير مكتملة. حاول مرة أخرى.' : 'Generated questions were incomplete. Try again.');
         }
       } else {
-        console.error('No JSON found in response:', fullContent);
-        toast.error(language === 'ar' ? 'لم يتم العثور على أسئلة. حاول مرة أخرى.' : 'No questions found. Try again.');
+        console.error('No valid questions found in response:', fullContent);
+        toast.error(language === 'ar' ? 'لم يتم العثور على أسئلة صالحة. حاول مرة أخرى.' : 'No valid questions found. Try again.');
       }
     } catch (error) {
       console.error('Error generating test:', error);

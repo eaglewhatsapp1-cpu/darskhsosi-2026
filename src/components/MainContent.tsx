@@ -58,24 +58,24 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
     );
   }, [activeFeature]);
 
-  const features: { id: SidebarFeature; component: React.ReactNode }[] = [
-    { id: 'teacher', component: <ChatInterface profile={profile} language={language} onNavigateToUpload={handleNavigateToUpload} /> },
-    { id: 'upload', component: <UploadMaterials language={language} /> },
-    { id: 'progress', component: <LearningProgress language={language} /> },
-    { id: 'mindmap', component: <MindMapFeature language={language} /> },
-    { id: 'simplify', component: <SimplifyFeature language={language} /> },
-    { id: 'summary', component: <SummaryFeature language={language} /> },
-    { id: 'scientist', component: <ScientistChat language={language} /> },
-    { id: 'video', component: <VideoLearning language={language} /> },
-    { id: 'test', component: <UnderstandingTest language={language} /> },
-    { id: 'weblink', component: <WebLinkExplainer language={language} profile={profile} /> },
-    { id: 'studyplan', component: <StudyPlanGenerator language={language} profile={profile} /> },
-    { id: 'projects', component: <ProjectSuggestions language={language} /> },
-    { id: 'classroom', component: <VirtualClassroom language={language} /> },
-    { id: 'flashcards', component: <FlashcardFeature language={language} /> },
-    { id: 'about', component: <AboutPage language={language} /> },
-    { id: 'profile', component: <ProfilePage profile={profile} language={language} /> }
-  ];
+  const features = useMemo(() => [
+    { id: 'teacher' as SidebarFeature, component: <ChatInterface profile={profile} language={language} onNavigateToUpload={handleNavigateToUpload} /> },
+    { id: 'upload' as SidebarFeature, component: <UploadMaterials language={language} /> },
+    { id: 'progress' as SidebarFeature, component: <LearningProgress language={language} /> },
+    { id: 'mindmap' as SidebarFeature, component: <MindMapFeature language={language} /> },
+    { id: 'simplify' as SidebarFeature, component: <SimplifyFeature language={language} /> },
+    { id: 'summary' as SidebarFeature, component: <SummaryFeature language={language} /> },
+    { id: 'scientist' as SidebarFeature, component: <ScientistChat language={language} /> },
+    { id: 'video' as SidebarFeature, component: <VideoLearning language={language} /> },
+    { id: 'test' as SidebarFeature, component: <UnderstandingTest language={language} /> },
+    { id: 'weblink' as SidebarFeature, component: <WebLinkExplainer language={language} profile={profile} /> },
+    { id: 'studyplan' as SidebarFeature, component: <StudyPlanGenerator language={language} profile={profile} /> },
+    { id: 'projects' as SidebarFeature, component: <ProjectSuggestions language={language} /> },
+    { id: 'classroom' as SidebarFeature, component: <VirtualClassroom language={language} /> },
+    { id: 'flashcards' as SidebarFeature, component: <FlashcardFeature language={language} /> },
+    { id: 'about' as SidebarFeature, component: <AboutPage language={language} /> },
+    { id: 'profile' as SidebarFeature, component: <ProfilePage profile={profile} language={language} /> }
+  ], [profile, language]);
 
   return (
     <main className="flex-1 h-full overflow-hidden bg-background gsap-theme-animate">

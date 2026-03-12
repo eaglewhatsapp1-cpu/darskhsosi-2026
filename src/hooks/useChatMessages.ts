@@ -12,12 +12,21 @@ export interface ChatMessage {
   created_at: string;
 }
 
+const isValidUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
 export const useChatMessages = (subjectId?: string | null) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // If subjectId is provided but not a valid UUID, skip DB operations (local-only mode)
+  const isLocalOnly = !!subjectId && !isValidUUID(subjectId);
 
   useEffect(() => {
+    if (isLocalOnly) {
+      setLoading(false);
+      return;
+    }
     if (user) {
       fetchMessages();
       const unsubscribe = subscribeToMessages();
@@ -94,6 +103,21 @@ export const useChatMessages = (subjectId?: string | null) => {
     attachments?: string[];
   }) => {
     if (!user) return { error: new Error('Not authenticated') };
+
+    // For local-only mode, just add to local state without DB
+    if (isLocalOnly) {
+      const localMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        role: message.role,
+        content: message.content,
+        subject_id: message.subject_id || null,
+        attachments: message.attachments || null,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, localMessage]);
+      return { data: localMessage, error: null };
+    }
 
     try {
       const { data, error } = await supabase

@@ -1,4 +1,4 @@
-import React, { useRef, useLayoutEffect } from 'react';
+import React, { useRef, useLayoutEffect, useMemo } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import ChatInterface from './ChatInterface';
 import UploadMaterials from './UploadMaterials';

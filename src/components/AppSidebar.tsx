@@ -141,6 +141,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         'sidebar.projects': 'مشاريع عملية',
         'sidebar.classroom': 'القاعة الافتراضية',
         'sidebar.flashcards': 'البطاقات التعليمية',
+        'sidebar.kids-games': 'ألعاب تعليمية للأطفال',
         'sidebar.profile': 'الملف الشخصي',
         'sidebar.about': 'عن التطبيق',
         'action.signout': 'تسجيل الخروج'

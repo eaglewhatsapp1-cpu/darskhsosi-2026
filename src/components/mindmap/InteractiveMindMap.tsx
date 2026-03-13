@@ -236,7 +236,11 @@ const InteractiveMindMap: React.FC<InteractiveMindMapProps> = ({ data, language,
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   return (
-    <div className={cn('w-full h-[600px] bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative', className)} dir="ltr">
+    <div
+      data-mindmap-export-root="true"
+      className={cn('w-full h-[600px] bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative', className)}
+      dir="ltr"
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}

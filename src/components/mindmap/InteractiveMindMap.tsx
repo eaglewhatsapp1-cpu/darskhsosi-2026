@@ -50,6 +50,8 @@ const getIconForLabel = (label: string) => {
   return <Star className="w-5 h-5" />;
 };
 
+const isArabicText = (value: string) => /[\u0600-\u06FF]/.test(value);
+
 const convertToFlowNodes = (
   node: MindMapNode,
   level: number = 0,

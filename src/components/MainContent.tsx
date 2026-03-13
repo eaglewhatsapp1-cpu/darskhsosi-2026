@@ -74,8 +74,8 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
     { id: 'projects' as SidebarFeature, component: <ProjectSuggestions language={language} /> },
     { id: 'classroom' as SidebarFeature, component: <VirtualClassroom language={language} /> },
     { id: 'flashcards' as SidebarFeature, component: <FlashcardFeature language={language} /> },
+    { id: 'kids-games' as SidebarFeature, component: <KidsLearningGames language={language} /> },
     { id: 'about' as SidebarFeature, component: <AboutPage language={language} /> },
-    { id: 'profile' as SidebarFeature, component: <ProfilePage profile={profile} language={language} /> }
   ], [profile, language]);
 
   return (

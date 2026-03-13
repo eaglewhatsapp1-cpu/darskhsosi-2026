@@ -65,6 +65,9 @@ export const features: {
   id: 'flashcards',
   icon: Layers
 }, {
+  id: 'kids-games',
+  icon: Puzzle
+}, {
   id: 'profile',
   icon: User
 }, {

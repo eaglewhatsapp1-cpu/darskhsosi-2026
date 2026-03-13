@@ -77,6 +77,7 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
     { id: 'kids-games' as SidebarFeature, component: <KidsLearningGames language={language} /> },
     { id: 'about' as SidebarFeature, component: <AboutPage language={language} /> },
     { id: 'profile' as SidebarFeature, component: <ProfilePage profile={profile} language={language} /> }
+  ], [profile, language]);
 
   return (
     <main className="flex-1 h-full overflow-hidden bg-background gsap-theme-animate">

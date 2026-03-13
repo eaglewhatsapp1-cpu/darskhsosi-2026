@@ -15,6 +15,7 @@ import ProjectSuggestions from './ProjectSuggestions';
 import VirtualClassroom from './VirtualClassroom';
 import FlashcardFeature from './FlashcardFeature';
 import AboutPage from './AboutPage';
+import KidsLearningGames from './KidsLearningGames';
 import ProfilePage from './ProfilePage';
 import gsap from 'gsap';
 

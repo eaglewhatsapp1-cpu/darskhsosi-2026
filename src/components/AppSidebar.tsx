@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { SidebarFeature } from './LearningPlatform';
 import { cn } from '@/lib/utils';
-import { GraduationCap, Upload, Network, Lightbulb, FileText, Users, Video, ClipboardCheck, TrendingUp, ChevronLeft, ChevronRight, LogOut, Link, Calendar, Rocket, Heart, User, Presentation, Layers } from 'lucide-react';
+import { GraduationCap, Upload, Network, Lightbulb, FileText, Users, Video, ClipboardCheck, TrendingUp, ChevronLeft, ChevronRight, LogOut, Link, Calendar, Rocket, Heart, User, Presentation, Layers, Puzzle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';

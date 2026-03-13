@@ -152,7 +152,7 @@ const convertToFlowNodes = (
 const MindMapNodeComponent: React.FC<{ data: { label: string; level: number; direction: string } }> = ({ data }) => {
   const isRoot = data.level === 0;
   const isBranch = data.level === 1;
-  const colorIndex = data.level; // Use level or some other logic
+  const hasArabic = isArabicText(data.label);
 
   return (
     <div className={cn(
@@ -169,6 +169,7 @@ const MindMapNodeComponent: React.FC<{ data: { label: string; level: number; dir
       )}
 
       <div
+        data-mindmap-node="true"
         className={cn(
           "px-4 py-3 rounded-2xl shadow-lg border-2 border-white/20 backdrop-blur-sm flex items-center gap-3 min-w-[140px] max-w-[220px]",
           isRoot ? "bg-gradient-to-br from-cyan-400 to-cyan-600 ring-4 ring-cyan-100 dark:ring-cyan-900/30" :
@@ -183,7 +184,13 @@ const MindMapNodeComponent: React.FC<{ data: { label: string; level: number; dir
         )}
 
         <span
-          style={{ direction: 'rtl', unicodeBidi: 'plaintext', textAlign: 'right' }}
+          data-mindmap-label="true"
+          lang={hasArabic ? 'ar' : 'en'}
+          style={{
+            direction: hasArabic ? 'rtl' : 'ltr',
+            unicodeBidi: 'plaintext',
+            textAlign: hasArabic ? 'right' : 'left',
+          }}
           className={cn(
             "text-sm font-semibold tracking-tight w-full",
             isRoot ? "text-white text-base" :

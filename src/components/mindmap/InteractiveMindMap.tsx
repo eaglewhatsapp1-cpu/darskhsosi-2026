@@ -50,6 +50,8 @@ const getIconForLabel = (label: string) => {
   return <Star className="w-5 h-5" />;
 };
 
+const isArabicText = (value: string) => /[\u0600-\u06FF]/.test(value);
+
 const convertToFlowNodes = (
   node: MindMapNode,
   level: number = 0,
@@ -150,7 +152,7 @@ const convertToFlowNodes = (
 const MindMapNodeComponent: React.FC<{ data: { label: string; level: number; direction: string } }> = ({ data }) => {
   const isRoot = data.level === 0;
   const isBranch = data.level === 1;
-  const colorIndex = data.level; // Use level or some other logic
+  const hasArabic = isArabicText(data.label);
 
   return (
     <div className={cn(
@@ -167,6 +169,7 @@ const MindMapNodeComponent: React.FC<{ data: { label: string; level: number; dir
       )}
 
       <div
+        data-mindmap-node="true"
         className={cn(
           "px-4 py-3 rounded-2xl shadow-lg border-2 border-white/20 backdrop-blur-sm flex items-center gap-3 min-w-[140px] max-w-[220px]",
           isRoot ? "bg-gradient-to-br from-cyan-400 to-cyan-600 ring-4 ring-cyan-100 dark:ring-cyan-900/30" :
@@ -181,7 +184,13 @@ const MindMapNodeComponent: React.FC<{ data: { label: string; level: number; dir
         )}
 
         <span
-          style={{ direction: 'rtl', unicodeBidi: 'plaintext', textAlign: 'right' }}
+          data-mindmap-label="true"
+          lang={hasArabic ? 'ar' : 'en'}
+          style={{
+            direction: hasArabic ? 'rtl' : 'ltr',
+            unicodeBidi: 'plaintext',
+            textAlign: hasArabic ? 'right' : 'left',
+          }}
           className={cn(
             "text-sm font-semibold tracking-tight w-full",
             isRoot ? "text-white text-base" :
@@ -227,7 +236,11 @@ const InteractiveMindMap: React.FC<InteractiveMindMapProps> = ({ data, language,
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   return (
-    <div className={cn('w-full h-[600px] bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative', className)} dir="ltr">
+    <div
+      data-mindmap-export-root="true"
+      className={cn('w-full h-[600px] bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative', className)}
+      dir="ltr"
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}

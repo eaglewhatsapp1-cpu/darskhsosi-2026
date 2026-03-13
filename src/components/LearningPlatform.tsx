@@ -13,7 +13,7 @@ import { Loader2 } from 'lucide-react';
 import { Subject } from '@/utils/subjectColors';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-export type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress' | 'weblink' | 'studyplan' | 'projects' | 'classroom' | 'flashcards' | 'profile' | 'about';
+export type SidebarFeature = 'teacher' | 'upload' | 'mindmap' | 'simplify' | 'summary' | 'scientist' | 'video' | 'test' | 'progress' | 'weblink' | 'studyplan' | 'projects' | 'classroom' | 'flashcards' | 'kids-games' | 'profile' | 'about';
 const LearningPlatform: React.FC = () => {
   const navigate = useNavigate();
   const {

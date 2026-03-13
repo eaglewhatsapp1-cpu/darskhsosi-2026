@@ -117,18 +117,45 @@ const MindMapParser: React.FC<MindMapParserProps> = ({ content, language }) => {
 
   const handleExportAsImage = async () => {
     if (!mindMapRef.current) return;
+
     setIsExportingImage(true);
+
     try {
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(mindMapRef.current, {
+
+      const exportWithSettings = async (foreignObjectRendering: boolean) => html2canvas(mindMapRef.current!, {
         backgroundColor: null,
         scale: 2,
         useCORS: true,
+        foreignObjectRendering,
+        onclone: (clonedDoc) => {
+          const labels = clonedDoc.querySelectorAll('[data-mindmap-label="true"]');
+          labels.forEach((label) => {
+            const el = label as HTMLElement;
+            const text = (el.textContent || '').trim();
+            const hasArabic = /[\u0600-\u06FF]/.test(text);
+
+            el.style.direction = hasArabic ? 'rtl' : 'ltr';
+            el.style.textAlign = hasArabic ? 'right' : 'left';
+            el.style.unicodeBidi = 'plaintext';
+            el.style.fontFamily = hasArabic ? 'Cairo, system-ui, sans-serif' : 'system-ui, sans-serif';
+          });
+        },
       });
+
+      let canvas: HTMLCanvasElement;
+
+      try {
+        canvas = await exportWithSettings(true);
+      } catch {
+        canvas = await exportWithSettings(false);
+      }
+
       const link = document.createElement('a');
       link.download = `mindmap_${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
+
       toast.success(t('تم تصدير الخريطة كصورة', 'Mind map exported as image'));
     } catch (error) {
       console.error('Image export error:', error);

@@ -447,7 +447,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
             </div>
 
             <p className="mt-4 text-[10px] text-muted-foreground italic">
-              * {language === 'ar' ? 'يتم تشفير المفاتيح وحفظها في قاعدة بيانات آمنة خاصة بك.' : 'Keys are encrypted and saved in your private secure database.'}
+              * {language === 'ar' ? 'المفاتيح محفوظة في قاعدة بيانات خاصة بك ومحمية بسياسات الوصول. يُنصح بعدم مشاركتها.' : 'Keys are stored in your private database, protected by access policies. Do not share them with others.'}
             </p>
           </Card>
 

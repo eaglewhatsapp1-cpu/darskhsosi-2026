@@ -11,6 +11,7 @@ import MaterialSelector from '@/components/chat/MaterialSelector';
 import { Send, Paperclip, Bot, User, Sparkles, Upload, Loader2, FileText } from 'lucide-react';
 import { useUserProgress } from '@/hooks/useUserProgress';
 import ExportButtons from '@/components/chat/ExportButtons';
+import { validateMessage } from '@/utils/inputValidation';
 
 interface ChatInterfaceProps {
   profile: Profile;
@@ -85,6 +86,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
     const userInput = input.trim();
+    const validation = validateMessage(userInput, language);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
     setInput('');
     setIsLoading(true);
     setStreamingContent('');

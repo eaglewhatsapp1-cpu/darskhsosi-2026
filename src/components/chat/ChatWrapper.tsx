@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
+import { useChatHistory } from '@/hooks/useChatHistory';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,6 +19,7 @@ import SmartSuggestions from './SmartSuggestions';
 import MarkdownContent from './MarkdownContent';
 import MindMapParser from '@/components/mindmap/MindMapParser';
 import { useUserProgress } from '@/hooks/useUserProgress';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Message {
   id: string;
@@ -55,6 +57,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
     materials
   } = useUploadedMaterials();
   const { progress, saveProgress } = useUserProgress(personaId as any);
+  const { messages: dbMessages, addMessage, loading: historyLoading } = useChatHistory(personaId);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState(initialContent || '');
@@ -63,35 +66,35 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
   const [tempFiles, setTempFiles] = useState<TempFile[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasLoadedHistory = useRef(false);
 
-  // Load progress
+  // Load from DB history
   useEffect(() => {
-    if (progress && messages.length === 0) {
-      if (progress.messages) {
-        setMessages(progress.messages.map((m: any) => ({
-          ...m,
-          timestamp: new Date(m.timestamp)
-        })));
-      }
-      if (progress.selectedMaterials) {
-        setSelectedMaterials(progress.selectedMaterials);
-      }
+    if (!historyLoading && dbMessages.length > 0 && !hasLoadedHistory.current) {
+      hasLoadedHistory.current = true;
+      setMessages(dbMessages);
+    }
+  }, [historyLoading, dbMessages]);
+
+  // Load selected materials from progress
+  useEffect(() => {
+    if (progress && progress.selectedMaterials) {
+      setSelectedMaterials(progress.selectedMaterials);
     }
   }, [progress]);
 
-  // Save progress
+  // Save selected materials to progress
   useEffect(() => {
-    if (messages.length > 0) {
+    if (selectedMaterials.length > 0) {
       const timer = setTimeout(() => {
         saveProgress({
-          messages,
           selectedMaterials,
           lastUpdated: new Date().toISOString()
         });
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [messages, selectedMaterials]);
+  }, [selectedMaterials]);
 
   const persona = getPersona(personaId);
   const subjectTheme = getSubjectTheme(profile.subject || 'general');
@@ -117,6 +120,12 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
   const handleSend = async (customMessage?: string) => {
     const messageToSend = customMessage || input.trim();
     if (!messageToSend || isLoading) return;
+    const { validateMessage } = await import('@/utils/inputValidation');
+    const validation = validateMessage(messageToSend, language);
+    if (!validation.valid) {
+      toast.error(validation.error);
+      return;
+    }
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -124,6 +133,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
       timestamp: new Date()
     };
     setMessages(prev => [...prev, userMessage]);
+    addMessage(userMessage);
     setInput('');
     setIsLoading(true);
     setStreamingContent('');
@@ -259,6 +269,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
           timestamp: new Date()
         };
         setMessages(prev => [...prev, aiMessage]);
+        addMessage(aiMessage);
         onOutputGenerated?.(fullContent);
       }
       setStreamingContent('');

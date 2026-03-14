@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ClipboardCheck, Loader2, Sparkles, BookOpen, CheckCircle, XCircle, Timer, Settings2 } from 'lucide-react';
+import { ClipboardCheck, Loader2, Sparkles, BookOpen, CheckCircle, XCircle, Timer, Settings2, Trophy, RotateCcw, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 import { useUserProgress } from '@/hooks/useUserProgress';
 import ExportButtons from './chat/ExportButtons';
@@ -77,7 +78,7 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
           settings,
           timeLeft
         });
-      }, 2000); // Debounce saves
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [questions, answers, showResults, settings, timeLeft]);
@@ -107,6 +108,19 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
       score: { ar: 'النتيجة', en: 'Score' },
       timeLeft: { ar: 'الوقت المتبقي', en: 'Time Left' },
       extracting: { ar: 'جاري استخراج المحتوى...', en: 'Extracting content...' },
+      correct: { ar: 'إجابة صحيحة', en: 'Correct' },
+      wrong: { ar: 'إجابة خاطئة', en: 'Incorrect' },
+      notAnswered: { ar: 'لم تتم الإجابة', en: 'Not Answered' },
+      yourAnswer: { ar: 'إجابتك', en: 'Your Answer' },
+      correctAnswer: { ar: 'الإجابة الصحيحة', en: 'Correct Answer' },
+      explanation: { ar: 'الشرح', en: 'Explanation' },
+      resultsTitle: { ar: 'نتائج الاختبار', en: 'Test Results' },
+      excellent: { ar: 'ممتاز! أداء رائع 🌟', en: 'Excellent! Great job 🌟' },
+      good: { ar: 'جيد جداً! استمر 💪', en: 'Very Good! Keep going 💪' },
+      average: { ar: 'لا بأس، حاول مراجعة المادة 📖', en: 'Not bad, try reviewing the material 📖' },
+      poor: { ar: 'تحتاج مزيد من المراجعة 📚', en: 'Needs more review 📚' },
+      writeAnswer: { ar: 'اكتب إجابتك هنا...', en: 'Write your answer here...' },
+      modelAnswer: { ar: 'الإجابة النموذجية', en: 'Model Answer' },
     };
     return translations[key]?.[language] || key;
   };
@@ -170,7 +184,7 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
         toast.info(t('extracting'));
         return;
       }
-      toast.error(language === 'ar' ? 'يرجى إدخال نص أو اختيار ملف' : 'Please enters text or select a file');
+      toast.error(language === 'ar' ? 'يرجى إدخال نص أو اختيار ملف' : 'Please enter text or select a file');
       return;
     }
 
@@ -190,6 +204,18 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
         return;
       }
 
+      const questionTypeInstruction = settings.questionType === 'mcq'
+        ? (language === 'ar' 
+          ? 'جميع الأسئلة يجب أن تكون اختيار من متعدد (mcq) مع 4 خيارات لكل سؤال. correctAnswer يجب أن يكون رقم الخيار الصحيح (0-3).'
+          : 'All questions must be multiple choice (mcq) with 4 options each. correctAnswer must be the index of correct option (0-3).')
+        : settings.questionType === 'text'
+        ? (language === 'ar'
+          ? 'جميع الأسئلة يجب أن تكون نصية (text). correctAnswer يجب أن يكون نص الإجابة النموذجية الكاملة.'
+          : 'All questions must be text type. correctAnswer must be the full model answer text.')
+        : (language === 'ar'
+          ? 'اجعل نصف الأسئلة اختيار من متعدد (mcq) مع 4 خيارات والنصف الآخر أسئلة نصية (text). للـ mcq: correctAnswer = رقم الخيار (0-3). للـ text: correctAnswer = نص الإجابة النموذجية.'
+          : 'Make half MCQ with 4 options and half text. For mcq: correctAnswer = option index (0-3). For text: correctAnswer = model answer text.');
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intelligent-teacher`, {
         method: 'POST',
         headers: {
@@ -201,20 +227,41 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
           messages: [
             {
               role: 'system',
-              content: `أنت "${language === 'ar' ? 'مُقيّم الفهم والذكاء' : 'Understanding Evaluator'}".
-مهمتك هي إنشاء اختبار دقيق ومتنوع يقيس مدى استيعاب الطالب للمحتوى.
-- التزم بنوع الأسئلة المطلوبة: ${settings.questionType}.
-- اجعل الأسئلة متدرجة الصعوبة.
-- أضف شرحاً تعليمياً (explanation) لكل سؤال يوضح لماذا هذه الإجابة هي الصحيحة.
-- إذا طلبت "أسئلة ذكاء"، ركز على المنطق والاستدلال المرتبط بالموضوع.
-- رد بصيغة JSON فقط كقائمة (Array).`
+              content: `أنت مُقيّم تعليمي متخصص. مهمتك إنشاء اختبار دقيق ومتنوع.
+
+القواعد الصارمة:
+1. ${questionTypeInstruction}
+2. أنشئ بالضبط 5 أسئلة متدرجة الصعوبة.
+3. كل سؤال يجب أن يحتوي على نص واضح وكامل في حقل "question".
+4. كل سؤال يجب أن يحتوي على "explanation" مفصل يشرح الإجابة الصحيحة.
+5. ${settings.includeIntelligenceQuestions ? 'أضف سؤالين إضافيين للذكاء والمنطق مرتبطين بالموضوع.' : ''}
+
+الصيغة المطلوبة (JSON Array فقط، بدون أي نص إضافي):
+[
+  {
+    "question": "نص السؤال الكامل هنا",
+    "type": "mcq",
+    "options": ["الخيار أ", "الخيار ب", "الخيار ج", "الخيار د"],
+    "correctAnswer": 0,
+    "explanation": "شرح مفصل للإجابة الصحيحة"
+  },
+  {
+    "question": "نص السؤال النصي هنا",
+    "type": "text",
+    "correctAnswer": "الإجابة النموذجية الكاملة هنا",
+    "explanation": "شرح مفصل للإجابة"
+  }
+]
+
+مهم جداً: 
+- لا تكتب أي شيء قبل أو بعد الـ JSON Array.
+- حقل "question" يجب أن يحتوي على نص السؤال الفعلي وليس فارغاً أبداً.
+- حقل "correctAnswer" إلزامي لكل سؤال.
+- اللغة: ${language === 'ar' ? 'العربية' : 'English'}`
             },
             {
               role: 'user',
-              content: `أنشئ اختباراً من نوع ${settings.questionType} بناءً على المحتوى التالي. ${settings.includeIntelligenceQuestions ? 'أضف سؤالين ذكاء ومنطق.' : ''}
- 
-المحتوى:
-${contentToTest.substring(0, 15000)}`,
+              content: `أنشئ اختباراً بناءً على المحتوى التالي:\n\n${contentToTest.substring(0, 15000)}`,
             },
           ],
           learnerProfile: profile,
@@ -255,7 +302,7 @@ ${contentToTest.substring(0, 15000)}`,
 
       console.log('Full AI response:', fullContent);
 
-      // Extract JSON array using bracket matching for nested arrays
+      // Extract JSON array
       let jsonStr = '';
       let bracketCount = 0;
       let startIdx = -1;
@@ -277,7 +324,15 @@ ${contentToTest.substring(0, 15000)}`,
         try {
           const parsedQuestions = JSON.parse(jsonStr);
           if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
-            setQuestions(parsedQuestions);
+            // Validate and fix questions
+            const validQuestions: Question[] = parsedQuestions.map((q: any, i: number) => ({
+              question: q.question || `${language === 'ar' ? 'سؤال' : 'Question'} ${i + 1}`,
+              type: (q.type === 'text' ? 'text' : 'mcq') as 'mcq' | 'text',
+              options: q.type === 'mcq' ? (q.options || []) : undefined,
+              correctAnswer: q.correctAnswer ?? (q.type === 'mcq' ? 0 : ''),
+              explanation: q.explanation || '',
+            }));
+            setQuestions(validQuestions);
             if (settings.timedTest) setTimeLeft(settings.duration * 60);
             toast.success(language === 'ar' ? 'تم إنشاء الاختبار بنجاح!' : 'Test generated successfully!');
           } else {
@@ -304,14 +359,67 @@ ${contentToTest.substring(0, 15000)}`,
     setTimeLeft(null);
   };
 
+  const handleNewTest = () => {
+    setQuestions([]);
+    setAnswers({});
+    setShowResults(false);
+    setTimeLeft(null);
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Calculate score
+  const getScore = () => {
+    let correct = 0;
+    let total = questions.length;
+    
+    questions.forEach((q, idx) => {
+      if (q.type === 'mcq') {
+        if (answers[idx] !== undefined && answers[idx] === q.correctAnswer) {
+          correct++;
+        }
+      }
+      // Text questions are not auto-graded but shown with model answer
+    });
+
+    const mcqQuestions = questions.filter(q => q.type === 'mcq');
+    const textQuestions = questions.filter(q => q.type === 'text');
+    
+    return {
+      correct,
+      mcqTotal: mcqQuestions.length,
+      textTotal: textQuestions.length,
+      total,
+      percentage: mcqQuestions.length > 0 ? Math.round((correct / mcqQuestions.length) * 100) : 0,
+    };
+  };
+
+  const getScoreMessage = (percentage: number) => {
+    if (percentage >= 90) return t('excellent');
+    if (percentage >= 70) return t('good');
+    if (percentage >= 50) return t('average');
+    return t('poor');
+  };
+
+  const getScoreColor = (percentage: number) => {
+    if (percentage >= 90) return 'text-green-600';
+    if (percentage >= 70) return 'text-blue-600';
+    if (percentage >= 50) return 'text-amber-600';
+    return 'text-red-600';
+  };
+
+  const isQuestionCorrect = (q: Question, idx: number): boolean | null => {
+    if (q.type === 'text') return null; // Can't auto-grade text
+    if (answers[idx] === undefined) return null;
+    return answers[idx] === q.correctAnswer;
+  };
+
   return (
-    <div className="h-full flex flex-col p-3 sm:p-4 md:p-6 overflow-auto gsap-theme-animate">
+    <div className="h-full flex flex-col p-3 sm:p-4 md:p-6 overflow-auto gsap-theme-animate" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex items-center justify-between mb-6 sm:mb-8">
         <div className="flex-1 text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
@@ -325,8 +433,8 @@ ${contentToTest.substring(0, 15000)}`,
             <ExportButtons
               language={language}
               messages={questions.map((q, i) => ([
-                { role: 'assistant' as const, content: `Question ${i + 1}: ${q.question}` },
-                answers[i] !== undefined ? { role: 'user' as const, content: `Answer ${i + 1}: ${q.type === 'mcq' ? (q.options ? q.options[answers[i]] : answers[i]) : answers[i]}` } : null
+                { role: 'assistant' as const, content: `${language === 'ar' ? 'سؤال' : 'Question'} ${i + 1}: ${q.question}` },
+                answers[i] !== undefined ? { role: 'user' as const, content: `${language === 'ar' ? 'إجابة' : 'Answer'} ${i + 1}: ${q.type === 'mcq' ? (q.options ? q.options[answers[i]] : answers[i]) : answers[i]}` } : null
               ].filter(Boolean) as any)).flat()}
               title={t('title')}
             />
@@ -452,53 +560,193 @@ ${contentToTest.substring(0, 15000)}`,
         </div>
       ) : (
         <div className="max-w-3xl mx-auto w-full space-y-6">
+          {/* Timer */}
           {timeLeft !== null && (
-            <Card className="p-4 sticky top-0 z-10 bg-background/80 backdrop-blur flex items-center justify-between border-primary">
-              <div className="flex items-center gap-2 text-primary font-bold">
+            <Card className="p-4 sticky top-0 z-10 bg-background/80 backdrop-blur flex items-center justify-center border-primary">
+              <div className="flex items-center gap-2 text-primary font-bold text-lg">
                 <Timer className="w-5 h-5" />
                 {t('timeLeft')}: {formatTime(timeLeft)}
               </div>
             </Card>
           )}
 
-          {questions.map((q, idx) => (
-            <Card key={idx} className="p-6 space-y-4">
-              <h3 className="font-semibold text-lg">{idx + 1}. {q.question}</h3>
-              {q.type === 'mcq' && q.options && q.options.length > 0 ? (
-                <RadioGroup
-                  value={answers[idx] !== undefined ? answers[idx].toString() : ''}
-                  onValueChange={(v) => setAnswers(prev => ({ ...prev, [idx]: parseInt(v) }))}
-                  disabled={showResults}
-                >
-                  {q.options.map((opt, oIdx) => (
-                    <div key={`q${idx}-opt${oIdx}`} className={`flex items-center space-x-2 rtl:space-x-reverse p-3 rounded-lg border ${showResults ? (oIdx === q.correctAnswer ? 'bg-green-100 border-green-500' : answers[idx] === oIdx ? 'bg-red-100 border-red-500' : '') : 'hover:bg-accent'
-                      }`}>
-                      <RadioGroupItem value={oIdx.toString()} id={`q${idx}-o${oIdx}`} />
-                      <Label htmlFor={`q${idx}-o${oIdx}`} className="flex-1 cursor-pointer">{opt}</Label>
+          {/* Score Summary */}
+          {showResults && (() => {
+            const score = getScore();
+            return (
+              <Card className="p-6 border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
+                <div className="text-center space-y-3">
+                  <Trophy className="w-12 h-12 mx-auto text-primary" />
+                  <h2 className="text-2xl font-bold text-foreground">{t('resultsTitle')}</h2>
+                  
+                  {score.mcqTotal > 0 && (
+                    <div className={cn("text-4xl font-black", getScoreColor(score.percentage))}>
+                      {score.percentage}%
                     </div>
-                  ))}
-                </RadioGroup>
-              ) : (
-                <Textarea
-                  value={answers[idx] || ''}
-                  onChange={(e) => setAnswers(prev => ({ ...prev, [idx]: e.target.value }))}
-                  disabled={showResults}
-                  placeholder={language === 'ar' ? 'اكتب إجابتك هنا...' : 'Type your answer here...'}
-                  className="min-h-[100px]"
-                />
-              )}
-              {showResults && (
-                <div className="mt-4 p-4 bg-muted rounded-lg text-sm">
-                  <p className="font-bold mb-1">{language === 'ar' ? 'التفسير:' : 'Explanation:'}</p>
-                  {q.explanation}
+                  )}
+                  
+                  <p className="text-lg font-medium text-foreground">
+                    {score.mcqTotal > 0 && getScoreMessage(score.percentage)}
+                  </p>
+                  
+                  <div className="flex justify-center gap-6 text-sm text-muted-foreground pt-2">
+                    {score.mcqTotal > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                        <span>{score.correct}/{score.mcqTotal} {language === 'ar' ? 'صحيحة' : 'correct'}</span>
+                      </div>
+                    )}
+                    {score.textTotal > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-blue-500" />
+                        <span>{score.textTotal} {language === 'ar' ? 'أسئلة نصية (راجع إجابتك)' : 'text questions (review your answer)'}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </Card>
-          ))}
+              </Card>
+            );
+          })()}
 
-          <Button onClick={showResults ? () => setQuestions([]) : handleSubmit} className="w-full h-12 gradient-primary">
-            {showResults ? t('tryAgain') : t('submit')}
-          </Button>
+          {/* Questions */}
+          {questions.map((q, idx) => {
+            const isCorrect = isQuestionCorrect(q, idx);
+            const answered = answers[idx] !== undefined && answers[idx] !== '';
+            
+            return (
+              <Card 
+                key={idx} 
+                className={cn(
+                  "p-6 space-y-4 transition-all",
+                  showResults && q.type === 'mcq' && isCorrect === true && "border-green-400 bg-green-50/50 dark:bg-green-950/20",
+                  showResults && q.type === 'mcq' && isCorrect === false && "border-red-400 bg-red-50/50 dark:bg-red-950/20",
+                  showResults && q.type === 'mcq' && !answered && "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20",
+                  showResults && q.type === 'text' && "border-blue-400 bg-blue-50/50 dark:bg-blue-950/20",
+                )}
+              >
+                {/* Question Header */}
+                <div className="flex items-start gap-3">
+                  <span className={cn(
+                    "shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold",
+                    showResults && isCorrect === true && "bg-green-500 text-white",
+                    showResults && isCorrect === false && "bg-red-500 text-white",
+                    showResults && q.type === 'text' && "bg-blue-500 text-white",
+                    !showResults && "bg-primary/10 text-primary",
+                    showResults && !answered && q.type === 'mcq' && "bg-amber-500 text-white",
+                  )}>
+                    {idx + 1}
+                  </span>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-foreground leading-relaxed">{q.question}</h3>
+                    {showResults && q.type === 'mcq' && (
+                      <div className="mt-1">
+                        {isCorrect === true && (
+                          <span className="inline-flex items-center gap-1 text-sm font-medium text-green-600">
+                            <CheckCircle className="w-4 h-4" /> {t('correct')}
+                          </span>
+                        )}
+                        {isCorrect === false && (
+                          <span className="inline-flex items-center gap-1 text-sm font-medium text-red-600">
+                            <XCircle className="w-4 h-4" /> {t('wrong')}
+                          </span>
+                        )}
+                        {!answered && (
+                          <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-600">
+                            <AlertCircle className="w-4 h-4" /> {t('notAnswered')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* MCQ Options */}
+                {q.type === 'mcq' && q.options && q.options.length > 0 ? (
+                  <RadioGroup
+                    value={answers[idx] !== undefined ? answers[idx].toString() : ''}
+                    onValueChange={(v) => setAnswers(prev => ({ ...prev, [idx]: parseInt(v) }))}
+                    disabled={showResults}
+                    className="space-y-2"
+                  >
+                    {q.options.map((opt, oIdx) => {
+                      const isThisCorrect = oIdx === q.correctAnswer;
+                      const isThisSelected = answers[idx] === oIdx;
+                      
+                      return (
+                        <div 
+                          key={`q${idx}-opt${oIdx}`} 
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg border-2 transition-all",
+                            !showResults && "hover:bg-accent border-transparent hover:border-primary/20",
+                            !showResults && isThisSelected && "border-primary bg-primary/5",
+                            showResults && isThisCorrect && "bg-green-100 border-green-500 dark:bg-green-950/30",
+                            showResults && isThisSelected && !isThisCorrect && "bg-red-100 border-red-500 dark:bg-red-950/30",
+                            showResults && !isThisCorrect && !isThisSelected && "opacity-60 border-transparent",
+                          )}
+                        >
+                          <RadioGroupItem value={oIdx.toString()} id={`q${idx}-o${oIdx}`} />
+                          <Label htmlFor={`q${idx}-o${oIdx}`} className="flex-1 cursor-pointer text-base">
+                            {opt}
+                          </Label>
+                          {showResults && isThisCorrect && <CheckCircle className="w-5 h-5 text-green-600 shrink-0" />}
+                          {showResults && isThisSelected && !isThisCorrect && <XCircle className="w-5 h-5 text-red-600 shrink-0" />}
+                        </div>
+                      );
+                    })}
+                  </RadioGroup>
+                ) : (
+                  /* Text Answer */
+                  <div className="space-y-3">
+                    <Textarea
+                      value={answers[idx] || ''}
+                      onChange={(e) => setAnswers(prev => ({ ...prev, [idx]: e.target.value }))}
+                      disabled={showResults}
+                      placeholder={t('writeAnswer')}
+                      className="min-h-[100px] text-base"
+                      dir={language === 'ar' ? 'rtl' : 'ltr'}
+                    />
+                    {showResults && q.correctAnswer && (
+                      <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <p className="font-semibold text-blue-700 dark:text-blue-300 mb-1 flex items-center gap-1.5">
+                          <CheckCircle className="w-4 h-4" />
+                          {t('modelAnswer')}
+                        </p>
+                        <p className="text-blue-800 dark:text-blue-200 leading-relaxed">{String(q.correctAnswer)}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Explanation */}
+                {showResults && q.explanation && (
+                  <div className="mt-3 p-4 bg-muted/80 rounded-lg border border-border">
+                    <p className="font-bold text-sm text-primary mb-1.5 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4" />
+                      {t('explanation')}
+                    </p>
+                    <p className="text-sm text-foreground leading-relaxed">{q.explanation}</p>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pb-4">
+            {showResults ? (
+              <>
+                <Button onClick={handleNewTest} className="flex-1 h-12 gradient-primary text-lg font-bold">
+                  <RotateCcw className="w-5 h-5 me-2" />
+                  {t('tryAgain')}
+                </Button>
+              </>
+            ) : (
+              <Button onClick={handleSubmit} className="flex-1 h-12 gradient-primary text-lg font-bold">
+                <ClipboardCheck className="w-5 h-5 me-2" />
+                {t('submit')}
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>

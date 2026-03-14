@@ -12,63 +12,7 @@ import {
 } from 'lucide-react';
 import { HelpStep } from './types';
 
-export const gettingStartedSteps: HelpStep[] = [
-  {
-    title: { ar: 'مرحباً بك! 👋', en: 'Welcome! 👋' },
-    description: {
-      ar: 'أنا مساعدك الذكي. سأرشدك خطوة بخطوة لتحقيق أقصى استفادة من المنصة.',
-      en: "I'm your smart assistant. I'll guide you step by step to get the most out of the platform."
-    },
-    icon: <Sparkles className="w-6 h-6 text-primary" />,
-    position: 'center'
-  },
-  {
-    title: { ar: 'ارفع موادك الدراسية', en: 'Upload Your Materials' },
-    description: {
-      ar: 'ابدأ برفع ملفات PDF أو Word أو صور. سيتم تحليلها لتخصيص تجربة التعلم.',
-      en: 'Start by uploading PDF, Word files, or images. They will be analyzed to personalize your learning.'
-    },
-    icon: <Upload className="w-6 h-6 text-blue-500" />,
-    action: { ar: 'رفع المواد', en: 'Upload Materials' },
-    targetFeature: 'upload',
-    targetSelector: '[data-helper-target="sidebar-upload"]',
-    position: 'right'
-  },
-  {
-    title: { ar: 'تحدث مع المعلم الذكي', en: 'Chat with AI Teacher' },
-    description: {
-      ar: 'اسأل أي سؤال عن موادك. المعلم الذكي يفهم مستواك ويشرح بطريقة مناسبة.',
-      en: 'Ask any question about your materials. The AI teacher understands your level and explains accordingly.'
-    },
-    icon: <MessageSquare className="w-6 h-6 text-green-500" />,
-    action: { ar: 'بدء المحادثة', en: 'Start Chat' },
-    targetFeature: 'teacher',
-    targetSelector: '[data-helper-target="sidebar-teacher"]',
-    position: 'right'
-  },
-  {
-    title: { ar: 'استكشف أدوات التعلم', en: 'Explore Learning Tools' },
-    description: {
-      ar: 'جرب التبسيط، الملخصات، الخرائط الذهنية، واختبارات الفهم لتعزيز تعلمك.',
-      en: 'Try simplification, summaries, mind maps, and understanding tests to enhance your learning.'
-    },
-    icon: <Brain className="w-6 h-6 text-purple-500" />,
-    targetSelector: '[data-helper-target="sidebar-mindmap"]',
-    position: 'right'
-  },
-  {
-    title: { ar: 'أنشئ خطة دراسية', en: 'Create a Study Plan' },
-    description: {
-      ar: 'دع الذكاء الاصطناعي يساعدك في تنظيم وقتك وإنشاء خطة دراسية مخصصة.',
-      en: 'Let AI help you organize your time and create a personalized study plan.'
-    },
-    icon: <GraduationCap className="w-6 h-6 text-orange-500" />,
-    action: { ar: 'إنشاء خطة', en: 'Create Plan' },
-    targetFeature: 'studyplan',
-    targetSelector: '[data-helper-target="sidebar-studyplan"]',
-    position: 'right'
-  }
-];
+// Getting started steps are now handled by OnboardingTour component
 
 export const getContextualTips = (currentFeature: string): HelpStep[] => {
   const tips: Record<string, HelpStep[]> = {

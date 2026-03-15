@@ -54,16 +54,35 @@ serve(async (req) => {
 
     const { data: profile } = await serviceClient
       .from('profiles')
-      .select('gemini_api_key, openai_api_key')
+      .select('gemini_api_key, openai_api_key, custom_api_key, custom_base_url, custom_model')
       .eq('user_id', userId)
       .single();
 
     let apiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    // Override with user's personal Gemini key if available
-    if (profile?.gemini_api_key) {
+    let apiBaseUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+    let model = 'google/gemini-1.5-pro';
+
+    // Priority 1: User's Custom key
+    if (profile?.custom_api_key) {
+      apiKey = profile.custom_api_key;
+      apiBaseUrl = profile.custom_base_url || 'https://api.openai.com/v1/chat/completions';
+      model = profile.custom_model || 'gpt-4o-mini';
+      console.log('Using personal Custom API key for analysis');
+    }
+    // Priority 2: User's Gemini key
+    else if (profile?.gemini_api_key) {
       apiKey = profile.gemini_api_key;
+      apiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta/chat/completions';
+      model = 'gemini-1.5-pro';
       console.log('Using user provided Gemini API key for analysis');
+    }
+    // Priority 3: User's OpenAI key
+    else if (profile?.openai_api_key) {
+      apiKey = profile.openai_api_key;
+      apiBaseUrl = 'https://api.openai.com/v1/chat/completions';
+      model = 'gpt-4o';
+      console.log('Using user provided OpenAI API key for analysis');
     }
 
     if (!apiKey) {
@@ -120,14 +139,14 @@ serve(async (req) => {
 +
 +Return ONLY the extracted text without any commentary.`;
 
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const response = await fetch(apiBaseUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-1.5-pro',
+          model: model,
           messages: [
             { role: 'system', content: extractionPrompt },
             {
@@ -212,14 +231,14 @@ Use mathematical symbols correctly (LaTeX when applicable) and make the explanat
       ? 'حلل هذه الصورة واشرح محتواها بالتفصيل. اقرأ كل النص المكتوب بدقة. إذا كانت تحتوي على مسألة، قم بحلها خطوة بخطوة.'
       : 'Analyze this image and explain its content in detail. Read all written text accurately. If it contains a problem, solve it step by step.');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch(apiBaseUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-1.5-pro',
+        model: model,
         messages: [
           { role: 'system', content: systemPrompt },
           {

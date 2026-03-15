@@ -4,110 +4,91 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const MAX_MESSAGE_LENGTH = 50000;
+const MAX_MESSAGES = 100;
+
+type MessageRole = "user" | "assistant" | "system";
+
 interface Message {
-  role: "user" | "assistant" | "system";
+  role: MessageRole;
   content: string;
+}
+
+interface LearnerProfile {
+  name?: string;
+  educationLevel?: string;
+  learningStyle?: string;
+  preferredLanguage?: string;
 }
 
 interface RequestBody {
   messages: Message[];
-  learnerProfile?: {
-    name: string;
-    educationLevel: string;
-    learningStyle: string;
-    preferredLanguage: string;
-  };
+  learnerProfile?: LearnerProfile;
   uploadedMaterials?: string[];
   materialContent?: string;
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+interface ProfileKeys {
+  openai_api_key?: string;
+  gemini_api_key?: string;
+}
+
+const jsonResponse = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+const validateMessages = (messages: unknown): string | null => {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return "Invalid request: messages required";
   }
 
-  try {
-    if (req.method !== "POST") {
-      return new Response(
-        JSON.stringify({ error: "Method not allowed" }),
-        {
-          status: 405,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+  if (messages.length > MAX_MESSAGES) {
+    return "Too many messages in conversation";
+  }
+
+  for (const message of messages) {
+    if (!message || typeof message !== "object") {
+      return "Invalid message format";
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const { role, content } = message as Partial<Message>;
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY");
-      return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (!role || !["system", "user", "assistant"].includes(role)) {
+      return "Invalid message role";
     }
 
-    const authHeader = req.headers.get("Authorization");
-    const hasBearerToken = !!authHeader && authHeader.startsWith("Bearer ");
-
-    let user: { id: string } | null = null;
-
-    // Create Supabase client
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: hasBearerToken
-        ? { headers: { Authorization: authHeader! } }
-        : {},
-    });
-
-    // Try to authenticate user only if Authorization header exists
-    if (hasBearerToken) {
-      const {
-        data: { user: authUser },
-        error: userError,
-      } = await supabaseClient.auth.getUser();
-
-      if (userError) {
-        console.error("Auth error:", userError);
-      } else if (authUser) {
-        user = { id: authUser.id };
-      }
-    } else {
-      console.log("No Authorization header provided. Continuing as unauthenticated request.");
+    if (typeof content !== "string" || content.trim().length === 0) {
+      return "Invalid message format";
     }
 
-    const body = (await req.json()) as RequestBody;
-    const { messages, learnerProfile, uploadedMaterials, materialContent } = body;
-
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Invalid request: messages required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (role !== "system" && content.length > MAX_MESSAGE_LENGTH) {
+      return "Message content too long";
     }
+  }
 
-    const body = await req.json() as RequestBody;
-    const { messages, learnerProfile, uploadedMaterials, materialContent } = body;
+  return null;
+};
 
-    // Server-side input validation
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid request: messages required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+const buildSystemPrompt = ({
+  learnerProfile,
+  uploadedMaterials,
+  materialContent,
+}: {
+  learnerProfile?: LearnerProfile;
+  uploadedMaterials?: string[];
+  materialContent?: string;
+}) => {
+  const name = learnerProfile?.name || "Learner";
+  const level = learnerProfile?.educationLevel || "university";
+  const style = learnerProfile?.learningStyle || "visual";
+  const lang = learnerProfile?.preferredLanguage === "en" ? "English" : "Arabic";
 
+<<<<<<< HEAD
     const MAX_MESSAGE_LENGTH = 50000;
     const MAX_MESSAGES = 100;
 
@@ -253,6 +234,9 @@ serve(async (req) => {
 
     if (!hasFrontEndSystemPrompt) {
       let systemPrompt = `You are "Dars Khusoosi" (درس خصوصي), an expert-level personalized educational companion.
+=======
+  let systemPrompt = `You are "Dars Khusoosi" (درس خصوصي), an expert-level personalized educational companion.
+>>>>>>> 6199174abcf04f7f6c93b773d5ad8154df72460a
 Your mission is to guide ${name} through their learning journey with a highly adapted teaching style.
 
 STUDENT CONTEXT:
@@ -269,48 +253,185 @@ TEACHING PRINCIPLES:
 
 KNOWLEDGE BASE USAGE:`;
 
-      if (uploadedMaterials && uploadedMaterials.length > 0) {
-        systemPrompt += `
-
+  if (uploadedMaterials?.length) {
+    systemPrompt += `
 - The learner has provided these materials: ${uploadedMaterials.join(", ")}.
 - ALWAYS prioritize information from these materials if relevant to the question.
 - If the materials don't cover a topic, mention it and provide general knowledge.`;
 
-        if (materialContent) {
-          systemPrompt += `
+    if (materialContent) {
+      systemPrompt += `
 
 REFERENCE CONTENT FOR CONTEXT:
 ${materialContent.substring(0, 25000)}`;
-        }
-      } else {
-        systemPrompt += `
+    }
+  } else {
+    systemPrompt += `
 - No specific materials provided. Use your general academic knowledge base.`;
-      }
+  }
 
-      finalMessages = [{ role: "system", content: systemPrompt }, ...messages];
-    } else {
-      let enhancedPrompt = finalMessages[0].content;
+  return systemPrompt;
+};
 
-      if (!enhancedPrompt.includes(name)) {
-        enhancedPrompt =
-          `Student: ${name} (${level} level, ${style} learner).\n` +
-          enhancedPrompt;
-      }
+const enhanceExistingSystemPrompt = ({
+  messages,
+  learnerProfile,
+  materialContent,
+}: {
+  messages: Message[];
+  learnerProfile?: LearnerProfile;
+  materialContent?: string;
+}) => {
+  const name = learnerProfile?.name || "Learner";
+  const level = learnerProfile?.educationLevel || "university";
+  const style = learnerProfile?.learningStyle || "visual";
 
-      if (materialContent && !enhancedPrompt.includes("REFERENCE CONTENT")) {
-        enhancedPrompt += `
+  const updatedMessages = [...messages];
+  let systemPrompt = updatedMessages[0].content;
+
+  if (!systemPrompt.includes(name)) {
+    systemPrompt = `Student: ${name} (${level} level, ${style} learner).\n${systemPrompt}`;
+  }
+
+  if (materialContent && !systemPrompt.includes("REFERENCE CONTENT")) {
+    systemPrompt += `
 
 REFERENCE CONTENT FROM KNOWLEDGE BASE:
 ${materialContent.substring(0, 25000)}`;
-      }
+  }
 
-      finalMessages[0].content = enhancedPrompt;
+  updatedMessages[0] = {
+    ...updatedMessages[0],
+    content: systemPrompt,
+  };
+
+  return updatedMessages;
+};
+
+const getUserIdFromAuthHeader = async (
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  authHeader: string | null,
+) => {
+  if (!authHeader?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  try {
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data, error } = await supabaseClient.auth.getClaims(token);
+
+    if (error || !data?.claims?.sub) {
+      console.error("Auth claims error:", error);
+      return null;
     }
 
+    return data.claims.sub;
+  } catch (error) {
+    console.error("Unexpected auth error:", error);
+    return null;
+  }
+};
+
+const getProfileKeys = async (
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  authHeader: string,
+  userId: string,
+): Promise<ProfileKeys | null> => {
+  const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("openai_api_key, gemini_api_key")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Profile fetch error:", error);
+    return null;
+  }
+
+  return data;
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Method not allowed" }, 405);
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY");
+      return jsonResponse({ error: "Server configuration error" }, 500);
+    }
+
+    const body = (await req.json()) as RequestBody;
+    const validationError = validateMessages(body.messages);
+
+    if (validationError) {
+      return jsonResponse({ error: validationError }, 400);
+    }
+
+    const { messages, learnerProfile, uploadedMaterials, materialContent } = body;
+    const authHeader = req.headers.get("Authorization");
+    const userId = await getUserIdFromAuthHeader(supabaseUrl, supabaseAnonKey, authHeader);
+
+    let profileKeys: ProfileKeys | null = null;
+    if (userId && authHeader) {
+      profileKeys = await getProfileKeys(supabaseUrl, supabaseAnonKey, authHeader, userId);
+    }
+
+    let apiBaseUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
+    let apiKey = Deno.env.get("LOVABLE_API_KEY");
+    let model = "google/gemini-2.5-flash";
+
+    if (profileKeys?.gemini_api_key) {
+      apiKey = profileKeys.gemini_api_key;
+      apiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/chat/completions";
+      model = "gemini-1.5-flash";
+      console.log(`Using personal Gemini key for user ${userId}`);
+    } else if (profileKeys?.openai_api_key) {
+      apiKey = profileKeys.openai_api_key;
+      apiBaseUrl = "https://api.openai.com/v1/chat/completions";
+      model = "gpt-4o-mini";
+      console.log(`Using personal OpenAI key for user ${userId}`);
+    } else {
+      console.log(userId ? `Using default LOVABLE_API_KEY for user ${userId}` : "Using default LOVABLE_API_KEY for guest request");
+    }
+
+    if (!apiKey) {
+      return jsonResponse(
+        { error: "AI API key is not configured on the server." },
+        500,
+      );
+    }
+
+    const finalMessages = messages[0]?.role === "system"
+      ? enhanceExistingSystemPrompt({ messages, learnerProfile, materialContent })
+      : [
+          {
+            role: "system" as const,
+            content: buildSystemPrompt({ learnerProfile, uploadedMaterials, materialContent }),
+          },
+          ...messages,
+        ];
+
     console.log(
-      `Sending request to AI at ${apiBaseUrl} using model ${model}${
-        user?.id ? ` for user ${user.id}` : " for guest request"
-      }`
+      `Sending request to AI at ${apiBaseUrl} using model ${model}${userId ? ` for user ${userId}` : " for guest request"}`,
     );
 
     const aiResponse = await fetch(apiBaseUrl, {
@@ -331,54 +452,34 @@ ${materialContent.substring(0, 25000)}`;
       console.error("AI service error:", aiResponse.status, errorText);
 
       if (aiResponse.status === 401) {
-        return new Response(
-          JSON.stringify({
-            error: "AI provider authorization failed. Please verify the API key.",
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+        return jsonResponse(
+          { error: "AI provider authorization failed. Please verify the API key." },
+          500,
         );
       }
 
       if (aiResponse.status === 429) {
-        return new Response(
-          JSON.stringify({
-            error: "Rate limit exceeded. Please try again in a moment.",
-          }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+        return jsonResponse(
+          { error: "Rate limit exceeded. Please try again in a moment." },
+          429,
         );
       }
 
       if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({
-            error: "Usage limit reached. Please check your account.",
-          }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+        return jsonResponse(
+          { error: "Usage limit reached. Please check your account." },
+          402,
         );
       }
 
-      return new Response(
-        JSON.stringify({
+      return jsonResponse(
+        {
           error: "AI service temporarily unavailable",
           details: errorText,
-        }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
+        500,
       );
     }
-
-    console.log("AI response received, streaming back to client");
 
     return new Response(aiResponse.body, {
       headers: {
@@ -390,15 +491,6 @@ ${materialContent.substring(0, 25000)}`;
     });
   } catch (error) {
     console.error("Error in intelligent-teacher function:", error);
-
-    return new Response(
-      JSON.stringify({
-        error: "Unable to process request. Please try again.",
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return jsonResponse({ error: "Unable to process request. Please try again." }, 500);
   }
 });

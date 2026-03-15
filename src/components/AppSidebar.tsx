@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { SidebarFeature } from './LearningPlatform';
 import { cn } from '@/lib/utils';
-import { GraduationCap, Upload, Network, Lightbulb, FileText, Users, Video, ClipboardCheck, TrendingUp, ChevronLeft, ChevronRight, LogOut, Link, Calendar, Rocket, Heart, User, Presentation, Layers } from 'lucide-react';
+import { GraduationCap, Upload, Network, Lightbulb, FileText, Users, Video, ClipboardCheck, TrendingUp, ChevronLeft, ChevronRight, LogOut, Link, Calendar, Rocket, Heart, User, Presentation, Layers, Puzzle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -64,6 +64,9 @@ export const features: {
 }, {
   id: 'flashcards',
   icon: Layers
+}, {
+  id: 'kids-games',
+  icon: Puzzle
 }, {
   id: 'profile',
   icon: User
@@ -138,6 +141,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         'sidebar.projects': 'مشاريع عملية',
         'sidebar.classroom': 'القاعة الافتراضية',
         'sidebar.flashcards': 'البطاقات التعليمية',
+        'sidebar.kids-games': 'ألعاب تعليمية للأطفال',
         'sidebar.profile': 'الملف الشخصي',
         'sidebar.about': 'عن التطبيق',
         'action.signout': 'تسجيل الخروج'
@@ -158,6 +162,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         'sidebar.projects': 'Projects',
         'sidebar.classroom': 'Virtual Classroom',
         'sidebar.flashcards': 'Flashcards',
+        'sidebar.kids-games': 'Kids Learning Games',
         'sidebar.profile': 'Profile',
         'sidebar.about': 'About',
         'action.signout': 'Sign Out'

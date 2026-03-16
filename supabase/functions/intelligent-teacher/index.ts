@@ -88,7 +88,155 @@ const buildSystemPrompt = ({
   const style = learnerProfile?.learningStyle || "visual";
   const lang = learnerProfile?.preferredLanguage === "en" ? "English" : "Arabic";
 
+<<<<<<< HEAD
+    const MAX_MESSAGE_LENGTH = 50000;
+    const MAX_MESSAGES = 100;
+
+    if (messages.length > MAX_MESSAGES) {
+      return new Response(
+        JSON.stringify({ error: 'Too many messages in conversation' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    for (const msg of messages) {
+      if (!msg.role || !msg.content || typeof msg.content !== 'string') {
+        return new Response(
+          JSON.stringify({ error: 'Invalid message format' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (msg.role !== 'system' && msg.content.length > MAX_MESSAGE_LENGTH) {
+        return new Response(
+          JSON.stringify({ error: 'Message content too long' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    const MAX_MESSAGE_LENGTH = 50000;
+    const MAX_MESSAGES = 100;
+
+    if (messages.length > MAX_MESSAGES) {
+      return new Response(
+        JSON.stringify({ error: "Too many messages in conversation" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    for (const msg of messages) {
+      if (
+        !msg ||
+        !msg.role ||
+        !msg.content ||
+        typeof msg.content !== "string"
+      ) {
+        return new Response(
+          JSON.stringify({ error: "Invalid message format" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      if (!["system", "user", "assistant"].includes(msg.role)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid message role" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      if (msg.role !== "system" && msg.content.length > MAX_MESSAGE_LENGTH) {
+        return new Response(
+          JSON.stringify({ error: "Message content too long" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
+    // Fetch user's personal API keys only if authenticated
+    let profileData: { openai_api_key?: string; gemini_api_key?: string; custom_api_key?: string; custom_base_url?: string; custom_model?: string } | null = null;
+
+    if (user?.id) {
+      const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("openai_api_key, gemini_api_key, custom_api_key, custom_base_url, custom_model")
+        .eq("id", user.id) // FIXED: profiles table uses id, not user_id
+        .maybeSingle();
+
+      if (error) {
+        console.error("Profile fetch error:", error);
+      } else {
+        profileData = data;
+      }
+    }
+
+    let apiBaseUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
+    let apiKey = Deno.env.get("LOVABLE_API_KEY");
+    let model = "google/gemini-2.5-flash";
+
+    // Priority 1: User's Custom key
+    if (profileData?.custom_api_key) {
+      apiKey = profileData.custom_api_key;
+      // Default to OpenAI structure if baseUrl isn't provided (many providers are OpenAI compatible like OpenRouter, Together, etc)
+      apiBaseUrl = profileData.custom_base_url || "https://api.openai.com/v1/chat/completions";
+      model = profileData.custom_model || "gpt-4o-mini";
+      console.log(`Using personal Custom key for user ${user?.id}`);
+    }
+    // Priority 2: User's Gemini key
+    else if (profileData?.gemini_api_key) {
+      apiKey = profileData.gemini_api_key;
+      apiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/chat/completions";
+      model = "gemini-1.5-flash";
+      console.log(`Using personal Gemini key for user ${user?.id}`);
+    }
+    // Priority 3: User's OpenAI key
+    else if (profileData?.openai_api_key) {
+      apiKey = profileData.openai_api_key;
+      apiBaseUrl = "https://api.openai.com/v1/chat/completions";
+      model = "gpt-4o-mini";
+      console.log(`Using personal OpenAI key for user ${user?.id}`);
+    } else {
+      console.log("Using default LOVABLE_API_KEY");
+    }
+
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({
+          error: "AI API key is not configured on the server or in the user profile.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const hasFrontEndSystemPrompt =
+      messages.length > 0 && messages[0].role === "system";
+
+    let finalMessages = [...messages];
+
+    const name = learnerProfile?.name || "Learner";
+    const level = learnerProfile?.educationLevel || "university";
+    const style = learnerProfile?.learningStyle || "visual";
+    const lang =
+      learnerProfile?.preferredLanguage === "en" ? "English" : "Arabic";
+
+    if (!hasFrontEndSystemPrompt) {
+      let systemPrompt = `You are "Dars Khusoosi" (درس خصوصي), an expert-level personalized educational companion.
+=======
   let systemPrompt = `You are "Dars Khusoosi" (درس خصوصي), an expert-level personalized educational companion.
+>>>>>>> 6199174abcf04f7f6c93b773d5ad8154df72460a
 Your mission is to guide ${name} through their learning journey with a highly adapted teaching style.
 
 STUDENT CONTEXT:

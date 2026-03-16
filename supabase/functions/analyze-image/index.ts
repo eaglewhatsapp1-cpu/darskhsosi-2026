@@ -47,6 +47,54 @@ serve(async (req) => {
     const userId = user.id;
     console.log("Authenticated user:", userId);
 
+    // Fetch user profile for personal API keys
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: profile } = await serviceClient
+      .from('profiles')
+      .select('gemini_api_key, openai_api_key, custom_api_key, custom_base_url, custom_model')
+      .eq('user_id', userId)
+      .single();
+
+    let apiKey = Deno.env.get('LOVABLE_API_KEY');
+
+    let apiBaseUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+    let model = 'google/gemini-1.5-pro';
+
+    // Priority 1: User's Custom key
+    if (profile?.custom_api_key) {
+      apiKey = profile.custom_api_key;
+      apiBaseUrl = profile.custom_base_url || 'https://api.openai.com/v1/chat/completions';
+      model = profile.custom_model || 'gpt-4o-mini';
+      console.log('Using personal Custom API key for analysis');
+    }
+    // Priority 2: User's Gemini key
+    else if (profile?.gemini_api_key) {
+      apiKey = profile.gemini_api_key;
+      apiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta/chat/completions';
+      model = 'gemini-1.5-pro';
+      console.log('Using user provided Gemini API key for analysis');
+    }
+    // Priority 3: User's OpenAI key
+    else if (profile?.openai_api_key) {
+      apiKey = profile.openai_api_key;
+      apiBaseUrl = 'https://api.openai.com/v1/chat/completions';
+      model = 'gpt-4o';
+      console.log('Using user provided OpenAI API key for analysis');
+    }
+
+    if (!apiKey) {
+      console.error('No API key found (LOVABLE_API_KEY or user key)');
+      return new Response(
+        JSON.stringify({
+          error: 'AI Analysis not configured. Please add your Gemini API key in your Profile to enable this feature.'
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const {
       imageBase64,
       prompt,
@@ -63,47 +111,42 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
-    }
-
     // Enhanced OCR extraction mode
     if (mode === 'extract') {
       const extractionPrompt = language === 'ar'
         ? `أنت متخصص في استخراج النصوص من الصور بدقة عالية.
-
-قواعد الاستخراج:
-1. استخرج كل كلمة وحرف ورقم ورمز كما يظهر بالضبط
-2. حافظ على ترتيب القراءة الصحيح (من اليمين لليسار للعربية)
-3. حافظ على التشكيل والحركات إن وجدت
-4. للجداول: استخدم تنسيق markdown
-5. للمعادلات: استخدم رموز LaTeX
-6. للنص المكتوب بخط اليد: حاول استخراجه بأفضل دقة ممكنة
-7. لا تترجم أو تلخص - استخرج النص كما هو
-
-أعد النص المستخرج فقط بدون أي تعليقات.`
++
++قواعد الاستخراج:
++1. استخرج كل كلمة وحرف ورقم ورمز كما يظهر بالضبط
++2. حافظ على ترتيب القراءة الصحيح (من اليمين لليسار للعربية)
++3. حافظ على التشكيل والحركات إن وجدت
++4. للجداول: استخدم تنسيق markdown
++5. للمعادلات: استخدم رموز LaTeX
++6. للنص المكتوب بخط اليد: حاول استخراجه بأفضل دقة ممكنة
++7. لا تترجم أو تلخص - استخرج النص كما هو
++
++أعد النص المستخرج فقط بدون أي تعليقات.`
         : `You are a precision OCR text extraction specialist.
++
++EXTRACTION RULES:
++1. Extract EVERY word, character, number, and symbol exactly as shown
++2. Preserve correct reading order
++3. For tables: use markdown table format
++4. For equations: use LaTeX notation
++5. For handwritten text: extract with best accuracy, mark uncertain with [?]
++6. Preserve Arabic diacritics (تشكيل) if present
++7. Do NOT translate or summarize - extract verbatim
++
++Return ONLY the extracted text without any commentary.`;
 
-EXTRACTION RULES:
-1. Extract EVERY word, character, number, and symbol exactly as shown
-2. Preserve correct reading order
-3. For tables: use markdown table format
-4. For equations: use LaTeX notation
-5. For handwritten text: extract with best accuracy, mark uncertain with [?]
-6. Preserve Arabic diacritics (تشكيل) if present
-7. Do NOT translate or summarize - extract verbatim
-
-Return ONLY the extracted text without any commentary.`;
-
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const response = await fetch(apiBaseUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-1.5-pro',
+          model: model,
           messages: [
             { role: 'system', content: extractionPrompt },
             {
@@ -188,14 +231,14 @@ Use mathematical symbols correctly (LaTeX when applicable) and make the explanat
       ? 'حلل هذه الصورة واشرح محتواها بالتفصيل. اقرأ كل النص المكتوب بدقة. إذا كانت تحتوي على مسألة، قم بحلها خطوة بخطوة.'
       : 'Analyze this image and explain its content in detail. Read all written text accurately. If it contains a problem, solve it step by step.');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch(apiBaseUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-1.5-pro',
+        model: model,
         messages: [
           { role: 'system', content: systemPrompt },
           {

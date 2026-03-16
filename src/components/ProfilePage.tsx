@@ -67,6 +67,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
         knowledgeRatio: profile.knowledge_ratio ?? 50,
         openaiApiKey: profile.openai_api_key || '',
         geminiApiKey: profile.gemini_api_key || '',
+        customApiKey: profile.custom_api_key || '',
+        customBaseUrl: profile.custom_base_url || '',
+        customModel: profile.custom_model || '',
       };
     }
     return {
@@ -88,6 +91,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
       knowledgeRatio: 50,
       openaiApiKey: '',
       geminiApiKey: '',
+      customApiKey: '',
+      customBaseUrl: '',
+      customModel: '',
     };
   });
 
@@ -102,6 +108,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
       'usage.guide_desc': { ar: 'هذا التطبيق مجاني ويستخدم مفتاحاً مشتركاً. إذا واجهت رسالة "تجاوز الحد المسموح"، يمكنك إضافة مفاتيحك الخاصة هنا لضمان استمرارية الخدمة لك حصرياً.', en: 'This app is free and uses a shared key. If you see "Usage limit exceeded", you can add your own keys here to ensure uninterrupted service just for you.' },
       'field.openai_key': { ar: 'OpenAI API Key (نسخة 4-o أو 3.5)', en: 'OpenAI API Key (4-o or 3.5)' },
       'field.gemini_key': { ar: 'Google Gemini API Key', en: 'Google Gemini API Key' },
+      'field.custom_key': { ar: 'مفتاح API مخصص (مثال OpenRouter)', en: 'Custom API Key (e.g. OpenRouter)' },
+      'field.custom_base_url': { ar: 'رابط الأساس المخصص (اختياري)', en: 'Custom Base URL (Optional)' },
+      'field.custom_model': { ar: 'اسم النموذج المخصص (اختياري)', en: 'Custom Model Name (Optional)' },
       'field.name': { ar: 'الاسم الكامل', en: 'Full Name' },
       'field.birthDate': { ar: 'تاريخ الميلاد', en: 'Birth Date' },
       'field.bio': { ar: 'نبذة مختصرة', en: 'Short Bio' },
@@ -183,6 +192,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
       knowledge_ratio: formData.knowledgeRatio,
       openai_api_key: formData.openaiApiKey || null,
       gemini_api_key: formData.geminiApiKey || null,
+      custom_api_key: formData.customApiKey || null,
+      custom_base_url: formData.customBaseUrl || null,
+      custom_model: formData.customModel || null,
     });
 
     setLoading(false);
@@ -442,6 +454,41 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
                   value={formData.geminiApiKey}
                   onChange={(e) => setFormData({ ...formData, geminiApiKey: e.target.value })}
                   className="h-12 bg-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customApiKey">{t('field.custom_key')}</Label>
+                <Input
+                  id="customApiKey"
+                  type="password"
+                  placeholder="sk-or-v1-..."
+                  value={formData.customApiKey}
+                  onChange={(e) => setFormData({ ...formData, customApiKey: e.target.value })}
+                  className="h-12 bg-white"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customBaseUrl">{t('field.custom_base_url')}</Label>
+                <Input
+                  id="customBaseUrl"
+                  type="text"
+                  placeholder="https://openrouter.ai/api/v1/chat/completions"
+                  value={formData.customBaseUrl}
+                  onChange={(e) => setFormData({ ...formData, customBaseUrl: e.target.value })}
+                  className="h-12 bg-white"
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customModel">{t('field.custom_model')}</Label>
+                <Input
+                  id="customModel"
+                  type="text"
+                  placeholder="meta-llama/llama-3-70b-instruct"
+                  value={formData.customModel}
+                  onChange={(e) => setFormData({ ...formData, customModel: e.target.value })}
+                  className="h-12 bg-white"
+                  dir="ltr"
                 />
               </div>
             </div>

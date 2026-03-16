@@ -54,22 +54,22 @@ async function extractDocxText(arrayBuffer: ArrayBuffer): Promise<string> {
   }
 }
 
-// Extract text from documents (PDF or Image) using Gemini Vision with enhanced OCR
-async function extractTextWithAI(arrayBuffer: ArrayBuffer, apiKey: string, fileType: string): Promise<string> {
+// Extract text from documents (PDF or Image) using AI with enhanced OCR
+async function extractTextWithAI(arrayBuffer: ArrayBuffer, apiKey: string, apiBaseUrl: string, model: string, fileType: string): Promise<string> {
   const base64 = encodeBase64(arrayBuffer);
   const mimeType = fileType || 'application/pdf';
   const dataUri = `data:${mimeType};base64,${base64}`;
 
-  console.log(`Sending request to AI Gateway for content extraction (${mimeType}, size: ${arrayBuffer.byteLength} bytes)`);
+  console.log(`Sending request to AI Gateway at ${apiBaseUrl} for content extraction (${mimeType}, size: ${arrayBuffer.byteLength} bytes)`);
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+  const response = await fetch(apiBaseUrl, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: model,
       messages: [
         {
           role: 'system',
@@ -168,6 +168,10 @@ serve(async (req) => {
     }
 
     const userId = user.id;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const { storagePath, materialId, fileType } = await req.json();
     console.log(`Processing document extraction for material ${materialId}, type: ${fileType}, path: ${storagePath}`);
@@ -252,13 +256,66 @@ serve(async (req) => {
       console.log(`Extracted ${extractedText.length} characters from DOCX`);
     } else if (isPdf || isImage) {
       // Use AI to extract text from PDF or Image
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (!LOVABLE_API_KEY) {
-        throw new Error('LOVABLE_API_KEY is not configured');
+      // 1. Try to get user's personal API key first as a priority
+      const { data: profile } = await serviceClient
+        .from('profiles')
+        .select('gemini_api_key, openai_api_key, custom_api_key, custom_base_url, custom_model')
+        .eq('user_id', userId)
+        .single();
+
+      let apiBaseUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+      let model = 'google/gemini-2.5-flash';
+      let apiKey = Deno.env.get('LOVABLE_API_KEY');
+
+      // Priority 1: User's Custom key
+      if (profile?.custom_api_key) {
+        apiKey = profile.custom_api_key;
+        apiBaseUrl = profile.custom_base_url || 'https://api.openai.com/v1/chat/completions';
+        model = profile.custom_model || 'gpt-4o-mini';
+        console.log('Using personal Custom API key for extraction');
       }
+      // Priority 2: User's Gemini key
+      else if (profile?.gemini_api_key) {
+        apiKey = profile.gemini_api_key;
+        apiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta/chat/completions';
+        model = 'gemini-1.5-flash';
+        console.log('Using user provided Gemini API key for extraction');
+      }
+      // Priority 3: User's OpenAI key
+      else if (profile?.openai_api_key) {
+        apiKey = profile.openai_api_key;
+        apiBaseUrl = 'https://api.openai.com/v1/chat/completions';
+        model = 'gpt-4o-mini';
+        console.log('Using user provided OpenAI API key for extraction');
+      }
+
+      if (!apiKey) {
+        console.error('No API key found (LOVABLE_API_KEY or user key)');
+        return new Response(
+          JSON.stringify({
+            error: 'AI Extraction not configured. Please add your Gemini API key in your Profile to enable this feature.'
+          }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       console.log(`Extracting ${isPdf ? 'PDF' : 'Image'} content using AI...`);
-      extractedText = await extractTextWithAI(arrayBuffer, LOVABLE_API_KEY, detectedMimeType || 'application/pdf');
-      console.log(`Extracted ${extractedText.length} characters using AI`);
+      try {
+        extractedText = await extractTextWithAI(arrayBuffer, apiKey!, apiBaseUrl, model, detectedMimeType || 'application/pdf');
+        console.log(`Extracted ${extractedText.length} characters using AI`);
+      } catch (aiError) {
+        console.error('AI Extraction failed:', aiError);
+        // If it failed and we were using a user key, maybe try the system key if it's different
+        if (profile && (profile.custom_api_key || profile.gemini_api_key || profile.openai_api_key) && Deno.env.get('LOVABLE_API_KEY') && apiKey !== Deno.env.get('LOVABLE_API_KEY')) {
+          console.log('User key failed, trying system key...');
+          apiKey = Deno.env.get('LOVABLE_API_KEY')!;
+          apiBaseUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+          model = 'google/gemini-2.5-flash';
+          extractedText = await extractTextWithAI(arrayBuffer, apiKey, apiBaseUrl, model, detectedMimeType || 'application/pdf');
+        } else {
+          throw aiError;
+        }
+      }
     } else if (isDoc) {
       // Old .doc format - we can't easily parse this without complex libraries
       // Return a message asking user to convert to DOCX
@@ -287,10 +344,7 @@ serve(async (req) => {
     }
 
     // Update the material with extracted content using service role
-    const serviceClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    // serviceClient is already initialized above
 
     // Truncate if too long (max 100KB)
     const truncatedText = extractedText.length > 100000

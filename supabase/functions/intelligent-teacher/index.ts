@@ -165,15 +165,21 @@ const getUserIdFromAuthHeader = async (
   authHeader: string | null,
 ) => {
   if (!authHeader?.startsWith("Bearer ")) return null;
+
   try {
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error } = await supabaseClient.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabaseClient.auth.getUser();
+
     if (error || !user) {
       console.error("Auth error:", error);
       return null;
     }
+
     return user.id;
   } catch (error) {
     console.error("Unexpected auth error:", error);
@@ -190,15 +196,18 @@ const getProfileKeys = async (
   const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
   });
+
   const { data, error } = await supabaseClient
     .from("profiles")
     .select("openai_api_key, gemini_api_key, custom_api_key, custom_base_url, custom_model")
     .eq("user_id", userId)
     .maybeSingle();
+
   if (error) {
     console.error("Profile fetch error:", error);
     return null;
   }
+
   return data;
 };
 
@@ -303,3 +312,94 @@ const requestAiResponse = async ({
 
   return { response: null, lastFailure };
 };
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Method not allowed" }, 405);
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY");
+      return jsonResponse({ error: "Server configuration error" }, 500);
+    }
+
+    const body = (await req.json()) as RequestBody;
+    const validationError = validateMessages(body.messages);
+    if (validationError) {
+      return jsonResponse({ error: validationError }, 400);
+    }
+
+    const { messages, learnerProfile, uploadedMaterials, materialContent } = body;
+    const authHeader = req.headers.get("Authorization");
+    const userId = await getUserIdFromAuthHeader(supabaseUrl, supabaseAnonKey, authHeader);
+
+    let profileKeys: ProfileKeys | null = null;
+    if (userId && authHeader) {
+      profileKeys = await getProfileKeys(supabaseUrl, supabaseAnonKey, authHeader, userId);
+    }
+
+    const aiCandidates = buildAiCandidates({
+      profileKeys,
+      defaultApiKey: Deno.env.get("LOVABLE_API_KEY"),
+    });
+
+    if (aiCandidates.length === 0) {
+      return jsonResponse({ error: "AI API key is not configured on the server." }, 500);
+    }
+
+    const finalMessages = messages[0]?.role === "system"
+      ? enhanceExistingSystemPrompt({ messages, learnerProfile, materialContent })
+      : [
+          {
+            role: "system" as const,
+            content: buildSystemPrompt({ learnerProfile, uploadedMaterials, materialContent }),
+          },
+          ...messages,
+        ];
+
+    const { response: aiResponse, lastFailure } = await requestAiResponse({
+      candidates: aiCandidates,
+      messages: finalMessages,
+    });
+
+    if (!aiResponse) {
+      if (lastFailure?.status === 429) {
+        return jsonResponse({ error: "Rate limit exceeded. Please try again." }, 429);
+      }
+      if (lastFailure?.status === 402) {
+        return jsonResponse({ error: "Usage limit reached." }, 402);
+      }
+      if (lastFailure?.status === 401) {
+        return jsonResponse({ error: "The configured personal AI key is invalid. Please review it in your profile settings." }, 401);
+      }
+
+      return jsonResponse(
+        {
+          error: "AI service temporarily unavailable",
+          details: lastFailure?.text,
+        },
+        500,
+      );
+    }
+
+    return new Response(aiResponse.body, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error) {
+    console.error("Error in intelligent-teacher:", error);
+    return jsonResponse({ error: "Unable to process request. Please try again." }, 500);
+  }
+});

@@ -32,8 +32,18 @@ interface RequestBody {
 }
 
 interface ProfileKeys {
-  openai_api_key?: string;
-  gemini_api_key?: string;
+  openai_api_key?: string | null;
+  gemini_api_key?: string | null;
+  custom_api_key?: string | null;
+  custom_base_url?: string | null;
+  custom_model?: string | null;
+}
+
+interface AiCandidate {
+  apiBaseUrl: string;
+  apiKey: string;
+  model: string;
+  label: string;
 }
 
 const jsonResponse = (body: Record<string, unknown>, status = 200) =>
@@ -155,15 +165,21 @@ const getUserIdFromAuthHeader = async (
   authHeader: string | null,
 ) => {
   if (!authHeader?.startsWith("Bearer ")) return null;
+
   try {
     const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error } = await supabaseClient.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabaseClient.auth.getUser();
+
     if (error || !user) {
       console.error("Auth error:", error);
       return null;
     }
+
     return user.id;
   } catch (error) {
     console.error("Unexpected auth error:", error);
@@ -180,22 +196,128 @@ const getProfileKeys = async (
   const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
   });
+
   const { data, error } = await supabaseClient
     .from("profiles")
-    .select("openai_api_key, gemini_api_key")
+    .select("openai_api_key, gemini_api_key, custom_api_key, custom_base_url, custom_model")
     .eq("user_id", userId)
     .maybeSingle();
+
   if (error) {
     console.error("Profile fetch error:", error);
     return null;
   }
+
   return data;
+};
+
+const buildAiCandidates = ({
+  profileKeys,
+  defaultApiKey,
+}: {
+  profileKeys: ProfileKeys | null;
+  defaultApiKey: string | undefined;
+}): AiCandidate[] => {
+  const candidates: AiCandidate[] = [];
+
+  if (profileKeys?.custom_api_key) {
+    candidates.push({
+      apiBaseUrl: profileKeys.custom_base_url || "https://api.openai.com/v1/chat/completions",
+      apiKey: profileKeys.custom_api_key,
+      model: profileKeys.custom_model || "gpt-4o-mini",
+      label: "custom_api_key",
+    });
+  }
+
+  if (profileKeys?.gemini_api_key) {
+    candidates.push({
+      apiBaseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      apiKey: profileKeys.gemini_api_key,
+      model: "gemini-2.0-flash",
+      label: "gemini_api_key",
+    });
+  }
+
+  if (profileKeys?.openai_api_key) {
+    candidates.push({
+      apiBaseUrl: "https://api.openai.com/v1/chat/completions",
+      apiKey: profileKeys.openai_api_key,
+      model: "gpt-4o-mini",
+      label: "openai_api_key",
+    });
+  }
+
+  if (defaultApiKey) {
+    candidates.push({
+      apiBaseUrl: "https://ai.gateway.lovable.dev/v1/chat/completions",
+      apiKey: defaultApiKey,
+      model: "google/gemini-3-flash-preview",
+      label: "lovable_default",
+    });
+  }
+
+  return candidates;
+};
+
+const requestAiResponse = async ({
+  candidates,
+  messages,
+}: {
+  candidates: AiCandidate[];
+  messages: Message[];
+}) => {
+  let lastFailure: { status: number; text: string; label: string } | null = null;
+
+  for (const candidate of candidates) {
+    try {
+      console.log(`Sending request to ${candidate.apiBaseUrl} using ${candidate.model} (${candidate.label})`);
+
+      const response = await fetch(candidate.apiBaseUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${candidate.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: candidate.model,
+          messages,
+          stream: true,
+        }),
+      });
+
+      if (response.ok) {
+        return { response, lastFailure };
+      }
+
+      const errorText = await response.text();
+      console.error(`AI service error (${candidate.label}):`, response.status, errorText);
+      lastFailure = { status: response.status, text: errorText, label: candidate.label };
+
+      if (candidate.label === "lovable_default") {
+        break;
+      }
+    } catch (error) {
+      console.error(`AI request crashed (${candidate.label}):`, error);
+      lastFailure = {
+        status: 500,
+        text: error instanceof Error ? error.message : "Unknown request error",
+        label: candidate.label,
+      };
+
+      if (candidate.label === "lovable_default") {
+        break;
+      }
+    }
+  }
+
+  return { response: null, lastFailure };
 };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
@@ -203,6 +325,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error("Missing SUPABASE_URL or SUPABASE_ANON_KEY");
       return jsonResponse({ error: "Server configuration error" }, 500);
@@ -223,53 +346,48 @@ serve(async (req) => {
       profileKeys = await getProfileKeys(supabaseUrl, supabaseAnonKey, authHeader, userId);
     }
 
-    let apiBaseUrl = "https://ai.gateway.lovable.dev/v1/chat/completions";
-    let apiKey = Deno.env.get("LOVABLE_API_KEY");
-    let model = "google/gemini-2.5-flash";
+    const aiCandidates = buildAiCandidates({
+      profileKeys,
+      defaultApiKey: Deno.env.get("LOVABLE_API_KEY"),
+    });
 
-    if (profileKeys?.gemini_api_key) {
-      apiKey = profileKeys.gemini_api_key;
-      apiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/chat/completions";
-      model = "gemini-1.5-flash";
-      console.log(`Using personal Gemini key for user ${userId}`);
-    } else if (profileKeys?.openai_api_key) {
-      apiKey = profileKeys.openai_api_key;
-      apiBaseUrl = "https://api.openai.com/v1/chat/completions";
-      model = "gpt-4o-mini";
-      console.log(`Using personal OpenAI key for user ${userId}`);
-    } else {
-      console.log(userId ? `Using default key for user ${userId}` : "Using default key for guest");
-    }
-
-    if (!apiKey) {
+    if (aiCandidates.length === 0) {
       return jsonResponse({ error: "AI API key is not configured on the server." }, 500);
     }
 
     const finalMessages = messages[0]?.role === "system"
       ? enhanceExistingSystemPrompt({ messages, learnerProfile, materialContent })
       : [
-          { role: "system" as const, content: buildSystemPrompt({ learnerProfile, uploadedMaterials, materialContent }) },
+          {
+            role: "system" as const,
+            content: buildSystemPrompt({ learnerProfile, uploadedMaterials, materialContent }),
+          },
           ...messages,
         ];
 
-    console.log(`Sending request to ${apiBaseUrl} using ${model}`);
-
-    const aiResponse = await fetch(apiBaseUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ model, messages: finalMessages, stream: true }),
+    const { response: aiResponse, lastFailure } = await requestAiResponse({
+      candidates: aiCandidates,
+      messages: finalMessages,
     });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI service error:", aiResponse.status, errorText);
-      if (aiResponse.status === 401) return jsonResponse({ error: "AI provider authorization failed." }, 500);
-      if (aiResponse.status === 429) return jsonResponse({ error: "Rate limit exceeded. Please try again." }, 429);
-      if (aiResponse.status === 402) return jsonResponse({ error: "Usage limit reached." }, 402);
-      return jsonResponse({ error: "AI service temporarily unavailable", details: errorText }, 500);
+    if (!aiResponse) {
+      if (lastFailure?.status === 429) {
+        return jsonResponse({ error: "Rate limit exceeded. Please try again." }, 429);
+      }
+      if (lastFailure?.status === 402) {
+        return jsonResponse({ error: "Usage limit reached." }, 402);
+      }
+      if (lastFailure?.status === 401) {
+        return jsonResponse({ error: "The configured personal AI key is invalid. Please review it in your profile settings." }, 401);
+      }
+
+      return jsonResponse(
+        {
+          error: "AI service temporarily unavailable",
+          details: lastFailure?.text,
+        },
+        500,
+      );
     }
 
     return new Response(aiResponse.body, {

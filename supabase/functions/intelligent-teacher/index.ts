@@ -32,8 +32,18 @@ interface RequestBody {
 }
 
 interface ProfileKeys {
-  openai_api_key?: string;
-  gemini_api_key?: string;
+  openai_api_key?: string | null;
+  gemini_api_key?: string | null;
+  custom_api_key?: string | null;
+  custom_base_url?: string | null;
+  custom_model?: string | null;
+}
+
+interface AiCandidate {
+  apiBaseUrl: string;
+  apiKey: string;
+  model: string;
+  label: string;
 }
 
 const jsonResponse = (body: Record<string, unknown>, status = 200) =>

@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           attachments: string[] | null
           content: string
+          conversation_id: string | null
           created_at: string
           id: string
           role: string
@@ -27,6 +28,7 @@ export type Database = {
         Insert: {
           attachments?: string[] | null
           content: string
+          conversation_id?: string | null
           created_at?: string
           id?: string
           role: string
@@ -36,6 +38,7 @@ export type Database = {
         Update: {
           attachments?: string[] | null
           content?: string
+          conversation_id?: string | null
           created_at?: string
           id?: string
           role?: string
@@ -44,6 +47,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "chat_messages_subject_id_fkey"
             columns: ["subject_id"]
             isOneToOne: false
@@ -51,6 +61,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          feature_id: string
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature_id: string
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature_id?: string
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       flashcard_sets: {
         Row: {

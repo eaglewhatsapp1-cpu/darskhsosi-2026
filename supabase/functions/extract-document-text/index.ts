@@ -258,10 +258,10 @@ serve(async (req) => {
       // Use AI to extract text from PDF or Image
       // 1. Try to get user's personal API key first as a priority
       const { data: profile } = await serviceClient
-        .from('profiles')
+        .from('user_api_credentials')
         .select('gemini_api_key, openai_api_key, custom_api_key, custom_base_url, custom_model')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       let apiBaseUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
       let model = 'google/gemini-2.5-flash';

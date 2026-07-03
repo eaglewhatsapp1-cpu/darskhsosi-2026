@@ -198,7 +198,7 @@ const getProfileKeys = async (
   });
 
   const { data, error } = await supabaseClient
-    .from("profiles")
+    .from("user_api_credentials")
     .select("openai_api_key, gemini_api_key, custom_api_key, custom_base_url, custom_model")
     .eq("user_id", userId)
     .maybeSingle();

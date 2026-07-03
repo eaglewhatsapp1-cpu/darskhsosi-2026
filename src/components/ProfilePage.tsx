@@ -99,6 +99,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
     };
   });
 
+  // Populate API key fields once credentials are loaded from the secure table
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      openaiApiKey: credentials.openai_api_key || '',
+      geminiApiKey: credentials.gemini_api_key || '',
+      customApiKey: credentials.custom_api_key || '',
+      customBaseUrl: credentials.custom_base_url || '',
+      customModel: credentials.custom_model || '',
+    }));
+  }, [credentials]);
+
+
+
   const t = (key: string) => {
     const translations: Record<string, Record<string, string>> = {
       'page.title': { ar: 'الملف الشخصي', en: 'Profile' },

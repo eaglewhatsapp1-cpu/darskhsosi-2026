@@ -219,12 +219,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
     setLoading(false);
     if (error || credError) toast.error(t('error.save'));
     else toast.success(t('success.save'));
-    return;
-
-    setLoading(false);
-    if (error) toast.error(t('error.save'));
-    else toast.success(t('success.save'));
   };
+
 
   return (
     <div className="h-full overflow-y-auto p-3 sm:p-4 md:p-6 custom-scrollbar gsap-theme-animate">

@@ -105,6 +105,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Open menu"
           className="md:hidden text-header-foreground hover:bg-header-foreground/10"
           onClick={onMenuClick}
         >

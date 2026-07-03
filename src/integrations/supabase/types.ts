@@ -137,11 +137,7 @@ export type Database = {
           bio: string | null
           birth_date: string | null
           created_at: string
-          custom_api_key: string | null
-          custom_base_url: string | null
-          custom_model: string | null
           education_level: string | null
-          gemini_api_key: string | null
           goals: string | null
           hobbies: string | null
           id: string
@@ -151,7 +147,6 @@ export type Database = {
           learning_style: string | null
           learning_styles: string[] | null
           name: string
-          openai_api_key: string | null
           preferred_language: string | null
           speaking_style: string | null
           strengths: string | null
@@ -167,11 +162,7 @@ export type Database = {
           bio?: string | null
           birth_date?: string | null
           created_at?: string
-          custom_api_key?: string | null
-          custom_base_url?: string | null
-          custom_model?: string | null
           education_level?: string | null
-          gemini_api_key?: string | null
           goals?: string | null
           hobbies?: string | null
           id?: string
@@ -181,7 +172,6 @@ export type Database = {
           learning_style?: string | null
           learning_styles?: string[] | null
           name: string
-          openai_api_key?: string | null
           preferred_language?: string | null
           speaking_style?: string | null
           strengths?: string | null
@@ -197,11 +187,7 @@ export type Database = {
           bio?: string | null
           birth_date?: string | null
           created_at?: string
-          custom_api_key?: string | null
-          custom_base_url?: string | null
-          custom_model?: string | null
           education_level?: string | null
-          gemini_api_key?: string | null
           goals?: string | null
           hobbies?: string | null
           id?: string
@@ -211,7 +197,6 @@ export type Database = {
           learning_style?: string | null
           learning_styles?: string[] | null
           name?: string
-          openai_api_key?: string | null
           preferred_language?: string | null
           speaking_style?: string | null
           strengths?: string | null
@@ -309,6 +294,42 @@ export type Database = {
           file_type?: string | null
           id?: string
           storage_path?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_api_credentials: {
+        Row: {
+          created_at: string
+          custom_api_key: string | null
+          custom_base_url: string | null
+          custom_model: string | null
+          gemini_api_key: string | null
+          id: string
+          openai_api_key: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_api_key?: string | null
+          custom_base_url?: string | null
+          custom_model?: string | null
+          gemini_api_key?: string | null
+          id?: string
+          openai_api_key?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_api_key?: string | null
+          custom_base_url?: string | null
+          custom_model?: string | null
+          gemini_api_key?: string | null
+          id?: string
+          openai_api_key?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

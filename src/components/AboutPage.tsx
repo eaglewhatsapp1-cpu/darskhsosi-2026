@@ -1,7 +1,12 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Heart, Lightbulb, Users, GraduationCap, Sparkles } from 'lucide-react';
+import {
+    Heart, Lightbulb, Users, GraduationCap, Sparkles,
+    Bot, Upload, Network, BookOpen, FileText, FlaskConical,
+    Video, ClipboardCheck, TrendingUp, Link2, CalendarClock,
+    Layers, Presentation, Gamepad2, Globe, ShieldCheck, Rocket
+} from 'lucide-react';
 import gsap from 'gsap';
 
 interface AboutPageProps {

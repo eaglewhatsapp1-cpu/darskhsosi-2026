@@ -105,6 +105,11 @@ const Auth: React.FC = () => {
 
   return (
     <div className="min-h-screen gradient-warm geometric-pattern flex items-center justify-center p-4">
+      <Seo
+        title="تسجيل الدخول — منصة درس خصوصي"
+        description="سجّل الدخول أو أنشئ حساباً مجانياً في منصة درس خصوصي للوصول إلى المعلم الذكي وأدوات التعلم بالذكاء الاصطناعي."
+        path="/auth"
+      />
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8 animate-fade-in">

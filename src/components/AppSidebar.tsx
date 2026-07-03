@@ -270,6 +270,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Sign out"
                 className={cn('shrink-0', activeFeature === 'profile' ? 'text-white hover:bg-white/20' : 'text-sidebar-foreground hover:bg-sidebar-accent')}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -284,7 +285,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         </div>
         {collapsed && <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="w-full mt-2 text-sidebar-foreground hover:bg-sidebar-accent" onClick={onSignOut}>
+            <Button variant="ghost" size="icon" aria-label="Sign out" className="w-full mt-2 text-sidebar-foreground hover:bg-sidebar-accent" onClick={onSignOut}>
               <LogOut className="w-4 h-4" />
             </Button>
           </TooltipTrigger>

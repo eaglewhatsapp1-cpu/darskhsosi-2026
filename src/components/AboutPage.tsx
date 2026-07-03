@@ -159,6 +159,46 @@ const AboutPage: React.FC<AboutPageProps> = ({ language }) => {
                         </Card>
                     </div>
 
+                    {/* Full Features Showcase (Marketing) */}
+                    <div className="about-hero-animate mb-6 text-center space-y-3">
+                        <div className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10">
+                            <Sparkles className="w-7 h-7 text-primary" />
+                        </div>
+                        <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">
+                            {t('كل ما يقدمه التطبيق', 'Everything the App Offers')}
+                        </h2>
+                        <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">
+                            {t(
+                                'منظومة تعليمية متكاملة مدعومة بالذكاء الاصطناعي تجمع كل ما تحتاجه للتعلم والمراجعة والإبداع في مكان واحد.',
+                                'A complete AI-powered learning ecosystem bringing everything you need to learn, review and create in one place.'
+                            )}
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
+                        {features.map((f, idx) => {
+                            const Icon = f.icon;
+                            return (
+                                <Card
+                                    key={idx}
+                                    className="flex flex-col h-full p-6 border-none shadow-md bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 rounded-2xl transition-all hover:-translate-y-1 hover:shadow-xl text-start"
+                                >
+                                    <div className={`w-12 h-12 rounded-xl ${f.bg} flex items-center justify-center mb-4 shadow-sm`}>
+                                        <Icon className={`w-6 h-6 ${f.color}`} />
+                                    </div>
+                                    <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2 text-start">
+                                        {t(f.ar, f.en)}
+                                    </h3>
+                                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium text-start">
+                                        {t(f.arDesc, f.enDesc)}
+                                    </p>
+                                </Card>
+                            );
+                        })}
+                    </div>
+
+
+
                     {/* Personal Message */}
                     <div className="about-hero-animate mb-8">
                         <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 p-8 md:p-10 rounded-[2.5rem] text-center relative overflow-hidden">

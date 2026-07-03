@@ -206,12 +206,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
       ai_persona: formData.aiPersona as Profile['ai_persona'],
       speaking_style: formData.speakingStyle as Profile['speaking_style'],
       knowledge_ratio: formData.knowledgeRatio,
+    });
+
+    const { error: credError } = await updateCredentials({
       openai_api_key: formData.openaiApiKey || null,
       gemini_api_key: formData.geminiApiKey || null,
       custom_api_key: formData.customApiKey || null,
       custom_base_url: formData.customBaseUrl || null,
       custom_model: formData.customModel || null,
     });
+
+    setLoading(false);
+    if (error || credError) toast.error(t('error.save'));
+    else toast.success(t('success.save'));
+    return;
 
     setLoading(false);
     if (error) toast.error(t('error.save'));

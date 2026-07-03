@@ -39,6 +39,7 @@ interface ProfilePageProps {
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
   const { updateProfile } = useProfile();
+  const { credentials, updateCredentials } = useApiCredentials();
   const { signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);

@@ -67,11 +67,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ profile, language }) => {
         aiPersona: profile.ai_persona || 'teacher',
         speakingStyle: profile.speaking_style || 'formal_ar',
         knowledgeRatio: profile.knowledge_ratio ?? 50,
-        openaiApiKey: profile.openai_api_key || '',
-        geminiApiKey: profile.gemini_api_key || '',
-        customApiKey: profile.custom_api_key || '',
-        customBaseUrl: profile.custom_base_url || '',
-        customModel: profile.custom_model || '',
+        openaiApiKey: '',
+        geminiApiKey: '',
+        customApiKey: '',
+        customBaseUrl: '',
+        customModel: '',
       };
     }
     return {

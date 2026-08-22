@@ -9,6 +9,7 @@ interface ConversationSwitcherProps {
   conversations: Conversation[];
   activeConversation: Conversation | null;
   language: 'ar' | 'en';
+  subjectLabel?: string;
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
@@ -18,6 +19,7 @@ const ConversationSwitcher: React.FC<ConversationSwitcherProps> = ({
   conversations,
   activeConversation,
   language,
+  subjectLabel,
   onSelect,
   onNew,
   onDelete,
@@ -30,6 +32,11 @@ const ConversationSwitcher: React.FC<ConversationSwitcherProps> = ({
     <div className="border-b border-border bg-card/30" dir={dir}>
       {/* Compact bar */}
       <div className="flex items-center gap-2 px-3 py-2">
+        {subjectLabel && (
+          <span className="hidden sm:inline-flex items-center rounded-full bg-primary/10 text-primary text-[11px] font-semibold px-2 py-1 shrink-0">
+            {subjectLabel}
+          </span>
+        )}
         <Button
           variant="ghost"
           size="sm"

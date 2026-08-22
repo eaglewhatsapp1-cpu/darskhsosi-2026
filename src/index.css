@@ -204,6 +204,19 @@
     font-family: 'Cairo', sans-serif;
   }
 
+  /* Smooth subject identity transitions */
+  body,
+  header,
+  aside,
+  .header-banner,
+  .gradient-primary,
+  button,
+  .bg-card,
+  .bg-primary,
+  .bg-secondary {
+    transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease, background-image 0.35s ease;
+  }
+
   /* RTL Support */
   [dir="rtl"] {
     font-family: 'Cairo', sans-serif;

@@ -64,7 +64,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
     createConversation,
     switchConversation,
     deleteConversation,
-  } = useConversations(personaId);
+  } = useConversations(personaId, profile.subject || 'general');
 
   const { messages: dbMessages, addMessage, loading: historyLoading } = useChatHistory(personaId, activeConversation?.id);
 
@@ -203,7 +203,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
         tempFiles.filter(f => f.type.startsWith('image/')).map(f => f.base64).join('\n')
       ].filter(Boolean).join('');
 
-      const systemPrompt = getPersonaSystemPrompt(persona, language, subjectTheme.nameEn, profile.name, profile.education_level || 'high', profile.learning_style || 'illustrative', materials.filter(m => selectedMaterials.includes(m.id)).map(m => m.file_name));
+      const systemPrompt = getPersonaSystemPrompt(persona, language, language === 'ar' ? subjectTheme.nameAr : subjectTheme.nameEn, profile.name, profile.education_level || 'high', profile.learning_style || 'illustrative', materials.filter(m => selectedMaterials.includes(m.id)).map(m => m.file_name));
 
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
@@ -372,6 +372,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
 
       {/* Conversation Switcher */}
       <ConversationSwitcher
+        subjectLabel={`${subjectTheme.icon} ${language === 'ar' ? subjectTheme.nameAr : subjectTheme.nameEn}`}
         conversations={conversations}
         activeConversation={activeConversation}
         language={language}
@@ -437,7 +438,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
       {/* Smart Suggestions */}
       {showSuggestions && messages.length > 0 && !isLoading && (
         <div className="px-3 sm:px-4 py-2">
-          <SmartSuggestions language={language} personaId={personaId} onSuggestionClick={suggestion => handleSend(suggestion)} />
+          <SmartSuggestions language={language} personaId={personaId} subject={profile.subject || 'general'} onSuggestionClick={suggestion => handleSend(suggestion)} />
         </div>
       )}
 

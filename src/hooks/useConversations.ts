@@ -6,13 +6,14 @@ export interface Conversation {
   id: string;
   user_id: string;
   feature_id: string;
+  subject: string;
   title: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export const useConversations = (featureId: string) => {
+export const useConversations = (featureId: string, subject: string = 'general') => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
@@ -26,6 +27,7 @@ export const useConversations = (featureId: string) => {
         .select('*')
         .eq('user_id', user.id)
         .eq('feature_id', featureId)
+        .eq('subject', subject)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
@@ -43,7 +45,7 @@ export const useConversations = (featureId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [user, featureId]);
+  }, [user, featureId, subject]);
 
   useEffect(() => {
     setActiveConversation(null);
@@ -59,13 +61,15 @@ export const useConversations = (featureId: string) => {
         .from('conversations')
         .update({ is_active: false })
         .eq('user_id', user.id)
-        .eq('feature_id', featureId);
+        .eq('feature_id', featureId)
+        .eq('subject', subject);
 
       const { data, error } = await (supabase as any)
         .from('conversations')
         .insert({
           user_id: user.id,
           feature_id: featureId,
+          subject,
           title: title || (featureId === 'teacher' ? 'محادثة جديدة' : `محادثة جديدة`),
           is_active: true,
         })
@@ -81,7 +85,7 @@ export const useConversations = (featureId: string) => {
       console.error('Error creating conversation:', err);
       return null;
     }
-  }, [user, featureId]);
+  }, [user, featureId, subject]);
 
   const switchConversation = useCallback(async (conversationId: string) => {
     if (!user) return;
@@ -90,7 +94,8 @@ export const useConversations = (featureId: string) => {
         .from('conversations')
         .update({ is_active: false })
         .eq('user_id', user.id)
-        .eq('feature_id', featureId);
+        .eq('feature_id', featureId)
+        .eq('subject', subject);
 
       await (supabase as any)
         .from('conversations')
@@ -102,7 +107,7 @@ export const useConversations = (featureId: string) => {
     } catch (err) {
       console.error('Error switching conversation:', err);
     }
-  }, [user, featureId, conversations]);
+  }, [user, featureId, subject, conversations]);
 
   const updateTitle = useCallback(async (conversationId: string, title: string) => {
     try {

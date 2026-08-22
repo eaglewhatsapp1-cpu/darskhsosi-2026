@@ -68,6 +68,7 @@ export type Database = {
           feature_id: string
           id: string
           is_active: boolean
+          subject: string
           title: string
           updated_at: string
           user_id: string
@@ -77,6 +78,7 @@ export type Database = {
           feature_id: string
           id?: string
           is_active?: boolean
+          subject?: string
           title?: string
           updated_at?: string
           user_id: string
@@ -86,6 +88,7 @@ export type Database = {
           feature_id?: string
           id?: string
           is_active?: boolean
+          subject?: string
           title?: string
           updated_at?: string
           user_id?: string

@@ -382,13 +382,8 @@ serve(async (req) => {
         return jsonResponse({ error: "The configured personal AI key is invalid. Please review it in your profile settings." }, 401);
       }
 
-      return jsonResponse(
-        {
-          error: "AI service temporarily unavailable",
-          details: lastFailure?.text,
-        },
-        500,
-      );
+      console.error("All AI candidates failed:", lastFailure?.label, lastFailure?.status, lastFailure?.text);
+      return jsonResponse({ error: "AI service temporarily unavailable" }, 500);
     }
 
     return new Response(aiResponse.body, {

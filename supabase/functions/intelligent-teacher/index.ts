@@ -223,7 +223,7 @@ const buildAiCandidates = ({
 
   if (profileKeys?.custom_api_key) {
     candidates.push({
-      apiBaseUrl: profileKeys.custom_base_url || "https://api.openai.com/v1/chat/completions",
+      apiBaseUrl: sanitizeApiBaseUrl(profileKeys.custom_base_url, "https://api.openai.com/v1/chat/completions"),
       apiKey: profileKeys.custom_api_key,
       model: profileKeys.custom_model || "gpt-4o-mini",
       label: "custom_api_key",

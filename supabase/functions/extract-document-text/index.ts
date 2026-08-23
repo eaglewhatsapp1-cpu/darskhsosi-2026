@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 import { encodeBase64 } from "https://deno.land/std@0.203.0/encoding/base64.ts";
+import { sanitizeApiBaseUrl } from "../_shared/safeApiUrl.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

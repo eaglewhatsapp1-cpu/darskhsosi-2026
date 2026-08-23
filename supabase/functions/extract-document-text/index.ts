@@ -271,7 +271,7 @@ serve(async (req) => {
       // Priority 1: User's Custom key
       if (profile?.custom_api_key) {
         apiKey = profile.custom_api_key;
-        apiBaseUrl = profile.custom_base_url || 'https://api.openai.com/v1/chat/completions';
+        apiBaseUrl = sanitizeApiBaseUrl(profile.custom_base_url, 'https://api.openai.com/v1/chat/completions');
         model = profile.custom_model || 'gpt-4o-mini';
         console.log('Using personal Custom API key for extraction');
       }

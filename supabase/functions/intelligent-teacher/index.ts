@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizeApiBaseUrl } from "../_shared/safeApiUrl.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -222,7 +223,7 @@ const buildAiCandidates = ({
 
   if (profileKeys?.custom_api_key) {
     candidates.push({
-      apiBaseUrl: profileKeys.custom_base_url || "https://api.openai.com/v1/chat/completions",
+      apiBaseUrl: sanitizeApiBaseUrl(profileKeys.custom_base_url, "https://api.openai.com/v1/chat/completions"),
       apiKey: profileKeys.custom_api_key,
       model: profileKeys.custom_model || "gpt-4o-mini",
       label: "custom_api_key",
@@ -381,13 +382,8 @@ serve(async (req) => {
         return jsonResponse({ error: "The configured personal AI key is invalid. Please review it in your profile settings." }, 401);
       }
 
-      return jsonResponse(
-        {
-          error: "AI service temporarily unavailable",
-          details: lastFailure?.text,
-        },
-        500,
-      );
+      console.error("All AI candidates failed:", lastFailure?.label, lastFailure?.status, lastFailure?.text);
+      return jsonResponse({ error: "AI service temporarily unavailable" }, 500);
     }
 
     return new Response(aiResponse.body, {

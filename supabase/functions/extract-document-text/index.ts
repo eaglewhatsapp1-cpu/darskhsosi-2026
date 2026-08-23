@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import JSZip from "https://esm.sh/jszip@3.10.1";
 import { encodeBase64 } from "https://deno.land/std@0.203.0/encoding/base64.ts";
+import { sanitizeApiBaseUrl } from "../_shared/safeApiUrl.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -270,7 +271,7 @@ serve(async (req) => {
       // Priority 1: User's Custom key
       if (profile?.custom_api_key) {
         apiKey = profile.custom_api_key;
-        apiBaseUrl = profile.custom_base_url || 'https://api.openai.com/v1/chat/completions';
+        apiBaseUrl = sanitizeApiBaseUrl(profile.custom_base_url, 'https://api.openai.com/v1/chat/completions');
         model = profile.custom_model || 'gpt-4o-mini';
         console.log('Using personal Custom API key for extraction');
       }

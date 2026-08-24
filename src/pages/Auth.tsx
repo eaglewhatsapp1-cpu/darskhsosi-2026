@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { GraduationCap, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { GraduationCap, Mail, Lock, Eye, EyeOff, Loader2, Users } from 'lucide-react';
 
 const Auth: React.FC = () => {
   const navigate = useNavigate();

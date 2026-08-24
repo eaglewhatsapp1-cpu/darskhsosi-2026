@@ -84,7 +84,7 @@ const LearningPlatform: React.FC = () => {
       });
     }
   };
-  if (authLoading || profileLoading) {
+  if (authLoading || profileLoading || roleLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-background">
       <Loader2 className="w-8 h-8 animate-spin text-primary" />
     </div>;
@@ -92,9 +92,13 @@ const LearningPlatform: React.FC = () => {
   if (!user) {
     return null;
   }
+  if (isParent) {
+    return <ParentDashboard language={language} onSignOut={signOut} />;
+  }
   if (!isProfileComplete) {
     return <ProfileSetup onComplete={handleProfileComplete} currentLanguage={language} setLanguage={handleLanguageChange} />;
   }
+
   return <div className="flex flex-col h-screen w-full overflow-hidden">
     {showOnboarding && isProfileComplete && (
       <OnboardingTour language={language} onComplete={() => setShowOnboarding(false)} onNavigate={feature => setActiveFeature(feature as SidebarFeature)} />

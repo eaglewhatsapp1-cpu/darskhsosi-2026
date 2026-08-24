@@ -10,6 +10,7 @@ interface RequestBody {
   url: string;
   language?: 'ar' | 'en';
   educationLevel?: string;
+  subject?: string;
   learningStyle?: string;
 }
 
@@ -102,7 +103,7 @@ serve(async (req) => {
     const userId = user.id;
     console.log("Authenticated user:", userId);
 
-    const { url, language = 'ar', educationLevel = 'high', learningStyle = 'visual' }: RequestBody = await req.json();
+    const { url, language = 'ar', educationLevel = 'high', learningStyle = 'visual', subject = 'general' }: RequestBody = await req.json();
 
     if (!url) {
       return new Response(
@@ -164,6 +165,10 @@ serve(async (req) => {
       university: { ar: 'حلل بعمق نقدي واستشهد بالأفكار الجوهرية', en: 'Analyze with critical depth and cite core ideas' },
       professional: { ar: 'قدم تحليلاً استراتيجياً وعملياً متخصصاً', en: 'Provide strategic and practical specialized analysis' }
     };
+
+    const subjectLine = language === 'ar'
+      ? `\nالمادة الدراسية الحالية للمتعلم: ${subject}. اربط الشرح والأمثلة بهذه المادة كلما أمكن.`
+      : `\nThe learner's current subject is: ${subject}. Connect the explanation and examples to this subject when possible.`;
 
     const systemPrompt = language === 'ar'
       ? `أنت خبير في "تحليل المحتوى الرقمي" ومعلم ذكي.

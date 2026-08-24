@@ -17,6 +17,7 @@ import FlashcardFeature from './FlashcardFeature';
 import AboutPage from './AboutPage';
 import KidsLearningGames from './KidsLearningGames';
 import ProfilePage from './ProfilePage';
+import ParentLinkCard from './parent/ParentLinkCard';
 import gsap from 'gsap';
 
 import { SidebarFeature } from './LearningPlatform';
@@ -75,6 +76,11 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
     { id: 'classroom' as SidebarFeature, component: <VirtualClassroom language={language} /> },
     { id: 'flashcards' as SidebarFeature, component: <FlashcardFeature language={language} /> },
     { id: 'kids-games' as SidebarFeature, component: <KidsLearningGames language={language} /> },
+    { id: 'parent-link' as SidebarFeature, component: (
+      <div className="h-full overflow-y-auto p-4 sm:p-6">
+        <div className="max-w-2xl mx-auto"><ParentLinkCard language={language} /></div>
+      </div>
+    ) },
     { id: 'about' as SidebarFeature, component: <AboutPage language={language} /> },
     { id: 'profile' as SidebarFeature, component: <ProfilePage profile={profile} language={language} /> }
   ], [profile, language]);

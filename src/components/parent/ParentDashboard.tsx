@@ -16,7 +16,7 @@ import {
   LogOut,
   MessagesSquare,
 } from 'lucide-react';
-import { getSubjectLabel } from '@/utils/subjectColors';
+import { getSubjectName } from '@/utils/subjectColors';
 
 interface Props {
   language: 'ar' | 'en';
@@ -231,7 +231,7 @@ const ParentDashboard: React.FC<Props> = ({ language, onSignOut }) => {
                 <h3 className="text-lg font-semibold">{s.name}</h3>
                 {s.subject && (
                   <Badge variant="secondary">
-                    {txt.subject}: {getSubjectLabel(s.subject as never, language)}
+                    {txt.subject}: {getSubjectName(s.subject , language)}
                   </Badge>
                 )}
               </div>
@@ -263,7 +263,7 @@ const ParentDashboard: React.FC<Props> = ({ language, onSignOut }) => {
                       return (
                         <div key={subject} className="flex items-center gap-3">
                           <span className="text-sm w-28 shrink-0 truncate">
-                            {getSubjectLabel(subject as never, language)}
+                            {getSubjectName(subject , language)}
                           </span>
                           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                             <div

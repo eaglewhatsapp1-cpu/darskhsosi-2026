@@ -55,7 +55,8 @@ const WebLinkExplainer: React.FC<WebLinkExplainerProps> = ({ language, profile }
           url,
           language,
           educationLevel: profile?.education_level || 'high',
-          learningStyle: profile?.learning_style || 'visual'
+          learningStyle: profile?.learning_style || 'visual',
+          subject: profile?.subject || 'general'
         }
       });
 

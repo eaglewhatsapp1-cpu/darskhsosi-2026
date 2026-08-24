@@ -71,7 +71,7 @@ const Auth: React.FC = () => {
           }
         }
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -87,8 +87,15 @@ const Auth: React.FC = () => {
             toast.error('حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.');
           }
         } else {
+          if (data.user) {
+            const { error: roleError } = await supabase
+              .from('user_roles')
+              .insert({ user_id: data.user.id, role });
+            if (roleError) console.error('Role assignment failed:', roleError);
+          }
           toast.success('تم إنشاء الحساب بنجاح!');
         }
+
       }
     } catch (error) {
       toast.error('حدث خطأ غير متوقع. حاول مرة أخرى.');

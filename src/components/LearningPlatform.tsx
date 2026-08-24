@@ -31,6 +31,8 @@ const LearningPlatform: React.FC = () => {
     fetchProfile,
     updateProfile
   } = useProfile();
+  const { isParent, loading: roleLoading } = useUserRole();
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeFeature, setActiveFeature] = useState<SidebarFeature>(() => {

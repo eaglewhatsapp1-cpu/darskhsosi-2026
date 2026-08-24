@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRole } from '@/hooks/useUserRole';
+import ParentDashboard from './parent/ParentDashboard';
+
 import { useProfile } from '@/hooks/useProfile';
 import { useSubjectTheme } from '@/hooks/useSubjectTheme';
 import ProfileSetup from './ProfileSetup';

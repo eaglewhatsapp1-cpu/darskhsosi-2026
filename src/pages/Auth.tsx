@@ -138,6 +138,36 @@ const Auth: React.FC = () => {
 
           {/* Email Auth Form */}
           <form onSubmit={handleEmailAuth} className="space-y-4">
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  نوع الحساب
+                </Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    { value: 'student' as const, label: 'طالب', hint: 'تعلّم بالذكاء الاصطناعي' },
+                    { value: 'parent' as const, label: 'ولي أمر', hint: 'متابعة تقدّم المتعلم' },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setRole(opt.value)}
+                      disabled={loading}
+                      className={`rounded-xl border p-3 text-center transition-colors ${
+                        role === opt.value
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-border hover:bg-muted/50 text-muted-foreground'
+                      }`}
+                    >
+                      <span className="block font-semibold">{opt.label}</span>
+                      <span className="block text-xs mt-1">{opt.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email" className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-primary" />

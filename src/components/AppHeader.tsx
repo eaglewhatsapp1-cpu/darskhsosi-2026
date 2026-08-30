@@ -162,16 +162,20 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           <span className="text-xs font-bold">{language === 'ar' ? 'EN' : 'AR'}</span>
         </Button>
 
-        <div className="text-end hidden sm:block">
-          <p className="font-semibold text-header-foreground">{profile.name}</p>
-          <p className="text-xs flex items-center gap-1 justify-end font-medium text-header-muted">
-            <span className="inline-block w-2 h-2 rounded-full" style={{
-              backgroundColor: subjectTheme.primary
-            }} />
-            {getEducationLevelText()}
+        <div className="text-end hidden xs:block sm:block">
+          <p className="font-bold text-sm sm:text-base leading-tight text-header-foreground tracking-tight">
+            {profile.name}
+          </p>
+          <p className="text-[11px] sm:text-xs flex items-center gap-1.5 justify-end font-semibold text-header-muted">
+            <span>{subjectTheme.icon}</span>
+            <span className="text-header-foreground/90">
+              {language === 'ar' ? subjectTheme.nameAr : subjectTheme.nameEn}
+            </span>
+            <span className="opacity-60">•</span>
+            <span>{getEducationLevelText()}</span>
           </p>
         </div>
-        <Avatar className="w-10 h-10 border-2" style={{
+        <Avatar className="w-10 h-10 sm:w-11 sm:h-11 border-2 shadow-md" style={{
           borderColor: subjectTheme.primary
         }}>
           <AvatarImage src={profile.avatar_url || ''} alt={profile.name} />
@@ -181,6 +185,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             {profile.name?.charAt(0)?.toUpperCase() || 'م'}
           </AvatarFallback>
         </Avatar>
+
       </div>
     </div>
   </header>;

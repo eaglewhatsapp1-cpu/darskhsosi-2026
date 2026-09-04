@@ -262,6 +262,57 @@ export type Database = {
         }
         Relationships: []
       }
+      question_bank: {
+        Row: {
+          correct_index: number
+          created_at: string
+          difficulty: string
+          explanation: string | null
+          id: string
+          is_favorite: boolean
+          options: Json
+          question: string
+          subject: string
+          times_correct: number
+          times_wrong: number
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          correct_index?: number
+          created_at?: string
+          difficulty?: string
+          explanation?: string | null
+          id?: string
+          is_favorite?: boolean
+          options?: Json
+          question: string
+          subject?: string
+          times_correct?: number
+          times_wrong?: number
+          topic?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          correct_index?: number
+          created_at?: string
+          difficulty?: string
+          explanation?: string | null
+          id?: string
+          is_favorite?: boolean
+          options?: Json
+          question?: string
+          subject?: string
+          times_correct?: number
+          times_wrong?: number
+          topic?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       study_plans: {
         Row: {
           created_at: string

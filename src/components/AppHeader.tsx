@@ -99,9 +99,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     borderColor: subjectTheme.primary,
     borderBottomWidth: '2px'
   }}>
-    <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 py-2 sm:py-3 header-banner rounded-lg mx-2 sm:mx-4 my-1 sm:my-2">
+    <div
+      className="relative overflow-hidden flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 py-2.5 sm:py-4 header-banner rounded-2xl mx-2 sm:mx-4 my-1 sm:my-2 shadow-lg"
+      style={{ background: subjectTheme.gradient }}
+    >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -top-10 -start-10 w-40 h-40 rounded-full opacity-20 blur-2xl"
+        style={{ background: subjectTheme.accent }}
+      />
+      <span aria-hidden className="pointer-events-none absolute inset-0 bg-black/25" />
       {/* Logo & Platform Name */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="relative z-10 flex items-center gap-2 sm:gap-3">
         <Button
           variant="ghost"
           size="icon"
@@ -128,7 +137,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       </div>
 
       {/* Subject Selector */}
-      <div className="flex-1 max-w-xs header-animate-item">
+      <div className="relative z-10 flex-1 max-w-xs header-animate-item">
         <Select value={profile.subject || 'general'} onValueChange={value => onSubjectChange(value as Subject)}>
           <SelectTrigger className="w-full border-2 font-medium transition-all duration-300 hover:scale-[1.02] hover:shadow-lg text-black" style={{
             borderColor: subjectTheme.primary,
@@ -154,7 +163,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       </div>
 
       {/* Actions & Student Info */}
-      <div className="flex items-center gap-3 text-header-foreground header-animate-item">
+      <div className="relative z-10 flex items-center gap-3 text-header-foreground header-animate-item">
         <AnimatedThemeToggle className="text-header-foreground hover:text-header-foreground/80" />
 
         <Button variant="ghost" size="icon" onClick={toggleLanguage} className="rounded-full flex items-center gap-1 px-2 w-auto transition-all duration-300 hover:scale-110 text-header-foreground hover:text-header-foreground/80 hover:bg-header-foreground/10">

@@ -2,7 +2,7 @@ import React, { useLayoutEffect, useRef } from 'react';
 import { Profile } from '@/hooks/useProfile';
 import { SidebarFeature } from './LearningPlatform';
 import { cn } from '@/lib/utils';
-import { GraduationCap, Upload, Network, Lightbulb, FileText, Users, Video, ClipboardCheck, TrendingUp, ChevronLeft, ChevronRight, LogOut, Link, Calendar, Rocket, Heart, User, Presentation, Layers, Puzzle , ShieldCheck} from 'lucide-react';
+import { GraduationCap, Upload, Network, Lightbulb, FileText, Users, Video, ClipboardCheck, TrendingUp, ChevronLeft, ChevronRight, LogOut, Link, Calendar, Rocket, Heart, User, Presentation, Layers, Puzzle , ShieldCheck, HelpCircle, Library} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -46,6 +46,12 @@ export const features: {
 }, {
   id: 'test',
   icon: ClipboardCheck
+}, {
+  id: 'questionbank',
+  icon: HelpCircle
+}, {
+  id: 'moe-library',
+  icon: Library
 }, {
   id: 'progress',
   icon: TrendingUp
@@ -138,6 +144,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         'sidebar.scientist': 'حديث مع عالم',
         'sidebar.video': 'التعلم بالفيديو',
         'sidebar.test': 'اختبار الفهم',
+        'sidebar.questionbank': 'بنك الأسئلة',
+        'sidebar.moe-library': 'مكتبة كتب الوزارة',
         'sidebar.progress': 'تقدم التعلم',
         'sidebar.weblink': 'شرح الروابط',
         'sidebar.studyplan': 'خطة دراسية',
@@ -160,6 +168,8 @@ const AppSidebar: React.FC<AppSidebarProps> = ({
         'sidebar.scientist': 'Talk to Scientist',
         'sidebar.video': 'Learn with Video',
         'sidebar.test': 'Understanding Test',
+        'sidebar.questionbank': 'Question Bank',
+        'sidebar.moe-library': 'Ministry Library',
         'sidebar.progress': 'Learning Progress',
         'sidebar.weblink': 'Explain Links',
         'sidebar.studyplan': 'Study Plan',

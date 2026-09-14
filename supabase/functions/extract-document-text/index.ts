@@ -265,7 +265,7 @@ serve(async (req) => {
         .maybeSingle();
 
       let apiBaseUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-      let model = 'google/gemini-2.5-flash';
+      let model = 'google/gemini-3-flash-preview';
       let apiKey = Deno.env.get('LOVABLE_API_KEY');
 
       // Priority 1: User's Custom key
@@ -279,7 +279,7 @@ serve(async (req) => {
       else if (profile?.gemini_api_key) {
         apiKey = profile.gemini_api_key;
         apiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta/chat/completions';
-        model = 'gemini-1.5-flash';
+        model = 'gemini-2.0-flash';
         console.log('Using user provided Gemini API key for extraction');
       }
       // Priority 3: User's OpenAI key
@@ -311,7 +311,7 @@ serve(async (req) => {
           console.log('User key failed, trying system key...');
           apiKey = Deno.env.get('LOVABLE_API_KEY')!;
           apiBaseUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-          model = 'google/gemini-2.5-flash';
+          model = 'google/gemini-3-flash-preview';
           extractedText = await extractTextWithAI(arrayBuffer, apiKey, apiBaseUrl, model, detectedMimeType || 'application/pdf');
         } else {
           throw aiError;

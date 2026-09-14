@@ -339,9 +339,9 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full gsap-theme-animate" dir={dir}>
+    <div className="flex flex-col h-full min-h-0 overflow-hidden gsap-theme-animate" dir={dir}>
       {/* Header */}
-      <div className="p-3 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm">
+      <div className="shrink-0 p-3 sm:p-4 border-b border-border bg-card/50 backdrop-blur-sm">
         {customHeader || (
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -383,13 +383,13 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
 
       {/* Material Selector */}
       {showMaterialSelector && (
-        <div className="px-3 py-2 border-b border-border" data-helper-target="material-selector">
+        <div className="shrink-0 px-3 py-2 border-b border-border" data-helper-target="material-selector">
           <MaterialSelector language={language} selectedMaterials={selectedMaterials} onSelectionChange={setSelectedMaterials} />
         </div>
       )}
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-3 sm:p-4">
+      <ScrollArea className="flex-1 min-h-0 basis-0 p-3 sm:p-4">
         <div className="space-y-3 sm:space-y-4">
           {messages.map(message => (
             <div key={message.id} className={cn('flex gap-2 sm:gap-3', message.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
@@ -443,7 +443,7 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
       )}
 
       {/* Input Area */}
-      <div className="p-3 sm:p-4 border-t border-border bg-card/50">
+      <div className="shrink-0 p-3 sm:p-4 border-t border-border bg-card/50">
         {showTempUpload && (
           <div className="mb-2 sm:mb-3">
             <TemporaryUpload language={language} tempFiles={tempFiles} onFilesChange={setTempFiles} />

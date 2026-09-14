@@ -121,7 +121,16 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to fetch');
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast.error(language === 'ar' ? 'تم تجاوز الحد المسموح، حاول لاحقاً' : 'Rate limit exceeded, try again later');
+        } else if (response.status === 402) {
+          toast.error(language === 'ar' ? 'يجب إضافة رصيد للحساب' : 'Please add credits to your account');
+        } else {
+          toast.error(language === 'ar' ? 'حدث خطأ في الخدمة' : 'Service error occurred');
+        }
+        return;
+      }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -167,8 +176,8 @@ const VideoLearning: React.FC<VideoLearningProps> = ({ language }) => {
   };
 
   return (
-    <div className="h-full flex flex-col p-3 sm:p-4 md:p-6 gsap-theme-animate">
-      <div className="flex items-center justify-between mb-4 sm:mb-6">
+    <div className="h-full min-h-0 flex flex-col overflow-hidden p-3 sm:p-4 md:p-6 gsap-theme-animate">
+      <div className="relative shrink-0 flex items-center justify-between mb-4 sm:mb-6">
         <div className="flex-1 text-center">
           <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-full bg-primary/10 flex items-center justify-center">
             <Video className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />

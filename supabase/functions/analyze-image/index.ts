@@ -62,7 +62,7 @@ serve(async (req) => {
     let apiKey = Deno.env.get('LOVABLE_API_KEY');
 
     let apiBaseUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-    let model = 'google/gemini-1.5-pro';
+    let model = 'google/gemini-3-flash-preview';
 
     // Priority 1: User's Custom key
     if (profile?.custom_api_key) {

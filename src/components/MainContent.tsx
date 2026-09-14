@@ -72,7 +72,7 @@ const MainContent: React.FC<MainContentProps> = ({ activeFeature, profile, langu
     { id: 'scientist' as SidebarFeature, component: <ScientistChat language={language} /> },
     { id: 'video' as SidebarFeature, component: <VideoLearning language={language} /> },
     { id: 'test' as SidebarFeature, component: <UnderstandingTest language={language} /> },
-    { id: 'questionbank' as SidebarFeature, component: <QuestionBank language={language} profile={profile} /> },
+    { id: 'questionbank' as SidebarFeature, component: <QuestionBank language={language} /> },
     { id: 'moe-library' as SidebarFeature, component: <MoeLibrary language={language} /> },
     { id: 'weblink' as SidebarFeature, component: <WebLinkExplainer language={language} profile={profile} /> },
     { id: 'studyplan' as SidebarFeature, component: <StudyPlanGenerator language={language} profile={profile} /> },

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getToneGuidelines, getAgeRange } from "../_shared/toneProfile.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,9 +55,12 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const systemPrompt = lang === "ar"
-      ? `أنت خبير في بناء بنوك الأسئلة التعليمية. أنشئ ${count} سؤال اختيار من متعدد (4 اختيارات لكل سؤال) في مادة "${subjectName}"${level ? ` للمرحلة الدراسية: ${level}` : ""} بمستوى صعوبة ${difficulty}. اكتب الأسئلة والاختيارات والشرح باللغة العربية الفصحى الواضحة، واجعل الشرح مختصرًا ومفيدًا، وتأكد أن إجابة واحدة فقط صحيحة.`
-      : `You are an expert in building educational question banks. Create ${count} multiple-choice questions (4 options each) for the subject "${subjectName}"${level ? `, education level: ${level}` : ""} at ${difficulty} difficulty. Provide a concise useful explanation and ensure exactly one correct answer.`;
+    const ageRange = getAgeRange(level);
+    const basePrompt = lang === "ar"
+      ? `أنت خبير في بناء بنوك الأسئلة التعليمية. أنشئ ${count} سؤال اختيار من متعدد (4 اختيارات لكل سؤال) في مادة "${subjectName}"${level ? ` للمرحلة الدراسية: ${level}` : ""} (عمر المتعلم التقريبي: ${ageRange}) بمستوى صعوبة ${difficulty}. اكتب الأسئلة والاختيارات والشرح باللغة العربية الفصحى الواضحة، واجعل الشرح مختصرًا ومفيدًا، وتأكد أن إجابة واحدة فقط صحيحة.`
+      : `You are an expert in building educational question banks. Create ${count} multiple-choice questions (4 options each) for the subject "${subjectName}"${level ? `, education level: ${level}` : ""} (approximate learner age: ${ageRange}) at ${difficulty} difficulty. Provide a concise useful explanation and ensure exactly one correct answer.`;
+
+    const systemPrompt = `${basePrompt}\n\n${getToneGuidelines(level, lang)}`;
 
     const userPrompt = content
       ? `${lang === "ar" ? "أنشئ الأسئلة من هذا المحتوى" : "Create questions from this content"}:\n\n${content}`

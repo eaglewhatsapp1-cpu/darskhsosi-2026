@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getToneGuidelines } from "../_shared/toneProfile.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -194,6 +195,8 @@ Please follow this structure in your response:
 
 Respond in beautiful and organized Markdown format.`;
 
+    const tonedSystemPrompt = `${systemPrompt}\n\n${getToneGuidelines(educationLevel, language)}`;
+
     const userPrompt = language === 'ar'
       ? `قم بتحليل وشرح محتوى هذا الموقع:
 URL: ${url}
@@ -227,7 +230,7 @@ Provide a comprehensive summary including:
       body: JSON.stringify({
         model: 'google/gemini-3-flash-preview',
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: tonedSystemPrompt },
           { role: 'user', content: userPrompt }
         ],
       }),

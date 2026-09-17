@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitizeApiBaseUrl } from "../_shared/safeApiUrl.ts";
+import { getToneGuidelines } from "../_shared/toneProfile.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -126,6 +127,11 @@ ${materialContent.substring(0, 25000)}`;
 - No specific materials provided. Use your general academic knowledge base.`;
   }
 
+  systemPrompt += `\n\n${getToneGuidelines(
+    learnerProfile?.educationLevel,
+    learnerProfile?.preferredLanguage === "en" ? "en" : "ar",
+  )}`;
+
   return systemPrompt;
 };
 
@@ -154,6 +160,14 @@ const enhanceExistingSystemPrompt = ({
 
 REFERENCE CONTENT FROM KNOWLEDGE BASE:
 ${materialContent.substring(0, 25000)}`;
+  }
+
+  const toneBlock = getToneGuidelines(
+    learnerProfile?.educationLevel,
+    learnerProfile?.preferredLanguage === "en" ? "en" : "ar",
+  );
+  if (!systemPrompt.includes("AGE-APPROPRIATE LANGUAGE") && !systemPrompt.includes("ضبط اللغة حسب العمر")) {
+    systemPrompt += `\n\n${toneBlock}`;
   }
 
   updatedMessages[0] = { ...updatedMessages[0], content: systemPrompt };

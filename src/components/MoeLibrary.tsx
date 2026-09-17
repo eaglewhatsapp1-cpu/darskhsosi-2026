@@ -46,7 +46,12 @@ const MoeLibrary: React.FC<Props> = ({ language }) => {
       if (data?.error) throw new Error(data.error);
       setFolders(data.folders || []);
       setFiles(data.files || []);
-      if ((data.folders || []).length === 0 && (data.files || []).length === 0) {
+      if (data?.blocked) {
+        setError(t(
+          'موقع الوزارة يمنع التصفّح التلقائي حاليًا. افتح الموقع وانسخ رابط الكتاب (PDF) ثم الصقه بالأسفل لاستيراده مباشرة.',
+          'The ministry site is blocking automatic browsing. Open it, copy the book PDF link, and paste it below to import.'
+        ));
+      } else if ((data.folders || []).length === 0 && (data.files || []).length === 0) {
         setError(t('لم يتم العثور على كتب في هذا القسم.', 'No books found in this section.'));
       }
     } catch (e) {

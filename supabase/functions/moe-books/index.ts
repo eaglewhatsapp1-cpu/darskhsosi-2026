@@ -93,11 +93,21 @@ serve(async (req) => {
     }
 
     if (action === "list") {
-      const res = await fetch(url.href, { headers: BROWSER_HEADERS, redirect: "follow" });
+      let res: Response;
+      try {
+        res = await fetch(url.href, { headers: BROWSER_HEADERS, redirect: "follow" });
+      } catch (e) {
+        console.error("MOE listing fetch error", String(e));
+        return new Response(JSON.stringify({ folders: [], files: [], url: url.href, blocked: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       if (!res.ok) {
-        console.error("MOE listing failed", res.status);
-        return new Response(JSON.stringify({ error: "source_unavailable", status: res.status }), {
-          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        console.warn("MOE listing blocked", res.status);
+        // The ministry site blocks server-side requests (403). Degrade gracefully
+        // so the UI can offer the manual PDF-link import instead of erroring.
+        return new Response(JSON.stringify({ folders: [], files: [], url: url.href, blocked: true, status: res.status }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const html = await res.text();

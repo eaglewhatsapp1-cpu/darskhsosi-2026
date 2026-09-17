@@ -143,6 +143,8 @@ You must respond in JSON format only as follows:
   "tips": ["Pro-tips for faster learning and retention"]
 }`;
 
+    const tonedSystemPrompt = `${systemPrompt}\n\n${getToneGuidelines(educationLevel, language)}`;
+
     const userPrompt = language === 'ar'
       ? `أنشئ خطة دراسية لمدة ${durationWeeks} ${durationWeeks === 1 ? 'أسبوع' : 'أسابيع'} للمادة: ${subjectName}
 

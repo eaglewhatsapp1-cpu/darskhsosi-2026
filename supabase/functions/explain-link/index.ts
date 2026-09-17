@@ -195,6 +195,8 @@ Please follow this structure in your response:
 
 Respond in beautiful and organized Markdown format.`;
 
+    const tonedSystemPrompt = `${systemPrompt}\n\n${getToneGuidelines(educationLevel, language)}`;
+
     const userPrompt = language === 'ar'
       ? `قم بتحليل وشرح محتوى هذا الموقع:
 URL: ${url}

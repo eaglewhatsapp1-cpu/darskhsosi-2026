@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const ALLOWED_HOST = "studentbooks.moe.gov.eg";
-const MAX_BYTES = 25 * 1024 * 1024;
+const MAX_BYTES = 10 * 1024 * 1024;
 
 const BROWSER_HEADERS = {
   "User-Agent":

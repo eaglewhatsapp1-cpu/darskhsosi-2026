@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Sparkles, Star, Trash2, CheckCircle2, XCircle, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUploadedMaterials } from '@/hooks/useUploadedMaterials';
 
 interface BankQuestion {
   id: string;
@@ -34,6 +35,7 @@ interface Props {
 const QuestionBank: React.FC<Props> = ({ language }) => {
   const { user } = useAuth();
   const { profile } = useProfile();
+  const { materials } = useUploadedMaterials();
   const subject = profile?.subject || 'general';
   const theme = getSubjectTheme(subject);
   const t = (ar: string, en: string) => (language === 'ar' ? ar : en);
@@ -42,6 +44,8 @@ const QuestionBank: React.FC<Props> = ({ language }) => {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [topic, setTopic] = useState('');
+  const [sourceMode, setSourceMode] = useState<'topic' | 'materials'>('topic');
+  const [selectedMaterialIds, setSelectedMaterialIds] = useState<string[]>([]);
   const [count, setCount] = useState('5');
   const [difficulty, setDifficulty] = useState('medium');
   const [filter, setFilter] = useState<'all' | 'favorites'>('all');
@@ -78,23 +82,49 @@ const QuestionBank: React.FC<Props> = ({ language }) => {
     return { correct, wrong, accuracy: total ? Math.round((correct / total) * 100) : 0 };
   }, [questions]);
 
+  const calculateAge = (birthDate: string | null | undefined) => {
+    if (!birthDate) return null;
+    const birth = new Date(birthDate);
+    if (Number.isNaN(birth.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--;
+    return age >= 0 && age <= 120 ? age : null;
+  };
+
+  const selectedContent = useMemo(() => {
+    if (sourceMode !== 'materials') return '';
+    return materials
+      .filter(m => selectedMaterialIds.includes(m.id) && m.content)
+      .map(m => `### ${m.file_name}\n${m.content || ''}`)
+      .join('\n\n---\n\n')
+      .slice(0, 30000);
+  }, [materials, selectedMaterialIds, sourceMode]);
+
   const handleGenerate = async () => {
     if (!user) return;
-    if (!topic.trim()) {
+    if (sourceMode === 'topic' && !topic.trim()) {
       toast({ title: t('اكتب موضوع الأسئلة أولاً', 'Enter a topic first'), variant: 'destructive' });
+      return;
+    }
+    if (sourceMode === 'materials' && !selectedContent.trim()) {
+      toast({ title: t('اختر مادة مرفوعة تحتوي على محتوى مستخرج أولاً', 'Select an uploaded material with extracted content first'), variant: 'destructive' });
       return;
     }
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-questions', {
         body: {
-          topic: topic.trim(),
+          topic: sourceMode === 'topic' ? topic.trim() : '',
+          content: selectedContent,
+          sourceMaterialIds: selectedMaterialIds,
           subject,
           subjectName: language === 'ar' ? theme.nameAr : theme.nameEn,
           language,
           count: Number(count),
           difficulty,
           educationLevel: profile?.education_level || '',
+          age: calculateAge(profile?.birth_date),
         },
       });
       if (error) throw error;
@@ -116,6 +146,7 @@ const QuestionBank: React.FC<Props> = ({ language }) => {
 
       toast({ title: t(`تمت إضافة ${rows.length} سؤال إلى البنك`, `${rows.length} questions added`) });
       setTopic('');
+      setSelectedMaterialIds([]);
       await fetchQuestions();
     } catch (e) {
       console.error(e);
@@ -179,13 +210,38 @@ const QuestionBank: React.FC<Props> = ({ language }) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Input
-              value={topic}
-              onChange={e => setTopic(e.target.value)}
-              placeholder={t('اكتب الموضوع أو الدرس، مثل: قوانين نيوتن', 'Enter a topic, e.g. Newton\'s laws')}
-              maxLength={200}
-            />
-            <div className="flex flex-wrap gap-3">
+            <div className="flex gap-2">
+              <Button variant={sourceMode === 'topic' ? 'default' : 'outline'} size="sm" onClick={() => setSourceMode('topic')}>
+                {t('من موضوع', 'From topic')}
+              </Button>
+              <Button variant={sourceMode === 'materials' ? 'default' : 'outline'} size="sm" onClick={() => setSourceMode('materials')}>
+                {t('من مكتبتي', 'From my library')}
+              </Button>
+            </div>
+            {sourceMode === 'topic' ? (
+              <Input
+                value={topic}
+                onChange={e => setTopic(e.target.value)}
+                placeholder={t('اكتب الموضوع أو الدرس، مثل: قوانين نيوتن', 'Enter a topic, e.g. Newton\'s laws')}
+                maxLength={200}
+              />
+            ) : (
+              <div className="rounded-lg border p-3 space-y-2 max-h-48 overflow-y-auto">
+                {materials.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('لا توجد مواد مرفوعة بعد.', 'No uploaded materials yet.')}</p>
+                ) : materials.map(material => (
+                  <label key={material.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedMaterialIds.includes(material.id)}
+                      onChange={e => setSelectedMaterialIds(prev => e.target.checked ? [...prev, material.id] : prev.filter(id => id !== material.id))}
+                    />
+                    <span className="truncate">{material.file_name}</span>
+                    {!material.content && <span className="text-xs text-muted-foreground">{t('(لم يُستخرج المحتوى)', '(content not extracted)')}</span>}
+                  </label>
+                ))}
+              </div>
+            )}           <div className="flex flex-wrap gap-3">
               <Select value={count} onValueChange={setCount}>
                 <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>

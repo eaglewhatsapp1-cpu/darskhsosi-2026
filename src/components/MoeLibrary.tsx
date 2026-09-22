@@ -54,6 +54,12 @@ const CATEGORIES = [
     color: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
     description: { ar: 'المرحلة الثانوية العامة والفنية', en: 'General and technical secondary' }
   },
+interface Entry { name: string; url: string }
+
+const ROOT = 'https://studentbooks.moe.gov.eg/Books/';
+
+const SHORTCUTS = [
+  { ar: 'المكتبة الرسمية 2025-2026', en: 'Official 2025-2026 Library', url: ROOT },
 ];
 
 const MoeLibrary: React.FC<Props> = ({ language }) => {
@@ -161,6 +167,27 @@ const MoeLibrary: React.FC<Props> = ({ language }) => {
           {/* Decorative Elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl" />
           <div className="absolute bottom-0 left-0 w-40 h-40 bg-accent/20 rounded-full -ml-10 -mb-10 blur-2xl" />
+    <div className="h-full overflow-y-auto p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto space-y-5">
+        <div className="rounded-2xl p-5 bg-gradient-to-br from-primary to-accent text-white shadow-lg">
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+            <Library className="w-6 h-6" />
+            {t('مكتبة كتب وزارة التربية والتعليم', 'Ministry of Education Book Library')}
+          </h1>
+          <p className="text-sm opacity-90 mt-1">
+            {t(
+              'اختر كتابك من كتب الوزارة ليُحمَّل تلقائيًا ويصبح مادة داخل التطبيق تستخدمها مع المعلم الذكي والملخصات والاختبارات.',
+              'Pick a ministry book and it is downloaded automatically and becomes a material you can use across the app.'
+            )}
+          </p>
+          <a
+            href={ROOT}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs mt-3 underline opacity-90"
+          >
+            {t('فتح موقع المكتبة', 'Open the library site')} <ExternalLink className="w-3 h-3" />
+          </a>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

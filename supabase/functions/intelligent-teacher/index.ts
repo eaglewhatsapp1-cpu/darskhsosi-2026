@@ -24,6 +24,7 @@ interface LearnerProfile {
   educationLevel?: string;
   learningStyle?: string;
   preferredLanguage?: string;
+  age?: number | null;
 }
 
 interface RequestBody {
@@ -91,7 +92,9 @@ const buildSystemPrompt = ({
   const name = learnerProfile?.name || "Learner";
   const level = learnerProfile?.educationLevel || "university";
   const style = learnerProfile?.learningStyle || "visual";
+  const tone = getToneGuidelines(level, learnerProfile?.preferredLanguage === "en" ? "en" : "ar");
   const lang = learnerProfile?.preferredLanguage === "en" ? "English" : "Arabic";
+  const ageLine = learnerProfile?.age != null ? `\n- Actual age: ${learnerProfile.age}` : "";
 
   let systemPrompt = `You are "Dars Khusoosi" (درس خصوصي), an expert-level personalized educational companion.
 Your mission is to guide ${name} through their learning journey with a highly adapted teaching style.
@@ -99,7 +102,7 @@ Your mission is to guide ${name} through their learning journey with a highly ad
 STUDENT CONTEXT:
 - Level: ${level}
 - Preferred Learning Style: ${style}
-- Primary Language: ${lang}
+- Primary Language: ${lang}${ageLine}\n\n${tone}
 
 TEACHING PRINCIPLES:
 1. ADAPT TO LEVEL: For "elementary", use simple analogies. For "professional", use technical terminology.
@@ -147,9 +150,12 @@ const enhanceExistingSystemPrompt = ({
   const name = learnerProfile?.name || "Learner";
   const level = learnerProfile?.educationLevel || "university";
   const style = learnerProfile?.learningStyle || "visual";
+  const tone = getToneGuidelines(level, learnerProfile?.preferredLanguage === "en" ? "en" : "ar");
 
   const updatedMessages = [...messages];
   let systemPrompt = updatedMessages[0].content;
+
+  systemPrompt += `\n\n${tone}`;
 
   if (!systemPrompt.includes(name)) {
     systemPrompt = `Student: ${name} (${level} level, ${style} learner).\n${systemPrompt}`;

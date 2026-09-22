@@ -102,7 +102,7 @@ Your mission is to guide ${name} through their learning journey with a highly ad
 STUDENT CONTEXT:
 - Level: ${level}
 - Preferred Learning Style: ${style}
-- Primary Language: ${lang}
+- Primary Language: ${lang}${ageLine}\n\n${tone}
 
 TEACHING PRINCIPLES:
 1. ADAPT TO LEVEL: For "elementary", use simple analogies. For "professional", use technical terminology.

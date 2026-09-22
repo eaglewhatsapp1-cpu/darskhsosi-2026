@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Upload, FileText, Image, File, X, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
 import { ALLOWED_MATERIAL_TYPES, MAX_FILE_SIZE } from '@/utils/uploadConstants';
+import { splitPdfByMaxBytes } from '@/utils/splitLargePdf';
 
 interface UploadMaterialsProps {
   language: 'ar' | 'en';
@@ -17,7 +18,7 @@ const validateFile = (file: File, allowedTypes: string[], language: 'ar' | 'en')
   if (file.size > MAX_FILE_SIZE) {
     return {
       valid: false,
-      error: language === 'ar' ? 'حجم الملف كبير جداً (الحد الأقصى 10 ميجابايت)' : 'File too large (max 10MB)'
+      error: language === 'ar' ? 'حجم الملف أكبر من الحد المسموح للرفع' : 'File exceeds the configured upload limit'
     };
   }
 
@@ -100,43 +101,62 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
     const documentsToExtract: { id: string; storagePath: string; fileType: string }[] = [];
 
     for (const file of files) {
-      // Validate file before uploading
-      const validation = validateFile(file, ALLOWED_MATERIAL_TYPES, language);
-      if (!validation.valid) {
-        toast.error(`${file.name}: ${validation.error}`);
-        errorCount++;
-        continue;
+      let filesToUpload: File[] = [file];
+
+      // PDFs are split automatically by the real upload-size limit.
+      // Other file types must fit within the limit because splitting them safely
+      // requires format-specific parsers.
+      if (file.size > MAX_FILE_SIZE && file.type === 'application/pdf') {
+        try {
+          filesToUpload = await splitPdfByMaxBytes(file, MAX_FILE_SIZE);
+          toast.info(language === 'ar'
+            ? `تم تقسيم «${file.name}» تلقائياً إلى ${filesToUpload.length} أجزاء وفق حد الرفع.`
+            : `"${file.name}" was automatically split into ${filesToUpload.length} parts using the upload-size limit.`
+          );
+        } catch (splitError) {
+          const message = splitError instanceof Error ? splitError.message : 'PDF splitting failed';
+          toast.error(language === 'ar' ? `تعذر تقسيم ${file.name}: ${message}` : `Could not split ${file.name}: ${message}`);
+          errorCount++;
+          continue;
+        }
       }
 
-      const result = await uploadFile(file);
+      for (const uploadPart of filesToUpload) {
+        const validation = validateFile(uploadPart, ALLOWED_MATERIAL_TYPES, language);
+        if (!validation.valid) {
+          toast.error(`${uploadPart.name}: ${validation.error}`);
+          errorCount++;
+          continue;
+        }
 
-      if (!result) {
-        toast.error(language === 'ar' ? `فشل رفع ${file.name}` : `Failed to upload ${file.name}`);
-        errorCount++;
-        continue;
-      }
+        const result = await uploadFile(uploadPart);
 
-      // Use original filename for display, but sanitized filename was used for storage
-      const { data, error } = await addMaterial({
-        file_name: result.originalFilename || file.name,
-        file_type: file.type,
-        file_size: file.size,
-        storage_path: result.storagePath,
-        content: result.content,
-      });
+        if (!result) {
+          toast.error(language === 'ar' ? `فشل رفع ${uploadPart.name}` : `Failed to upload ${uploadPart.name}`);
+          errorCount++;
+          continue;
+        }
 
-      if (error) {
-        toast.error(language === 'ar' ? `فشل رفع ${file.name}` : `Failed to upload ${file.name}`);
-        errorCount++;
-      } else {
-        successCount++;
-        // Queue documents that need extraction (PDF, DOCX, etc.)
-        if (result.needsExtraction && data?.id && result.storagePath) {
-          documentsToExtract.push({
-            id: data.id,
-            storagePath: result.storagePath,
-            fileType: result.fileType
-          });
+        const { data, error } = await addMaterial({
+          file_name: result.originalFilename || uploadPart.name,
+          file_type: uploadPart.type,
+          file_size: uploadPart.size,
+          storage_path: result.storagePath,
+          content: result.content,
+        });
+
+        if (error) {
+          toast.error(language === 'ar' ? `فشل رفع ${uploadPart.name}` : `Failed to upload ${uploadPart.name}`);
+          errorCount++;
+        } else {
+          successCount++;
+          if (result.needsExtraction && data?.id && result.storagePath) {
+            documentsToExtract.push({
+              id: data.id,
+              storagePath: result.storagePath,
+              fileType: result.fileType
+            });
+          }
         }
       }
     }

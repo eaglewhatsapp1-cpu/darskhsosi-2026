@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitizeApiBaseUrl } from "../_shared/safeApiUrl.ts";
+import { getToneGuidelines } from "../_shared/toneProfile.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +24,7 @@ interface LearnerProfile {
   educationLevel?: string;
   learningStyle?: string;
   preferredLanguage?: string;
+  age?: number | null;
 }
 
 interface RequestBody {
@@ -90,7 +92,10 @@ const buildSystemPrompt = ({
   const name = learnerProfile?.name || "Learner";
   const level = learnerProfile?.educationLevel || "university";
   const style = learnerProfile?.learningStyle || "visual";
+  const tone = getToneGuidelines(level, learnerProfile?.preferredLanguage === "en" ? "en" : "ar");
   const lang = learnerProfile?.preferredLanguage === "en" ? "English" : "Arabic";
+  const tone = getToneGuidelines(level, learnerProfile?.preferredLanguage === "en" ? "en" : "ar");
+  const ageLine = learnerProfile?.age != null ? `\n- Actual age: ${learnerProfile.age}` : "";
 
   let systemPrompt = `You are "Dars Khusoosi" (درس خصوصي), an expert-level personalized educational companion.
 Your mission is to guide ${name} through their learning journey with a highly adapted teaching style.
@@ -144,6 +149,8 @@ const enhanceExistingSystemPrompt = ({
 
   const updatedMessages = [...messages];
   let systemPrompt = updatedMessages[0].content;
+
+  systemPrompt += `\n\n${tone}`;
 
   if (!systemPrompt.includes(name)) {
     systemPrompt = `Student: ${name} (${level} level, ${style} learner).\n${systemPrompt}`;

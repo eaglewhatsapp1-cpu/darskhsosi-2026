@@ -94,7 +94,6 @@ const buildSystemPrompt = ({
   const style = learnerProfile?.learningStyle || "visual";
   const tone = getToneGuidelines(level, learnerProfile?.preferredLanguage === "en" ? "en" : "ar");
   const lang = learnerProfile?.preferredLanguage === "en" ? "English" : "Arabic";
-  const tone = getToneGuidelines(level, learnerProfile?.preferredLanguage === "en" ? "en" : "ar");
   const ageLine = learnerProfile?.age != null ? `\n- Actual age: ${learnerProfile.age}` : "";
 
   let systemPrompt = `You are "Dars Khusoosi" (درس خصوصي), an expert-level personalized educational companion.
@@ -146,6 +145,7 @@ const enhanceExistingSystemPrompt = ({
   const name = learnerProfile?.name || "Learner";
   const level = learnerProfile?.educationLevel || "university";
   const style = learnerProfile?.learningStyle || "visual";
+  const tone = getToneGuidelines(level, learnerProfile?.preferredLanguage === "en" ? "en" : "ar");
 
   const updatedMessages = [...messages];
   let systemPrompt = updatedMessages[0].content;

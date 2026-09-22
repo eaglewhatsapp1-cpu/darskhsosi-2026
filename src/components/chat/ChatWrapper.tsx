@@ -119,6 +119,16 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
     scrollToBottom();
   }, [messages, streamingContent]);
 
+  const learnerAge = (() => {
+    if (!profile.birth_date) return null;
+    const birth = new Date(profile.birth_date);
+    if (Number.isNaN(birth.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) age--;
+    return age >= 0 && age <= 120 ? age : null;
+  })();
+
   const getSelectedMaterialsContent = () => {
     const selected = materials.filter(m => selectedMaterials.includes(m.id));
     if (selected.length === 0) return '';
@@ -235,7 +245,8 @@ const ChatWrapper: React.FC<ChatWrapperProps> = ({
             name: profile.name,
             educationLevel: profile.education_level,
             learningStyle: profile.learning_style,
-            preferredLanguage: profile.preferred_language
+            preferredLanguage: profile.preferred_language,
+            age: learnerAge
           },
           uploadedMaterials: materials.filter(m => selectedMaterials.includes(m.id)).map(m => m.file_name),
           materialContent: getSelectedMaterialsContent()

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getToneGuidelines } from "../_shared/toneProfile.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +44,8 @@ serve(async (req) => {
     const difficulty = ["easy", "medium", "hard"].includes(body.difficulty) ? body.difficulty : "medium";
     const count = Math.min(Math.max(Number(body.count) || 5, 1), 15);
     const level = typeof body.educationLevel === "string" ? body.educationLevel : "";
+    const age = Number.isFinite(Number(body.age)) ? Number(body.age) : null;
+    const toneGuidelines = getToneGuidelines(level, lang);
 
     if (!topic && !content) {
       return new Response(JSON.stringify({ error: "Topic or content is required" }), {
@@ -54,9 +57,17 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    const ageContext = age !== null ? (lang === "ar" ? `العمر الفعلي للمتعلم: ${age} سنة. لا تنشئ أي سؤال يتطلب معرفة أو مهارات أعلى من هذا العمر، حتى لو طُلبت صعوبة أعلى. حافظ على صعوبة مناسبة للعمر أولاً، ثم اجعلها تحدياً داخل حدود المرحلة.` : `Learner's actual age: ${age}. Never create questions requiring knowledge or skills above this age group, even when a higher difficulty is requested. Age appropriateness takes priority.`) : "";
+
     const systemPrompt = lang === "ar"
-      ? `أنت خبير في بناء بنوك الأسئلة التعليمية. أنشئ ${count} سؤال اختيار من متعدد (4 اختيارات لكل سؤال) في مادة "${subjectName}"${level ? ` للمرحلة الدراسية: ${level}` : ""} بمستوى صعوبة ${difficulty}. اكتب الأسئلة والاختيارات والشرح باللغة العربية الفصحى الواضحة، واجعل الشرح مختصرًا ومفيدًا، وتأكد أن إجابة واحدة فقط صحيحة.`
-      : `You are an expert in building educational question banks. Create ${count} multiple-choice questions (4 options each) for the subject "${subjectName}"${level ? `, education level: ${level}` : ""} at ${difficulty} difficulty. Provide a concise useful explanation and ensure exactly one correct answer.`;
+      ? `أنت خبير في بناء بنوك الأسئلة التعليمية. أنشئ ${count} سؤال اختيار من متعدد (4 اختيارات لكل سؤال) في مادة "${subjectName}"${level ? ` للمرحلة الدراسية: ${level}` : ""} بمستوى صعوبة ${difficulty}.
+${ageContext}
+${toneGuidelines}
+اكتب الأسئلة والاختيارات والشرح باللغة العربية الفصحى الواضحة، واجعل الشرح مختصرًا ومفيدًا، وتأكد أن إجابة واحدة فقط صحيحة.`
+      : `You are an expert in building educational question banks. Create ${count} multiple-choice questions (4 options each) for the subject "${subjectName}"${level ? `, education level: ${level}` : ""} at ${difficulty} difficulty.
+${ageContext}
+${toneGuidelines}
+Provide a concise useful explanation and ensure exactly one correct answer.`;
 
     const userPrompt = content
       ? `${lang === "ar" ? "أنشئ الأسئلة من هذا المحتوى" : "Create questions from this content"}:\n\n${content}`

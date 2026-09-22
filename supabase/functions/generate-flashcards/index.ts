@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getToneGuidelines } from "../_shared/toneProfile.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,6 +49,9 @@ serve(async (req) => {
     }
 
     const cardCount = count || 10;
+    const { data: learnerProfile } = await supabaseClient.from("profiles").select("birth_date, education_level").eq("user_id", user.id).maybeSingle();
+    const age = learnerProfile?.birth_date ? (() => { const b = new Date(learnerProfile.birth_date); const t = new Date(); let a = t.getFullYear() - b.getFullYear(); if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--; return a; })() : null;
+    const toneGuidelines = getToneGuidelines(learnerProfile?.education_level, lang);
     const lang = language || "ar";
 
     const subjectLabel = typeof subjectName === "string" && subjectName ? subjectName : (subject || "general");
@@ -55,9 +59,11 @@ serve(async (req) => {
       ? `\nالمادة الدراسية الحالية للمتعلم: ${subjectLabel}. استخدم مصطلحات وأمثلة من هذه المادة، وصُغ البطاقات بما يخدمها.`
       : `\nThe learner's current subject is: ${subjectLabel}. Use terminology and examples from this subject.`;
 
+    const ageGuideline = age != null ? `\nLearner actual age: ${age}. Keep every flashcard appropriate for this age.` : "";
+
     const systemPrompt = (lang === "ar"
       ? `أنت مساعد تعليمي متخصص في إنشاء بطاقات تعليمية (Flashcards). قم بإنشاء ${cardCount} بطاقة تعليمية من المحتوى المقدم. كل بطاقة يجب أن تحتوي على سؤال وجواب. ركز على المفاهيم الأساسية والمصطلحات المهمة.`
-      : `You are an educational assistant specialized in creating flashcards. Create ${cardCount} flashcards from the provided content. Each card should have a question and answer. Focus on key concepts and important terms.`) + subjectLine;
+      : `You are an educational assistant specialized in creating flashcards. Create ${cardCount} flashcards from the provided content. Each card should have a question and answer. Focus on key concepts and important terms.`) + subjectLine + ageGuideline + `\n\n${toneGuidelines}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

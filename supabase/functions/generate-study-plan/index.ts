@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getToneGuidelines } from "../_shared/toneProfile.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -53,6 +54,9 @@ serve(async (req) => {
     const userId = user.id;
     console.log("Authenticated user:", userId);
 
+    const { data: learnerProfile } = await supabaseClient.from("profiles").select("birth_date").eq("user_id", userId).maybeSingle();
+    const age = learnerProfile?.birth_date ? (() => { const b = new Date(learnerProfile.birth_date); const t = new Date(); let a = t.getFullYear() - b.getFullYear(); if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--; return a; })() : null;
+
     const {
       materials,
       subject = 'general',
@@ -79,6 +83,7 @@ serve(async (req) => {
     };
 
     const subjectName = subjectNames[subject]?.[language] || subjectNames.general[language];
+    const toneGuidelines = getToneGuidelines(educationLevel, language);
 
     const materialsContext = materials
       .map(m => `📄 ${m.name}:\n${m.content}`)
@@ -90,7 +95,7 @@ serve(async (req) => {
 
 يجب أن تتبع الخطة المنهجية التالية:
 1. التدرج من السهل إلى الصعب.
-2. مراعاة أسلوب التعلم المفضل للمتعلم (${learningStyle}).
+2. مراعاة أسلوب التعلم المفضل للمتعلم (${learningStyle}).\n3. ${toneGuidelines}\n4. العمر الفعلي للمتعلم: ${age ?? "غير محدد"}. لا ترفع مستوى الخطة فوق قدراته العمرية.
 3. تقسيم المحتوى إلى وحدات زمنية منطقية.
 
 يجب أن ترد بتنسيق JSON فقط بالشكل التالي:
@@ -118,7 +123,7 @@ Your task is to transform educational content into a strategic, engaging, and pr
 
 The plan must follow this methodology:
 1. Progressive difficulty (simple to complex).
-2. Alignment with the learner's preferred style (${learningStyle}).
+2. Alignment with the learner's preferred style (${learningStyle}).\n3. ${toneGuidelines}\n4. Learner actual age: ${age ?? "unknown"}. Do not raise the plan beyond age-appropriate expectations.
 3. Logical content breakdown into time units.
 
 You must respond in JSON format only as follows:

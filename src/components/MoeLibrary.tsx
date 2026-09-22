@@ -13,13 +13,10 @@ interface Props {
 
 interface Entry { name: string; url: string }
 
-const ROOT = 'https://studentbooks.moe.gov.eg/books/';
+const ROOT = 'https://studentbooks.moe.gov.eg/Books/';
 
-const SHORTCUTS: { ar: string; en: string; url: string }[] = [
-  { ar: 'رياض الأطفال', en: 'Kindergarten', url: 'https://studentbooks.moe.gov.eg/books/Books-Kindergarten/' },
-  { ar: 'المرحلة الابتدائية', en: 'Primary', url: 'https://studentbooks.moe.gov.eg/books/Books-Primary/' },
-  { ar: 'المرحلة الإعدادية', en: 'Preparatory', url: 'https://studentbooks.moe.gov.eg/books/Books-Preparatory/' },
-  { ar: 'المرحلة الثانوية', en: 'Secondary', url: 'https://studentbooks.moe.gov.eg/books/Books-Secondary/' },
+const SHORTCUTS = [
+  { ar: 'المكتبة الرسمية 2025-2026', en: 'Official 2025-2026 Library', url: ROOT },
 ];
 
 const MoeLibrary: React.FC<Props> = ({ language }) => {
@@ -126,7 +123,7 @@ const MoeLibrary: React.FC<Props> = ({ language }) => {
             )}
           </p>
           <a
-            href="https://studentbooks.moe.gov.eg/books/Books-Kindergarten/"
+            href={ROOT}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs mt-3 underline opacity-90"

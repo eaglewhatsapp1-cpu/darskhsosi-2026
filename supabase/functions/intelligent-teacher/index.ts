@@ -130,6 +130,11 @@ ${materialContent.substring(0, 25000)}`;
 - No specific materials provided. Use your general academic knowledge base.`;
   }
 
+  systemPrompt += `\n\n${getToneGuidelines(
+    learnerProfile?.educationLevel,
+    learnerProfile?.preferredLanguage === "en" ? "en" : "ar",
+  )}`;
+
   return systemPrompt;
 };
 
@@ -161,6 +166,14 @@ const enhanceExistingSystemPrompt = ({
 
 REFERENCE CONTENT FROM KNOWLEDGE BASE:
 ${materialContent.substring(0, 25000)}`;
+  }
+
+  const toneBlock = getToneGuidelines(
+    learnerProfile?.educationLevel,
+    learnerProfile?.preferredLanguage === "en" ? "en" : "ar",
+  );
+  if (!systemPrompt.includes("AGE-APPROPRIATE LANGUAGE") && !systemPrompt.includes("ضبط اللغة حسب العمر")) {
+    systemPrompt += `\n\n${toneBlock}`;
   }
 
   updatedMessages[0] = { ...updatedMessages[0], content: systemPrompt };

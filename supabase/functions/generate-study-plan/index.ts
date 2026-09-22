@@ -147,6 +147,8 @@ You must respond in JSON format only as follows:
   "tips": ["Pro-tips for faster learning and retention"]
 }`;
 
+    const tonedSystemPrompt = `${systemPrompt}\n\n${getToneGuidelines(educationLevel, language)}`;
+
     const userPrompt = language === 'ar'
       ? `أنشئ خطة دراسية لمدة ${durationWeeks} ${durationWeeks === 1 ? 'أسبوع' : 'أسابيع'} للمادة: ${subjectName}
 
@@ -186,7 +188,7 @@ Create a study plan that includes:
       body: JSON.stringify({
         model: 'google/gemini-3-flash-preview',
         messages: [
-          { role: 'system', content: systemPrompt },
+          { role: 'system', content: tonedSystemPrompt },
           { role: 'user', content: userPrompt }
         ],
       }),

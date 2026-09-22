@@ -53,7 +53,6 @@ serve(async (req) => {
     const { data: learnerProfile } = await supabaseClient.from("profiles").select("birth_date, education_level").eq("user_id", user.id).maybeSingle();
     const age = learnerProfile?.birth_date ? (() => { const b = new Date(learnerProfile.birth_date); const t = new Date(); let a = t.getFullYear() - b.getFullYear(); if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--; return a; })() : null;
     const toneGuidelines = getToneGuidelines(learnerProfile?.education_level, lang);
-    const lang = language || "ar";
 
     const subjectLabel = typeof subjectName === "string" && subjectName ? subjectName : (subject || "general");
     const subjectLine = lang === "ar"

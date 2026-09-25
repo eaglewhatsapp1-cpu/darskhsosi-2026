@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { 
-  Loader2, Library, ExternalLink, Link2, GraduationCap, 
+import {
+  Loader2, Library, ExternalLink, Link2, GraduationCap,
   BookOpen, School, Baby, Search, Sparkles, History, ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,17 @@ interface Props {
   language: 'ar' | 'en';
 }
 
-const CATEGORIES = [
+interface Category {
+  id: string;
+  ar: string;
+  en: string;
+  url: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  description: { ar: string; en: string };
+}
+
+const CATEGORIES: Category[] = [
   {
     id: 'kg',
     ar: 'رياض الأطفال',
@@ -56,13 +66,7 @@ const CATEGORIES = [
   }
 ];
 
-interface Entry { name: string; url: string }
-
 const ROOT = 'https://studentbooks.moe.gov.eg/Books/';
-
-const SHORTCUTS = [
-  { ar: 'المكتبة الرسمية 2025-2026', en: 'Official 2025-2026 Library', url: ROOT },
-];
 
 const MoeLibrary: React.FC<Props> = ({ language }) => {
   const t = (ar: string, en: string) => (language === 'ar' ? ar : en);
@@ -73,16 +77,14 @@ const MoeLibrary: React.FC<Props> = ({ language }) => {
   const [importing, setImporting] = useState(false);
 
   const filteredCategories = useMemo(() => {
-    if (!searchQuery) return CATEGORIES;
-    return CATEGORIES.filter(c => 
-      c.ar.includes(searchQuery) || 
-      c.en.toLowerCase().includes(searchQuery.toLowerCase())
+    if (!searchQuery.trim()) return CATEGORIES;
+    const query = searchQuery.trim().toLowerCase();
+    return CATEGORIES.filter(
+      c => c.ar.includes(searchQuery.trim()) || c.en.toLowerCase().includes(query)
     );
   }, [searchQuery]);
 
-  const recentImports = useMemo(() => {
-    return materials.slice(0, 3);
-  }, [materials]);
+  const recentImports = useMemo(() => materials.slice(0, 3), [materials]);
 
   const errorMessage = (code: string) => {
     switch (code) {
@@ -93,7 +95,7 @@ const MoeLibrary: React.FC<Props> = ({ language }) => {
       case 'unsupported_type':
         return t('نوع الملف غير مدعوم (المدعوم: PDF، Word، نص، صور).', 'Unsupported file type (PDF, Word, text, images).');
       case 'file_too_large':
-        return t('حجم الملف أكبر من 25 ميجابايت.', 'File is larger than 25MB.');
+        return t('حجم الملف أكبر من الحد المسموح.', 'File is larger than the allowed limit.');
       case 'no_readable_content':
         return t('لم نجد نصًا قابلاً للقراءة في هذه الصفحة.', 'No readable text found on this page.');
       default:
@@ -104,19 +106,33 @@ const MoeLibrary: React.FC<Props> = ({ language }) => {
   const importFromUrl = async () => {
     const url = manualUrl.trim();
     if (!url) return;
+
     setImporting(true);
     try {
       const { data, error: fnError } = await supabase.functions.invoke('moe-books', {
         body: { action: 'import', url },
       });
+
       if (fnError) throw fnError;
+
       if (data?.error) {
         toast({ title: errorMessage(data.error), variant: 'destructive' });
         return;
       }
 
-      const material = data.material;
-      toast({ title: t(`تم استيراد «${material.file_name}» إلى موادك`, `"${material.file_name}" added to your materials`) });
+      const material = data?.material;
+      if (!material) {
+        toast({ title: errorMessage('unknown'), variant: 'destructive' });
+        return;
+      }
+
+      toast({
+        title: t(
+          `تم استيراد «${material.file_name}» إلى موادك`,
+          `"${material.file_name}" added to your materials`
+        )
+      });
+
       await fetchMaterials();
       setManualUrl('');
 
@@ -126,7 +142,12 @@ const MoeLibrary: React.FC<Props> = ({ language }) => {
       }
 
       toast({ title: t('جارٍ استخراج المحتوى...', 'Extracting content...') });
-      const result = await extractDocumentContent(material.id, material.storage_path, material.file_type);
+      const result = await extractDocumentContent(
+        material.id,
+        material.storage_path,
+        material.file_type
+      );
+
       toast({
         title: result.success
           ? t('أصبح الملف جاهزًا للاستخدام مع كل خصائص التطبيق', 'The file is ready to use across the app')
@@ -144,8 +165,6 @@ const MoeLibrary: React.FC<Props> = ({ language }) => {
   return (
     <div className="h-full overflow-y-auto bg-background/50">
       <div className="max-w-6xl mx-auto p-4 sm:p-8 space-y-8 pb-20">
-        
-        {/* Header Hero Section */}
         <div className="relative overflow-hidden rounded-3xl bg-primary p-8 text-primary-foreground shadow-2xl">
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-4">
@@ -166,194 +185,186 @@ const MoeLibrary: React.FC<Props> = ({ language }) => {
               )}
             </p>
           </div>
-          {/* Decorative Elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl" />
           <div className="absolute bottom-0 left-0 w-40 h-40 bg-accent/20 rounded-full -ml-10 -mb-10 blur-2xl" />
-    <div className="h-full overflow-y-auto p-4 sm:p-6">
-      <div className="max-w-4xl mx-auto space-y-5">
-        <div className="rounded-2xl p-5 bg-gradient-to-br from-primary to-accent text-white shadow-lg">
-          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-            <Library className="w-6 h-6" />
-            {t('مكتبة كتب وزارة التربية والتعليم', 'Ministry of Education Book Library')}
-          </h1>
-          <p className="text-sm opacity-90 mt-1">
-            {t(
-              'اختر كتابك من كتب الوزارة ليُحمَّل تلقائيًا ويصبح مادة داخل التطبيق تستخدمها مع المعلم الذكي والملخصات والاختبارات.',
-              'Pick a ministry book and it is downloaded automatically and becomes a material you can use across the app.'
-            )}
-          </p>
-          <a
-            href={ROOT}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs mt-3 underline opacity-90"
-          >
-            {t('فتح موقع المكتبة', 'Open the library site')} <ExternalLink className="w-3 h-3" />
-          </a>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Main Content Area */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* Search and Browse Section */}
-            <section className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  {t('تصفح المراحل الدراسية', 'Browse Educational Stages')}
-                </h2>
-                <div className="relative w-full sm:w-64">
-                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input 
-                    placeholder={t('ابحث عن مرحلة...', 'Search stages...')}
-                    className="pr-10 bg-card border-none shadow-sm"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
+        <div className="h-full overflow-y-auto p-0 sm:p-2">
+          <div className="max-w-4xl mx-auto space-y-5">
+            <div className="rounded-2xl p-5 bg-gradient-to-br from-primary to-accent text-white shadow-lg">
+              <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <Library className="w-6 h-6" />
+                {t('مكتبة كتب وزارة التربية والتعليم', 'Ministry of Education Book Library')}
+              </h2>
+              <p className="text-sm opacity-90 mt-1">
+                {t(
+                  'اختر كتابك من كتب الوزارة ليُحمَّل تلقائيًا ويصبح مادة داخل التطبيق تستخدمها مع المعلم الذكي والملخصات والاختبارات.',
+                  'Pick a ministry book and it is downloaded automatically and becomes a material you can use across the app.'
+                )}
+              </p>
+              <a
+                href={ROOT}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs mt-3 underline opacity-90"
+              >
+                {t('فتح موقع المكتبة', 'Open the library site')} <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {filteredCategories.map((cat) => (
-                  <a
-                    key={cat.id}
-                    href={cat.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group relative flex flex-col p-5 rounded-2xl border bg-card transition-all hover:shadow-xl hover:-translate-y-1"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={cn("p-3 rounded-xl border", cat.color)}>
-                        <cat.Icon className="w-6 h-6" />
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-8">
+                <section className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h2 className="text-xl font-bold flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                      {t('تصفح المراحل الدراسية', 'Browse Educational Stages')}
+                    </h2>
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder={t('ابحث عن مرحلة...', 'Search stages...')}
+                        className="pr-10 bg-card border-none shadow-sm"
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                      />
                     </div>
-                    <h3 className="text-lg font-bold mb-1">{language === 'ar' ? cat.ar : cat.en}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {language === 'ar' ? cat.description.ar : cat.description.en}
-                    </p>
-                    <div className="mt-auto flex items-center text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                      {t('زيارة الموقع الرسمي', 'Visit Official Site')}
-                      <ArrowRight className={cn("w-3 h-3 mx-1", language === 'ar' ? "rotate-180" : "")} />
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </section>
-
-            {/* Import Tool Card */}
-            <Card className="border-none shadow-lg bg-gradient-to-br from-card to-muted/50 overflow-hidden">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Link2 className="w-5 h-5 text-primary" />
-                  {t('استيراد كتاب محدد', 'Import Specific Book')}
-                </CardTitle>
-                <CardDescription>
-                  {t(
-                    'انسخ رابط الكتاب من موقع الوزارة والصقه هنا لتحويله لمادة دراسية ذكية.',
-                    'Copy the book link from the MOE site and paste it here to convert it into a smart learning material.'
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="relative flex-1">
-                    <Input
-                      value={manualUrl}
-                      onChange={e => setManualUrl(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') importFromUrl(); }}
-                      placeholder="https://studentbooks.moe.gov.eg/..."
-                      dir="ltr"
-                      className="bg-background border-2 focus-visible:ring-primary h-12"
-                    />
                   </div>
-                  <Button 
-                    onClick={importFromUrl} 
-                    disabled={importing || !manualUrl.trim()} 
-                    className="h-12 px-8 font-bold shadow-lg shadow-primary/20"
-                  >
-                    {importing ? <Loader2 className="w-5 h-5 animate-spin" /> : t('استيراد الآن', 'Import Now')}
-                  </Button>
-                </div>
-                <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground bg-primary/5 p-3 rounded-lg border border-primary/10">
-                  <Sparkles className="w-4 h-4 text-primary shrink-0" />
-                  {t(
-                    'نصيحة: يمكنك أيضاً استيراد أي رابط لمقال تعليمي أو صفحة ويب مفيدة بنفس الطريقة.',
-                    'Tip: You can also import any link to an educational article or useful web page the same way.'
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Sidebar Area */}
-          <div className="space-y-6">
-            <Card className="border-none shadow-md">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <History className="w-5 h-5 text-primary" />
-                  {t('المستورد حديثاً', 'Recently Imported')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="px-0">
-                <ScrollArea className="h-[300px] px-6">
-                  {loading ? (
-                    <div className="flex flex-col gap-4">
-                      {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />)}
-                    </div>
-                  ) : recentImports.length > 0 ? (
-                    <div className="space-y-4">
-                      {recentImports.map((item) => (
-                        <div key={item.id} className="group relative flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <BookOpen className="w-5 h-5 text-primary" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {filteredCategories.map(cat => (
+                      <a
+                        key={cat.id}
+                        href={cat.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group relative flex flex-col p-5 rounded-2xl border bg-card transition-all hover:shadow-xl hover:-translate-y-1"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className={cn('p-3 rounded-xl border', cat.color)}>
+                            <cat.Icon className="w-6 h-6" />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold truncate leading-none mb-1">
-                              {item.file_name}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                              {new Date(item.created_at).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')}
-                            </p>
-                          </div>
+                          <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-10">
-                      <p className="text-sm text-muted-foreground italic">
-                        {t('لا توجد مواد مستوردة بعد', 'No materials imported yet')}
-                      </p>
-                    </div>
-                  )}
-                </ScrollArea>
-              </CardContent>
-            </Card>
+                        <h3 className="text-lg font-bold mb-1">{language === 'ar' ? cat.ar : cat.en}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {language === 'ar' ? cat.description.ar : cat.description.en}
+                        </p>
+                        <div className="mt-auto flex items-center text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                          {t('زيارة الموقع الرسمي', 'Visit Official Site')}
+                          <ArrowRight className={cn('w-3 h-3 mx-1', language === 'ar' ? 'rotate-180' : '')} />
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </section>
 
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-accent/10 to-primary/10 border border-primary/20">
-              <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
-                <GraduationCap className="w-4 h-4" />
-                {t('كيف تبدأ؟', 'How to start?')}
-              </h4>
-              <ul className="text-xs space-y-3 text-muted-foreground font-medium">
-                <li className="flex gap-2">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">1</span>
-                  {t('افتح رابط المرحلة الدراسية أعلاه.', 'Open the educational stage link above.')}
-                </li>
-                <li className="flex gap-2">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">2</span>
-                  {t('ابحث عن كتابك واضغط عليه بالزر الأيمن واختر "Copy Link".', 'Find your book, right-click and choose "Copy Link".')}
-                </li>
-                <li className="flex gap-2">
-                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">3</span>
-                  {t('الصق الرابط في مربع الاستيراد واضغط استيراد.', 'Paste the link in the import box and click import.')}
-                </li>
-              </ul>
+                <Card className="border-none shadow-lg bg-gradient-to-br from-card to-muted/50 overflow-hidden">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Link2 className="w-5 h-5 text-primary" />
+                      {t('استيراد كتاب محدد', 'Import Specific Book')}
+                    </CardTitle>
+                    <CardDescription>
+                      {t(
+                        'انسخ رابط الكتاب من موقع الوزارة والصقه هنا لتحويله لمادة دراسية ذكية.',
+                        'Copy the book link from the MOE site and paste it here to convert it into a smart learning material.'
+                      )}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Input
+                        value={manualUrl}
+                        onChange={e => setManualUrl(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') importFromUrl(); }}
+                        placeholder="https://studentbooks.moe.gov.eg/..."
+                        dir="ltr"
+                        className="bg-background border-2 focus-visible:ring-primary h-12"
+                      />
+                      <Button
+                        onClick={importFromUrl}
+                        disabled={importing || !manualUrl.trim()}
+                        className="h-12 px-8 font-bold shadow-lg shadow-primary/20"
+                      >
+                        {importing ? <Loader2 className="w-5 h-5 animate-spin" /> : t('استيراد الآن', 'Import Now')}
+                      </Button>
+                    </div>
+                    <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground bg-primary/5 p-3 rounded-lg border border-primary/10">
+                      <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                      {t(
+                        'نصيحة: يمكنك أيضاً استيراد أي رابط لمقال تعليمي أو صفحة ويب مفيدة بنفس الطريقة.',
+                        'Tip: You can also import any link to an educational article or useful web page the same way.'
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-6">
+                <Card className="border-none shadow-md">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <History className="w-5 h-5 text-primary" />
+                      {t('المستورد حديثاً', 'Recently Imported')}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-0">
+                    <ScrollArea className="h-[300px] px-6">
+                      {loading ? (
+                        <div className="flex flex-col gap-4">
+                          {[1, 2, 3].map(i => <div key={i} className="h-16 rounded-lg bg-muted animate-pulse" />)}
+                        </div>
+                      ) : recentImports.length > 0 ? (
+                        <div className="space-y-4">
+                          {recentImports.map(item => (
+                            <div key={item.id} className="group relative flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/50 transition-colors">
+                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                <BookOpen className="w-5 h-5 text-primary" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold truncate leading-none mb-1">{item.file_name}</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                  {new Date(item.created_at).toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-10">
+                          <p className="text-sm text-muted-foreground italic">
+                            {t('لا توجد مواد مستوردة بعد', 'No materials imported yet')}
+                          </p>
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-accent/10 to-primary/10 border border-primary/20">
+                  <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4" />
+                    {t('كيف تبدأ؟', 'How to start?')}
+                  </h4>
+                  <ul className="text-xs space-y-3 text-muted-foreground font-medium">
+                    <li className="flex gap-2">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">1</span>
+                      {t('افتح رابط المرحلة الدراسية أعلاه.', 'Open the educational stage link above.')}
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">2</span>
+                      {t('ابحث عن كتابك واضغط عليه بالزر الأيمن واختر "Copy Link".', 'Find your book, right-click and choose "Copy Link".')}
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">3</span>
+                      {t('الصق الرابط في مربع الاستيراد واضغط استيراد.', 'Paste the link in the import box and click import.')}
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>

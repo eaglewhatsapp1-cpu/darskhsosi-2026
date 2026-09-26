@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MAX_BYTES = 25 * 1024 * 1024;
 const ALLOWED_HOST = "studentbooks.moe.gov.eg";
 const MAX_BYTES = 10 * 1024 * 1024;
 

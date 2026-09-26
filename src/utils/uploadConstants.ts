@@ -14,5 +14,8 @@ export const ALLOWED_MATERIAL_TYPES = [
     'image/webp'
 ];
 
-// Maximum file size (10MB)
+// Maximum accepted upload size at the storage/application boundary.
 export const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+// PDFs are split below the hard limit to leave room for storage/API boundary differences.
+export const PDF_SPLIT_TARGET_SIZE = 5 * 1024 * 1024;

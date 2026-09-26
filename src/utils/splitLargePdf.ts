@@ -7,6 +7,9 @@ export interface PdfPart {
 }
 
 export const splitPdfByMaxBytes = async (file: File, maxBytes: number): Promise<PdfPart[]> => {
+  if (!/\.pdf$/i.test(file.name)) {
+    throw new Error('Only PDF files can be split automatically.');
+  }
   if (file.size <= maxBytes) return [{ file, index: 1, total: 1 }];
   if (maxBytes <= 0) throw new Error('Invalid maximum upload size');
 

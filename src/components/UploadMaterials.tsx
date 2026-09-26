@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Upload, FileText, Image, File, X, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
-import { ALLOWED_MATERIAL_TYPES, MAX_FILE_SIZE } from '@/utils/uploadConstants';
+import { ALLOWED_MATERIAL_TYPES, MAX_FILE_SIZE, PDF_SPLIT_TARGET_SIZE } from '@/utils/uploadConstants';
 import { splitPdfByMaxBytes } from '@/utils/splitLargePdf';
 
 interface UploadMaterialsProps {
@@ -14,7 +14,7 @@ interface UploadMaterialsProps {
 
 
 const validateFile = (file: File, allowedTypes: string[], language: 'ar' | 'en'): { valid: boolean; error?: string } => {
-  // Check file size
+  // Check file size after any PDF splitting has already happened.
   if (file.size > MAX_FILE_SIZE) {
     return {
       valid: false,
@@ -103,15 +103,18 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
     for (const file of files) {
       let filesToUpload: File[] = [file];
 
-      // PDFs are split automatically by the real upload-size limit.
-      // Other file types must fit within the limit because splitting them safely
-      // requires format-specific parsers.
-      if (file.size > MAX_FILE_SIZE && file.type === 'application/pdf') {
+      // Detect PDFs by MIME type OR extension. Mobile browsers can provide an empty
+      // or generic MIME type, which previously caused large PDFs to be rejected
+      // before the splitter had a chance to run.
+      const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+
+      // PDFs are split to a safe target below the hard upload limit.
+      if (file.size > MAX_FILE_SIZE && isPdf) {
         try {
-          filesToUpload = await splitPdfByMaxBytes(file, MAX_FILE_SIZE);
+          filesToUpload = await splitPdfByMaxBytes(file, PDF_SPLIT_TARGET_SIZE);
           toast.info(language === 'ar'
-            ? `تم تقسيم «${file.name}» تلقائياً إلى ${filesToUpload.length} أجزاء وفق حد الرفع.`
-            : `"${file.name}" was automatically split into ${filesToUpload.length} parts using the upload-size limit.`
+            ? `تم تقسيم «${file.name}» تلقائياً إلى ${filesToUpload.length} أجزاء بحجم آمن للرفع.`
+            : `"${file.name}" was automatically split into ${filesToUpload.length} parts using a safe upload size.`
           );
         } catch (splitError) {
           const message = splitError instanceof Error ? splitError.message : 'PDF splitting failed';

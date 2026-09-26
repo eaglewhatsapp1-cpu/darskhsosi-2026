@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { toast } from '@/hooks/use-toast';
 import {
   Loader2, Library, ExternalLink, Link2, GraduationCap,
-  BookOpen, School, Baby, Search, Sparkles, History, ArrowRight, FlaskConical, Route, Layers3
+  BookOpen, School, Baby, Search, Sparkles, History, ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -67,26 +67,6 @@ const CATEGORIES: Category[] = [
 ];
 
 const ROOT = 'https://studentbooks.moe.gov.eg/Books/';
-const E_LIBRARY_ROOT = 'https://ellibrary.moe.gov.eg/';
-const BACCALAUREATE_ROOT = 'https://ellibrary.moe.gov.eg/EgyptianBaccalaureate/';
-const BACCALAUREATE_CARDS = [
-  {
-    id: 'baccalaureate-core',
-    ar: 'المواد الأساسية لجميع المسارات',
-    en: 'Core subjects for all pathways',
-    url: 'https://ellibrary.moe.gov.eg/EgyptianBaccalaureate/CoreSubjects/',
-    Icon: Layers3,
-    color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  },
-  {
-    id: 'baccalaureate-specialized',
-    ar: 'المواد التخصصية حسب المسار',
-    en: 'Specialized subjects by pathway',
-    url: 'https://ellibrary.moe.gov.eg/EgyptianBaccalaureate/SpecializedSubjects/',
-    Icon: Route,
-    color: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
-  },
-];
 
 const MoeLibrary: React.FC<Props> = ({ language }) => {
   const t = (ar: string, en: string) => (language === 'ar' ? ar : en);
@@ -210,79 +190,7 @@ const MoeLibrary: React.FC<Props> = ({ language }) => {
         </div>
 
         <div className="h-full overflow-y-auto p-0 sm:p-2">
-          <div className="max-w-6xl mx-auto space-y-8">
-            {/* Egyptian Baccalaureate 2026-2027 */}
-            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-primary to-teal-600 text-white p-6 sm:p-8 shadow-2xl">
-              <div className="absolute -top-20 -end-20 w-72 h-72 rounded-full bg-white/10 blur-3xl" />
-              <div className="relative z-10">
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                  <Badge variant="secondary" className="bg-white/15 text-white border-white/20">2026-2027</Badge>
-                  <Badge variant="secondary" className="bg-white/15 text-white border-white/20">
-                    {t('البكالوريا المصرية', 'Egyptian Baccalaureate')}
-                  </Badge>
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-black mb-3">
-                  {t('البكالوريا المصرية 2026-2027', 'Egyptian Baccalaureate 2026-2027')}
-                </h2>
-                <p className="max-w-3xl text-sm sm:text-base text-white/90 leading-relaxed mb-5">
-                  {t(
-                    'بوابة مستقلة للوصول إلى مصادر البكالوريا، ثم استخدام المواد داخل درس خصوصي مع بنك الأسئلة والمعلم الذكي.',
-                    'A dedicated entry point for Egyptian Baccalaureate resources, with imported materials ready for AI tutoring and question generation.'
-                  )}
-                </p>
-                <a href={BACCALAUREATE_ROOT} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl bg-white text-primary px-4 py-3 font-bold shadow-lg hover:scale-[1.02] transition-transform">
-                  <GraduationCap className="w-5 h-5" />
-                  {t('فتح بوابة البكالوريا', 'Open Baccalaureate Portal')}
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-xl font-bold flex items-center gap-2">
-                    <FlaskConical className="w-5 h-5 text-primary" />
-                    {t('مصادر البكالوريا حسب المسار', 'Baccalaureate resources by pathway')}
-                  </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {t('الوصول المباشر إلى المواد الأساسية والتخصصية.', 'Direct access to core and specialized materials.')}
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {BACCALAUREATE_CARDS.map(card => (
-                  <a key={card.id} href={card.url} target="_blank" rel="noopener noreferrer"
-                    className="group flex items-center gap-4 p-5 rounded-2xl border bg-card hover:shadow-xl hover:-translate-y-0.5 transition-all">
-                    <div className={cn('p-3 rounded-xl border', card.color)}>
-                      <card.Icon className="w-6 h-6" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-bold">{language === 'ar' ? card.ar : card.en}</h3>
-                      <p className="text-xs text-muted-foreground mt-1 break-all">{card.url}</p>
-                    </div>
-                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0" />
-                  </a>
-                ))}
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <div className="rounded-2xl p-5 bg-card border shadow-sm">
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Library className="w-5 h-5 text-primary" />
-                  {t('المكتبة الدراسية الإلكترونية 2026-2027', 'Electronic Study Library 2026-2027')}
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t('المراحل الدراسية التقليدية ومصادر الكتب الرقمية.', 'Traditional stages and digital textbook resources.')}
-                </p>
-                <a href={E_LIBRARY_ROOT} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs mt-3 underline text-primary">
-                  {t('فتح المكتبة الإلكترونية', 'Open e-library')} <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            </section>
+          <div className="max-w-4xl mx-auto space-y-5">
             <div className="rounded-2xl p-5 bg-gradient-to-br from-primary to-accent text-white shadow-lg">
               <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                 <Library className="w-6 h-6" />

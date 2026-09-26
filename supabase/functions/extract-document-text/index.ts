@@ -215,11 +215,20 @@ serve(async (req) => {
 
     const arrayBuffer = await fileData.arrayBuffer();
 
-    // File size validation (10MB limit)
-    if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
+    // Extraction is intentionally kept below the AI gateway payload boundary.
+    // New uploads are split client-side into <=5MB PDF parts. This guard prevents
+    // legacy oversized objects from reaching the base64/AI request path.
+    const EXTRACTION_MAX_BYTES = 5 * 1024 * 1024;
+    if (arrayBuffer.byteLength > EXTRACTION_MAX_BYTES) {
+      const sizeMb = (arrayBuffer.byteLength / (1024 * 1024)).toFixed(1);
       return new Response(
-        JSON.stringify({ error: 'File size exceeds 10MB limit' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          error: `This stored file is ${sizeMb}MB. PDF files must be split into smaller parts before AI extraction. Please re-upload this PDF; the app will split it automatically.`,
+          code: 'oversized_stored_file',
+          sizeMb: Number(sizeMb),
+          maxMb: 5
+        }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

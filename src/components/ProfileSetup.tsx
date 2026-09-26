@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
-import { GraduationCap, Sparkles, BookOpen, Calendar, Heart, Languages, Loader2, Target } from 'lucide-react';
+import { GraduationCap, Sparkles, BookOpen, Calendar, Heart, Languages, Loader2, Target, Backpack, Ruler, Briefcase, Building2 } from 'lucide-react';
 
 interface ProfileSetupProps {
   onComplete: () => void;
@@ -19,6 +19,7 @@ interface ProfileSetupProps {
 const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage, setLanguage }) => {
   const { profile, updateProfile } = useProfile();
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<{ name?: boolean; educationLevel?: boolean; learningStyle?: boolean }>({});
   const hasInitialized = useRef(false);
 
   // Initialize form data with profile data or empty defaults
@@ -128,8 +129,15 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.educationLevel || !formData.learningStyle) {
-      toast.error(currentLanguage === 'ar' ? 'الرجاء ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
+    const nextErrors = {
+      name: !formData.name.trim(),
+      educationLevel: !formData.educationLevel,
+      learningStyle: !formData.learningStyle,
+    };
+    setErrors(nextErrors);
+
+    if (nextErrors.name || nextErrors.educationLevel || nextErrors.learningStyle) {
+      toast.error(currentLanguage === 'ar' ? 'يرجى استكمال الحقول المطلوبة' : 'Please complete the required fields');
       return;
     }
 
@@ -190,10 +198,16 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="h-12"
+                onChange={(e) => { setFormData({ ...formData, name: e.target.value }); setErrors(prev => ({ ...prev, name: false })); }}
+                className={`h-12 ${errors.name ? 'border-destructive ring-1 ring-destructive focus-visible:ring-destructive' : ''}`}
+                aria-invalid={errors.name || undefined}
                 required
               />
+              {errors.name && (
+                <p className="text-sm text-destructive" role="alert">
+                  {currentLanguage === 'ar' ? 'يرجى إدخال الاسم للمتابعة' : 'Please enter your name to continue'}
+                </p>
+              )}
             </div>
 
             {/* Birth Date */}
@@ -212,26 +226,54 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
             </div>
 
             {/* Education Level */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label className="flex items-center gap-2">
                 <GraduationCap className="w-4 h-4 text-primary" />
                 {t('profile.educationLevel')} *
               </Label>
-              <Select
-                value={formData.educationLevel || undefined}
-                onValueChange={(value) => setFormData({ ...formData, educationLevel: value })}
+              <RadioGroup
+                value={formData.educationLevel}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, educationLevel: value });
+                  setErrors(prev => ({ ...prev, educationLevel: false }));
+                }}
+                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"
+                aria-invalid={errors.educationLevel || undefined}
               >
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder={currentLanguage === 'ar' ? 'اختر المستوى' : 'Select level'} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="elementary">{t('education.elementary')}</SelectItem>
-                  <SelectItem value="middle">{t('education.middle')}</SelectItem>
-                  <SelectItem value="high">{t('education.high')}</SelectItem>
-                  <SelectItem value="university">{t('education.university')}</SelectItem>
-                  <SelectItem value="professional">{t('education.professional')}</SelectItem>
-                </SelectContent>
-              </Select>
+                {[
+                  { value: 'elementary', label: t('education.elementary'), icon: Backpack, emoji: '🎒' },
+                  { value: 'middle', label: t('education.middle'), icon: Ruler, emoji: '📐' },
+                  { value: 'high', label: t('education.high'), icon: GraduationCap, emoji: '🎓' },
+                  { value: 'university', label: t('education.university'), icon: Building2, emoji: '🏛️' },
+                  { value: 'professional', label: t('education.professional'), icon: Briefcase, emoji: '💼' },
+                ].map(level => {
+                  const Icon = level.icon;
+                  const active = formData.educationLevel === level.value;
+                  return (
+                    <Label
+                      key={level.value}
+                      htmlFor={`education-${level.value}`}
+                      className={`cursor-pointer min-h-24 sm:min-h-28 rounded-2xl border-2 p-3 sm:p-4 flex flex-col items-center justify-center gap-2 text-center transition-all touch-manipulation select-none ${
+                        active
+                          ? 'border-primary bg-primary/10 shadow-md ring-1 ring-primary/30'
+                          : errors.educationLevel
+                            ? 'border-destructive/70 hover:border-destructive bg-destructive/5'
+                            : 'border-border bg-background hover:border-primary/50 hover:bg-accent/50'
+                      }`}
+                    >
+                      <RadioGroupItem value={level.value} id={`education-${level.value}`} className="sr-only" />
+                      <span className="text-2xl leading-none" aria-hidden>{level.emoji}</span>
+                      <Icon className={`w-5 h-5 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                      <span className="font-semibold text-sm">{level.label}</span>
+                    </Label>
+                  );
+                })}
+              </RadioGroup>
+              {errors.educationLevel && (
+                <p className="text-sm text-destructive" role="alert">
+                  {currentLanguage === 'ar' ? 'يرجى اختيار المرحلة الدراسية للمتابعة' : 'Please choose your education level to continue'}
+                </p>
+              )}
             </div>
 
             {/* Learning Style - Single-select Radio Buttons */}
@@ -242,8 +284,8 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
               </Label>
               <RadioGroup
                 value={formData.learningStyle}
-                onValueChange={handleLearningStyleChange}
-                className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+                onValueChange={(value) => { handleLearningStyleChange(value); setErrors(prev => ({ ...prev, learningStyle: false })); }}
+                className={`grid grid-cols-1 sm:grid-cols-3 gap-4 ${errors.learningStyle ? 'rounded-xl ring-1 ring-destructive p-1' : ''}`}
               >
                 {['visual', 'practical', 'illustrative'].map((style) => (
                   <div
@@ -255,6 +297,11 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, currentLanguage
                   </div>
                 ))}
               </RadioGroup>
+              {errors.learningStyle && (
+                <p className="text-sm text-destructive" role="alert">
+                  {currentLanguage === 'ar' ? 'يرجى اختيار أسلوب التعلم للمتابعة' : 'Please choose a learning style to continue'}
+                </p>
+              )}
             </div>
 
             {/* Learning Languages - Multi-select */}

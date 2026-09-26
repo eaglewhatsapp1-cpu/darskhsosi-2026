@@ -109,7 +109,7 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
       const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
 
       // PDFs are split to a safe target below the hard upload limit.
-      if (file.size > MAX_FILE_SIZE && isPdf) {
+      if (file.size > PDF_SPLIT_TARGET_SIZE && isPdf) {
         try {
           filesToUpload = await splitPdfByMaxBytes(file, PDF_SPLIT_TARGET_SIZE);
           toast.info(language === 'ar'

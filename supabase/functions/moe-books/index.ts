@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +8,8 @@ const corsHeaders = {
 };
 
 const ALLOWED_HOST = "studentbooks.moe.gov.eg";
-const MAX_BYTES = 10 * 1024 * 1024;
+const SOURCE_MAX_BYTES = 50 * 1024 * 1024;
+const PDF_PART_MAX_BYTES = 5 * 1024 * 1024;
 
 const BROWSER_HEADERS = {
   "User-Agent":
@@ -86,6 +88,42 @@ function htmlToText(html: string): string {
 function pageTitle(html: string): string {
   const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return m ? m[1].replace(/\s+/g, " ").trim() : "";
+}
+
+async function splitPdfByMaxBytes(bytes: Uint8Array, maxBytes: number): Promise<Uint8Array[]> {
+  const source = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  const pageCount = source.getPageCount();
+  const parts: Uint8Array[] = [];
+  let current = await PDFDocument.create();
+
+  const flush = async () => {
+    if (current.getPageCount() === 0) return;
+    parts.push(await current.save({ useObjectStreams: true }));
+    current = await PDFDocument.create();
+  };
+
+  for (let i = 0; i < pageCount; i++) {
+    const [page] = await source.copyPages(source, [i]);
+    current.addPage(page);
+
+    const candidate = await current.save({ useObjectStreams: true });
+    if (candidate.byteLength > maxBytes && current.getPageCount() > 1) {
+      current.removePage(current.getPageCount() - 1);
+      await flush();
+
+      const [singlePage] = await source.copyPages(source, [i]);
+      current.addPage(singlePage);
+      const single = await current.save({ useObjectStreams: true });
+      if (single.byteLength > maxBytes) {
+        throw new Error(`Page ${i + 1} is larger than the maximum extraction part size and cannot be split without altering the PDF.`);
+      }
+    } else if (candidate.byteLength > maxBytes) {
+      throw new Error(`Page ${i + 1} is larger than the maximum extraction part size and cannot be split without altering the PDF.`);
+    }
+  }
+
+  await flush();
+  return parts;
 }
 
 function sanitizeName(name: string, fallback: string): string {
@@ -186,7 +224,13 @@ serve(async (req) => {
     // Case 2: a downloadable file (pdf / word / text / image)
     const buffer = new Uint8Array(await res.arrayBuffer());
     if (buffer.byteLength === 0) return json({ error: "empty_file" }, 200);
-    if (buffer.byteLength > MAX_BYTES) return json({ error: "file_too_large" }, 200);
+    if (buffer.byteLength > SOURCE_MAX_BYTES) {
+      return json({
+        error: "file_too_large",
+        maxMb: SOURCE_MAX_BYTES / (1024 * 1024),
+        actualMb: Number((buffer.byteLength / (1024 * 1024)).toFixed(1))
+      }, 200);
+    }
 
     let fileType = SUPPORTED_BINARY[ext];
     if (!fileType) {
@@ -226,7 +270,82 @@ serve(async (req) => {
       return json({ error: "save_failed" }, 500);
     }
 
-    return json({ material, kind: "file" });
+    // Large PDFs are kept intact as the user's reference file, while extraction
+    // uses temporary <=5MB PDF parts. The client extracts those parts in sequence
+    // and combines their text back into the original material.
+    if (fileType === "application/pdf" && buffer.byteLength > PDF_PART_MAX_BYTES) {
+      try {
+        const partBytes = await splitPdfByMaxBytes(buffer, PDF_PART_MAX_BYTES);
+        const parts: Array<{
+          id: string;
+          storage_path: string;
+          file_type: string;
+          file_name: string;
+          index: number;
+          total: number;
+        }> = [];
+
+        const baseName = rawName.replace(/\.pdf$/i, "");
+
+        for (let i = 0; i < partBytes.length; i++) {
+          const partName = `${baseName}.part-${String(i + 1).padStart(3, "0")}-of-${String(partBytes.length).padStart(3, "0")}.pdf`;
+          const partPath = `${user.id}/${Date.now()}_url_part_${String(i + 1).padStart(3, "0")}_${sanitizeName(partName, "part.pdf")}`;
+
+          const { error: partUploadError } = await supabase.storage
+            .from("learning-materials")
+            .upload(partPath, partBytes[i], { contentType: "application/pdf", upsert: false });
+
+          if (partUploadError) {
+            console.error("part upload failed", partUploadError.message);
+            return json({ error: "split_upload_failed" }, 500);
+          }
+
+          const { data: partMaterial, error: partInsertError } = await supabase
+            .from("uploaded_materials")
+            .insert({
+              user_id: user.id,
+              file_name: partName,
+              file_type: "application/pdf",
+              file_size: partBytes[i].byteLength,
+              storage_path: partPath,
+            })
+            .select("id, storage_path, file_type, file_name")
+            .single();
+
+          if (partInsertError || !partMaterial) {
+            console.error("part insert failed", partInsertError?.message);
+            return json({ error: "split_save_failed" }, 500);
+          }
+
+          parts.push({
+            id: partMaterial.id,
+            storage_path: partMaterial.storage_path,
+            file_type: partMaterial.file_type,
+            file_name: partMaterial.file_name,
+            index: i + 1,
+            total: partBytes.length,
+          });
+        }
+
+        return json({
+          material,
+          kind: "file",
+          split: true,
+          partCount: parts.length,
+          parts,
+        });
+      } catch (splitError) {
+        console.error("PDF split failed", splitError);
+        await supabase.storage.from("learning-materials").remove([storagePath]);
+        await supabase.from("uploaded_materials").delete().eq("id", material.id);
+        return json({
+          error: "pdf_split_failed",
+          message: splitError instanceof Error ? splitError.message : "PDF splitting failed"
+        }, 200);
+      }
+    }
+
+    return json({ material, kind: "file", split: false });
   } catch (error) {
     console.error("import-from-url error:", error);
     return json({ error: "request_failed" }, 500);

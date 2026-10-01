@@ -111,7 +111,7 @@ const UploadMaterials: React.FC<UploadMaterialsProps> = ({ language }) => {
       // PDFs are split to a safe target below the hard upload limit.
       if (file.size > PDF_SPLIT_TARGET_SIZE && isPdf) {
         try {
-          filesToUpload = await splitPdfByMaxBytes(file, PDF_SPLIT_TARGET_SIZE);
+          filesToUpload = (await splitPdfByMaxBytes(file, PDF_SPLIT_TARGET_SIZE)).map((p) => p.file);
           toast.info(language === 'ar'
             ? `تم تقسيم «${file.name}» تلقائياً إلى ${filesToUpload.length} أجزاء بحجم آمن للرفع.`
             : `"${file.name}" was automatically split into ${filesToUpload.length} parts using a safe upload size.`

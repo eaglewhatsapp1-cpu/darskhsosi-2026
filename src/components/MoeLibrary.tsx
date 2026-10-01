@@ -142,18 +142,98 @@ const MoeLibrary: React.FC<Props> = ({ language }) => {
       }
 
       toast({ title: t('جارٍ استخراج المحتوى...', 'Extracting content...') });
-      const result = await extractDocumentContent(
-        material.id,
-        material.storage_path,
-        material.file_type
-      );
 
-      toast({
-        title: result.success
-          ? t('أصبح الملف جاهزًا للاستخدام مع كل خصائص التطبيق', 'The file is ready to use across the app')
-          : t('تم الحفظ، لكن تعذّر استخراج النص الآن', 'Saved, but text extraction failed'),
-        variant: result.success ? undefined : 'destructive',
-      });
+      if (data.split && Array.isArray(data.parts) && data.parts.length > 0) {
+        let extractedParts = 0;
+        const partIds: string[] = [];
+        const partStoragePaths: string[] = [];
+
+        for (const part of data.parts) {
+          const partResult = await extractDocumentContent(
+            part.id,
+            part.storage_path,
+            part.file_type
+          );
+
+          if (!partResult.success) {
+            toast({
+              title: t(
+                `تعذر استخراج الجزء ${part.index} من ${part.total}`,
+                `Could not extract part ${part.index} of ${part.total}`
+              ),
+              variant: 'destructive',
+            });
+            continue;
+          }
+
+          extractedParts++;
+          partIds.push(part.id);
+          partStoragePaths.push(part.storage_path);
+        }
+
+        await fetchMaterials();
+        const refreshed = await supabase
+          .from('uploaded_materials')
+          .select('id, content')
+          .in('id', data.parts.map((part: { id: string }) => part.id))
+          .order('id');
+
+        if (refreshed.error) throw refreshed.error;
+
+        const combinedText = (data.parts as Array<{ id: string; index: number }>)
+          .map(part => {
+            const row = (refreshed.data || []).find(item => item.id === part.id);
+            return row?.content ? `[Part ${part.index}]\\n${row.content}` : '';
+          })
+          .filter(Boolean)
+          .join('\\n\\n');
+
+        if (combinedText.trim()) {
+          const { error: combineError } = await supabase
+            .from('uploaded_materials')
+            .update({ content: combinedText.substring(0, 100000) })
+            .eq('id', material.id);
+
+          if (combineError) throw combineError;
+        }
+
+        // Temporary extraction parts are no longer needed after their text is
+        // merged into the original full-size reference material.
+        if (partStoragePaths.length > 0) {
+          await supabase.storage.from('learning-materials').remove(partStoragePaths);
+        }
+        if (partIds.length > 0) {
+          await supabase.from('uploaded_materials').delete().in('id', partIds);
+        }
+
+        await fetchMaterials();
+
+        toast({
+          title: extractedParts === data.parts.length
+            ? t(
+                `تم استخراج الكتاب بالكامل من ${data.parts.length} أجزاء`,
+                `The full book was extracted from ${data.parts.length} parts`
+              )
+            : t(
+                `تم استخراج ${extractedParts} من ${data.parts.length} أجزاء؛ الملف الأصلي محفوظ.`,
+                `${extractedParts} of ${data.parts.length} parts were extracted; the original file is preserved.`
+              ),
+          variant: extractedParts === data.parts.length ? undefined : 'destructive',
+        });
+      } else {
+        const result = await extractDocumentContent(
+          material.id,
+          material.storage_path,
+          material.file_type
+        );
+
+        toast({
+          title: result.success
+            ? t('أصبح الملف جاهزًا للاستخدام مع كل خصائص التطبيق', 'The file is ready to use across the app')
+            : t('تم الحفظ، لكن تعذّر استخراج النص الآن', 'Saved, but text extraction failed'),
+          variant: result.success ? undefined : 'destructive',
+        });
+      }
     } catch (e) {
       console.error(e);
       toast({ title: errorMessage('unknown'), variant: 'destructive' });

@@ -49,6 +49,6 @@ export const splitPdfByMaxBytes = async (file: File, maxBytes: number): Promise<
   return parts.map((bytes, i) => {
     const name = file.name.replace(/\.pdf$/i, '');
     const partName = `${name}.part-${String(i + 1).padStart(3, '0')}-of-${String(total).padStart(3, '0')}.pdf`;
-    return { file: new File([bytes], partName, { type: 'application/pdf' }), index: i + 1, total };
+    return { file: new File([bytes as BlobPart], partName, { type: 'application/pdf' }), index: i + 1, total };
   });
 };

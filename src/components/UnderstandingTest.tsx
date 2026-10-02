@@ -72,6 +72,10 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
       if (progress.answers) setAnswers(progress.answers);
       if (progress.showResults !== undefined) setShowResults(progress.showResults);
       if (progress.settings) setSettings(progress.settings);
+      if (progress.testMode) setTestMode(progress.testMode);
+      if (progress.useMinistryStandards !== undefined) setUseMinistryStandards(progress.useMinistryStandards);
+      if (progress.selectedMinistryAssessment) setSelectedMinistryAssessment(progress.selectedMinistryAssessment);
+      if (progress.paperQuestionCount) setPaperQuestionCount(progress.paperQuestionCount);
       if (progress.timeLeft !== undefined) setTimeLeft(progress.timeLeft);
     }
   }, [progress]);
@@ -85,6 +89,10 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
           answers,
           showResults,
           settings,
+          testMode,
+          useMinistryStandards,
+          selectedMinistryAssessment,
+          paperQuestionCount,
           timeLeft
         });
       }, 2000);

@@ -37,6 +37,10 @@ interface TestSettings {
   includeIntelligenceQuestions: boolean;
 }
 
+type TestMode = 'interactive' | 'paper';
+
+const MINISTRY_ASSESSMENTS_URL = 'https://ellibrary.moe.gov.eg/Performance_Assessments/';
+
 const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
   const { profile } = useProfile();
   const { materials, uploadFile, addMaterial, extractDocumentContent, loading: materialsLoading } = useUploadedMaterials();
@@ -44,6 +48,10 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
 
   const [input, setInput] = useState('');
   const [selectedMaterial, setSelectedMaterial] = useState<string>('');
+  const [selectedMinistryAssessment, setSelectedMinistryAssessment] = useState<string>('');
+  const [testMode, setTestMode] = useState<TestMode>('interactive');
+  const [useMinistryStandards, setUseMinistryStandards] = useState(false);
+  const [paperQuestionCount, setPaperQuestionCount] = useState(20);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<number, any>>({});
   const [showResults, setShowResults] = useState(false);
@@ -122,6 +130,20 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
       poor: { ar: 'تحتاج مزيد من المراجعة 📚', en: 'Needs more review 📚' },
       writeAnswer: { ar: 'اكتب إجابتك هنا...', en: 'Write your answer here...' },
       modelAnswer: { ar: 'الإجابة النموذجية', en: 'Model Answer' },
+      testMode: { ar: 'طريقة الاختبار', en: 'Test Mode' },
+      interactiveMode: { ar: 'اختبار فهم تفاعلي', en: 'Interactive Understanding Test' },
+      paperMode: { ar: 'ورقة امتحان', en: 'Exam Paper' },
+      paperCount: { ar: 'عدد أسئلة ورقة الامتحان', en: 'Exam Question Count' },
+      ministryStandards: { ar: 'معايير وزارة التربية والتعليم', en: 'Ministry of Education Standards' },
+      ministryQuestion: { ar: 'هل تريد أن يكون الاختبار وفق معايير الوزارة؟', en: 'Use Ministry of Education assessment standards?' },
+      ministryDescription: { ar: 'لطلاب الابتدائي والإعدادي والثانوي فقط. اختر تقييمًا رسميًا من مكتبة الوزارة ليُستخدم كمرجع لبناء الامتحان.', en: 'For primary, preparatory and secondary learners only. Choose an official Ministry assessment to use as the exam blueprint.' },
+      openMinistry: { ar: 'فتح الأداءات والتقييمات 2026-2027', en: 'Open 2026-2027 Ministry Assessments' },
+      ministryAssessment: { ar: 'اختر تقييم الوزارة المرفوع', en: 'Choose uploaded Ministry assessment' },
+      uploadAssessment: { ar: 'رفع تقييم الوزارة', en: 'Upload Ministry assessment' },
+      ministryRequired: { ar: 'ارفع تقييم الوزارة أو اختر تقييمًا مرفوعًا لاستخدام معاييره.', en: 'Upload or select a Ministry assessment to use its standards.' },
+      paperGenerated: { ar: 'تم إنشاء ورقة الامتحان بنجاح', en: 'Exam paper generated successfully' },
+      studentPaper: { ar: 'ورقة الطالب', en: 'Student Paper' },
+      answerKey: { ar: 'نموذج الإجابة', en: 'Answer Key' },
     };
     return translations[key]?.[language] || key;
   };
@@ -176,9 +198,46 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
     }
   };
 
+  const isMinistryEligible = ['elementary', 'middle', 'high'].includes(
+    String((profile as any)?.educationLevel ?? (profile as any)?.education_level ?? '').toLowerCase()
+  );
+
+  const handleMinistryAssessmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const result = await uploadFile(file);
+      if (!result) return;
+      const { data, error } = await addMaterial({
+        file_name: result.originalFilename || file.name,
+        file_type: file.type,
+        file_size: file.size,
+        storage_path: result.storagePath,
+        content: result.content,
+      });
+      if (error || !data?.id) throw error || new Error('Assessment upload failed');
+      setSelectedMinistryAssessment(data.id);
+      toast.success(language === 'ar' ? 'تم رفع تقييم الوزارة، جاري تجهيزه...' : 'Ministry assessment uploaded, processing...');
+      if (result.needsExtraction && result.storagePath) {
+        const extractionResult = await extractDocumentContent(data.id, result.storagePath, result.fileType);
+        if (!extractionResult.success) throw new Error(extractionResult.error || 'Extraction failed');
+      }
+      toast.success(language === 'ar' ? 'تقييم الوزارة جاهز للاستخدام' : 'Ministry assessment is ready');
+    } catch (error) {
+      console.error('Ministry assessment upload error:', error);
+      toast.error(language === 'ar' ? 'تعذر تجهيز تقييم الوزارة' : 'Could not process Ministry assessment');
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  };
+
   const handleGenerate = async () => {
     const material = materials.find((m: any) => m.id === selectedMaterial);
+    const assessmentMaterial = materials.find((m: any) => m.id === selectedMinistryAssessment);
     const contentToTest = selectedMaterial ? material?.content : input;
+    const assessmentContent = useMinistryStandards ? assessmentMaterial?.content : '';
 
     if (!contentToTest?.trim()) {
       if (selectedMaterial && !material?.content) {
@@ -186,6 +245,11 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
         return;
       }
       toast.error(language === 'ar' ? 'يرجى إدخال نص أو اختيار ملف' : 'Please enter text or select a file');
+      return;
+    }
+
+    if (useMinistryStandards && isMinistryEligible && !assessmentContent?.trim()) {
+      toast.error(t('ministryRequired'));
       return;
     }
 
@@ -206,7 +270,7 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
       }
 
       const questionTypeInstruction = settings.questionType === 'mcq'
-        ? (language === 'ar' 
+        ? (language === 'ar'
           ? 'جميع الأسئلة يجب أن تكون اختيار من متعدد (mcq) مع 4 خيارات لكل سؤال. correctAnswer يجب أن يكون رقم الخيار الصحيح (0-3).'
           : 'All questions must be multiple choice (mcq) with 4 options each. correctAnswer must be the index of correct option (0-3).')
         : settings.questionType === 'text'
@@ -216,6 +280,25 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
         : (language === 'ar'
           ? 'اجعل نصف الأسئلة اختيار من متعدد (mcq) مع 4 خيارات والنصف الآخر أسئلة نصية (text). للـ mcq: correctAnswer = رقم الخيار (0-3). للـ text: correctAnswer = نص الإجابة النموذجية.'
           : 'Make half MCQ with 4 options and half text. For mcq: correctAnswer = option index (0-3). For text: correctAnswer = model answer text.');
+
+      const generationModeInstruction = testMode === 'paper'
+        ? `أنشئ ورقة امتحان قوية ومتكاملة وليست مجرد قائمة أسئلة.
+- عدد الأسئلة: ${paperQuestionCount}.
+- وزّع الأسئلة على الموضوعات الرئيسية في المحتوى، ولا تكدسها في أول جزء.
+- اجعل الصعوبة متدرجة، مع أسئلة فهم وتطبيق وتحليل واستدلال حسب طبيعة المادة.
+- نوّع صيغ الأسئلة بما يتفق مع نوع المادة وإعدادات السؤال.
+- أنشئ امتحانًا جديدًا أصيلًا؛ لا تنسخ أسئلة المصدر حرفيًا.
+- اجعل الامتحان قابلًا للطباعة والتصدير كاختبار مستقل.
+- أضف correctAnswer وexplanation لكل سؤال لاستخدامهما في نموذج الإجابة والتحليل.`
+        : 'أنشئ اختبار فهم تفاعليًا متدرجًا كما في الوضع الحالي.';
+
+      const ministryInstruction = (useMinistryStandards && isMinistryEligible && assessmentContent?.trim())
+        ? `استخدم ملف تقييم وزارة التربية والتعليم المرفوع كـ Assessment Blueprint، وليس كمصدر وحيد للمحتوى.
+استخرج منه بنية التقييم، أنواع الأسئلة، المهارات، مستويات التفكير، توزيع الموضوعات، وطريقة صياغة المطلوب، ثم طبّق هذه الخصائص على محتوى المادة الأساسي.
+لا تنسخ أسئلة التقييم حرفيًا ولا تدّعِ أن الناتج امتحان رسمي.
+المصدر المرجعي للمعايير:
+${assessmentContent.substring(0, 12000)}`
+        : '';
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/intelligent-teacher`, {
         method: 'POST',
@@ -232,10 +315,12 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
 
 القواعد الصارمة:
 1. ${questionTypeInstruction}
-2. أنشئ بالضبط 5 أسئلة متدرجة الصعوبة.
+2. ${testMode === 'paper' ? `أنشئ بالضبط ${paperQuestionCount} سؤالًا.` : 'أنشئ 5 أسئلة متدرجة الصعوبة.'}
 3. كل سؤال يجب أن يحتوي على نص واضح وكامل في حقل "question".
 4. كل سؤال يجب أن يحتوي على "explanation" مفصل يشرح الإجابة الصحيحة.
-5. ${settings.includeIntelligenceQuestions ? 'أضف سؤالين إضافيين للذكاء والمنطق مرتبطين بالموضوع.' : ''}
+5. ${settings.includeIntelligenceQuestions ? 'أضف أسئلة ذكاء ومنطق مرتبطة بالمحتوى.' : ''}
+6. ${generationModeInstruction}
+7. ${ministryInstruction}
 
 الصيغة المطلوبة (JSON Array فقط، بدون أي نص إضافي):
 [
@@ -245,24 +330,25 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
     "options": ["الخيار أ", "الخيار ب", "الخيار ج", "الخيار د"],
     "correctAnswer": 0,
     "explanation": "شرح مفصل للإجابة الصحيحة"
-  },
-  {
-    "question": "نص السؤال النصي هنا",
-    "type": "text",
-    "correctAnswer": "الإجابة النموذجية الكاملة هنا",
-    "explanation": "شرح مفصل للإجابة"
   }
 ]
 
-مهم جداً: 
+مهم جداً:
 - لا تكتب أي شيء قبل أو بعد الـ JSON Array.
-- حقل "question" يجب أن يحتوي على نص السؤال الفعلي وليس فارغاً أبداً.
-- حقل "correctAnswer" إلزامي لكل سؤال.
+- حقل "question" إلزامي.
+- حقل "correctAnswer" إلزامي.
 - اللغة: ${language === 'ar' ? 'العربية' : 'English'}`
             },
             {
               role: 'user',
-              content: `أنشئ اختباراً بناءً على المحتوى التالي:\n\n${contentToTest.substring(0, 15000)}`,
+              content: `أنشئ الاختبار بناءً على المحتوى التعليمي التالي:
+
+=== المادة التعليمية ===
+${contentToTest.substring(0, 30000)}
+
+${ministryInstruction ? '=== مرجع معايير الوزارة ===\n' + assessmentContent.substring(0, 12000) : ''}
+
+${testMode === 'paper' ? 'أخرج ورقة امتحان متوازنة وجاهزة للطباعة، مع أسئلة أصلية ونموذج إجابة قابل للتصدير.' : 'أخرج اختبار الفهم التفاعلي المعتاد.'}`,
             },
           ],
           learnerProfile: profile,
@@ -365,7 +451,11 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
         if (validQuestions.length > 0) {
           setQuestions(validQuestions);
           if (settings.timedTest) setTimeLeft(settings.duration * 60);
-          toast.success(language === 'ar' ? `تم إنشاء ${validQuestions.length} أسئلة بنجاح!` : `${validQuestions.length} questions generated successfully!`);
+          toast.success(
+            testMode === 'paper'
+              ? t('paperGenerated')
+              : (language === 'ar' ? `تم إنشاء ${validQuestions.length} أسئلة بنجاح!` : `${validQuestions.length} questions generated successfully!`)
+          );
         } else {
           toast.error(language === 'ar' ? 'الأسئلة المولدة غير مكتملة. حاول مرة أخرى.' : 'Generated questions were incomplete. Try again.');
         }
@@ -456,22 +546,89 @@ const UnderstandingTest: React.FC<UnderstandingTestProps> = ({ language }) => {
           <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
         {questions.length > 0 && (
-          <div className="shrink-0 absolute top-4 end-4">
+          <div className="shrink-0 absolute top-4 end-4 flex gap-2">
             <ExportButtons
               language={language}
               messages={questions.map((q, i) => ([
-                { role: 'assistant' as const, content: `${language === 'ar' ? 'سؤال' : 'Question'} ${i + 1}: ${q.question}` },
-                answers[i] !== undefined ? { role: 'user' as const, content: `${language === 'ar' ? 'إجابة' : 'Answer'} ${i + 1}: ${q.type === 'mcq' ? (q.options ? q.options[answers[i]] : answers[i]) : answers[i]}` } : null
-              ].filter(Boolean) as any)).flat()}
-              title={t('title')}
+                { role: 'assistant' as const, content: `${i + 1}. ${q.question}${q.type === 'mcq' && q.options?.length ? '\n' + q.options.map((o, oi) => `${String.fromCharCode(1571 + oi)}) ${o}`).join('\n') : ''}` }
+              ] as any)).flat()}
+              title={testMode === 'paper' ? t('studentPaper') : t('title')}
             />
+            {testMode === 'paper' && (
+              <ExportButtons
+                language={language}
+                messages={questions.map((q, i) => ([
+                  { role: 'assistant' as const, content: `${i + 1}. ${q.question}${q.correctAnswer !== undefined ? '\n' + t('correctAnswer') + ': ' + String(q.type === 'mcq' && q.options ? q.options[Number(q.correctAnswer)] : q.correctAnswer) : ''}` }
+                ] as any)).flat()}
+                title={t('answerKey')}
+              />
+            )}
           </div>
         )}
       </div>
 
 
       {questions.length === 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto w-full">
+        <div className="max-w-7xl mx-auto w-full space-y-6">
+          <Card className="p-5 border-primary/10 shadow-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="font-semibold text-primary">{t('testMode')}</Label>
+                <Select value={testMode} onValueChange={(v: TestMode) => setTestMode(v)}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="interactive">{t('interactiveMode')}</SelectItem>
+                    <SelectItem value="paper">{t('paperMode')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {testMode === 'paper' && (
+                <div className="space-y-2">
+                  <Label>{t('paperCount')}</Label>
+                  <Input type="number" min="5" max="60" value={paperQuestionCount} onChange={(e) => setPaperQuestionCount(Math.max(5, Math.min(60, Number(e.target.value) || 20)))} className="h-11" />
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {isMinistryEligible && (
+            <Card className="p-5 border-amber-300/50 bg-amber-50/40 dark:bg-amber-950/10 shadow-lg">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h3 className="font-bold flex items-center gap-2 text-amber-800 dark:text-amber-300">🎓 {t('ministryStandards')}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{t('ministryDescription')}</p>
+                </div>
+                <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-background/70 border">
+                  <Label htmlFor="ministry-switch" className="font-semibold flex-1 cursor-pointer">{t('ministryQuestion')}</Label>
+                  <Switch id="ministry-switch" checked={useMinistryStandards} onCheckedChange={setUseMinistryStandards} />
+                </div>
+                {useMinistryStandards && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                    <Button type="button" variant="outline" onClick={() => window.open(MINISTRY_ASSESSMENTS_URL, '_blank', 'noopener,noreferrer')}>
+                      🎓 {t('openMinistry')}
+                    </Button>
+                    <Select value={selectedMinistryAssessment} onValueChange={setSelectedMinistryAssessment}>
+                      <SelectTrigger><SelectValue placeholder={t('ministryAssessment')} /></SelectTrigger>
+                      <SelectContent>
+                        {materials.filter((m: any) => m.content && /تقييم|أداء|assessment|performance/i.test(String(m.file_name || ''))).map((m: any) => (
+                          <SelectItem key={m.id} value={m.id}>{m.file_name}</SelectItem>
+                        ))}
+                        {materials.filter((m: any) => m.content && !/تقييم|أداء|assessment|performance/i.test(String(m.file_name || ''))).map((m: any) => (
+                          <SelectItem key={m.id} value={m.id}>{m.file_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <label className="flex items-center justify-center gap-2 min-h-10 px-4 rounded-md border border-dashed cursor-pointer hover:border-primary/50 hover:bg-primary/5">
+                      <span>📤 {t('uploadAssessment')}</span>
+                      <input type="file" className="hidden" onChange={handleMinistryAssessmentUpload} disabled={isUploading} accept=".pdf,.docx,.doc,.txt,.md" />
+                    </label>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto w-full">
           <div className="space-y-6">
             <Card className="p-6 space-y-4 shadow-lg border-primary/10" data-helper-target="test-settings">
               <h3 className="font-semibold flex items-center gap-2 text-primary">

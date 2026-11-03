@@ -750,6 +750,7 @@ ${testMode === 'paper' ? 'أخرج ورقة امتحان متوازنة وجاه
             </Card>
           </div>
         </div>
+      </div>
       ) : (
         <div className="max-w-3xl mx-auto w-full space-y-6">
           {/* Timer */}
